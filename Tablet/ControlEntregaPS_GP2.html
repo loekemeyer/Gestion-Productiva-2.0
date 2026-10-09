@@ -108,79 +108,63 @@
 <title>Control de entregas · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260929a"></script>
-<!-- el CSS de la casa primero (tipografía y botones base, igual que la Tablet) y abajo lo propio -->
-<link rel="stylesheet" href="../gp2-modulo.css?v=20260912c"/>
+<link rel="stylesheet" href="../gp2-modulo.css?v=20261009ds"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <style>
-  *{box-sizing:border-box}
-  body{margin:0;background:#f4f6f8;color:#111;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-       font-size:18px;-webkit-text-size-adjust:100%}
-  .wrap{max-width:1100px;margin:0 auto;padding:14px 16px 40px}
-  header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
-         border-bottom:2px solid #d0d7de;padding-bottom:12px;margin-bottom:14px}
-  h1{font-size:23px;margin:0;font-weight:900;color:#0b3b73}
-  .hbtns{display:flex;gap:8px;flex-wrap:wrap}
-  .hlink{min-height:44px;padding:10px 14px;border:2px solid #d0d7de;border-radius:10px;background:#fff;
-         color:#0b3b73;font-size:16px;font-weight:800;text-decoration:none;font-family:inherit;cursor:pointer;
-         display:inline-flex;align-items:center}
-  h2{font-size:18px;margin:18px 0 10px;color:#475569;text-transform:uppercase;letter-spacing:.4px}
-  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
-  .card{border:2px solid #d0d7de;border-radius:14px;background:#fff;padding:14px 16px;overflow-wrap:anywhere}
-  .card.desvio{border-color:#c2410c;background:#fff7ed}
-  .cod{font-size:21px;font-weight:900;color:#0b3b73}
-  .desc{font-size:17px;font-weight:700;margin-top:2px}
-  .meta{font-size:15px;color:#555;margin-top:4px}
-  .remito{margin:10px 0 4px;font-size:17px;font-weight:800;color:#0b5cad}
-  label{display:block;font-size:15px;font-weight:800;color:#475569;margin:10px 0 4px}
-  input{width:100%;min-height:48px;font-size:20px;font-weight:700;padding:8px 10px;border:2px solid #d0d7de;
-        border-radius:10px;background:#fff;color:#111;font-family:inherit;text-align:right}
-  /* v1.4.0: los campos van al ancho del número, no a lo ancho de la tarjeta [usuario 2026-09-29:
+  /* Sólo layout propio: barra, botones, campos, tablas y avisos vienen de gp2-modulo.css. */
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:var(--s3)}
+  .cards > .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+    box-shadow:var(--sh-1);padding:var(--s3) var(--s4) var(--s4);overflow-wrap:anywhere;
+    display:flex;flex-direction:column}
+  .cards > .card.desvio{border-color:var(--warn-600);background:var(--falt-50);box-shadow:0 0 0 1px var(--warn-600)}
+  .cards > .card .cod{font-size:20px;font-weight:800}
+  .cards > .card .desc{font-size:var(--fs-base);font-weight:650;color:var(--ink-900);margin-top:2px}
+  .cards > .card .meta{font-size:var(--fs-sm);color:var(--ink-500);margin-top:2px}
+  .cards > .card .remito{margin:var(--s2) 0 2px;font-size:var(--fs-base);font-weight:700;color:var(--ink-800)}
+  /* los campos van al ancho del número, no a lo ancho de la tarjeta [usuario 2026-09-29:
      "quiero que los boxs de paquetes y kg estén más compactos"] */
-  .campos{display:flex;flex-wrap:wrap;gap:10px}
+  .campos{display:flex;flex-wrap:wrap;gap:10px;margin-top:var(--s2)}
   .campos > div{flex:0 0 124px}
+  .campos label{display:block;font-size:var(--fs-sm);font-weight:600;color:var(--ink-600);margin:0 0 4px}
+  .campos input{width:100%;font-size:20px;font-weight:700;text-align:right}
   /* sin diferencia cargada no hay renglón: un hueco en blanco arriba del botón es espacio muerto */
-  .diff{margin-top:8px;font-size:16px;font-weight:800;color:#166534}
+  .diff{margin-top:var(--s2);font-size:var(--fs-base);font-weight:700;color:var(--ok-700)}
   .diff:empty{display:none}
-  .diff.mal{color:#c2410c}
-  .btn{width:100%;min-height:52px;margin-top:10px;border:0;border-radius:12px;background:#0b5cad;color:#fff;
-       font-size:18px;font-weight:900;font-family:inherit;cursor:pointer}
-  .btn[disabled]{background:#b6c2cf;cursor:default}
-  a.btn{display:flex;align-items:center;justify-content:center;text-decoration:none}
-  .empty{border:2px dashed #d0d7de;border-radius:14px;padding:22px;text-align:center;color:#555;font-size:17px}
-  .table-wrap{overflow-x:auto}
-  table{border-collapse:collapse;width:100%;font-size:16px;background:#fff}
-  th,td{border:1px solid #e2e8f0;padding:8px 10px;text-align:left;white-space:nowrap}
-  th{background:#eef4fb;color:#0b3b73;font-weight:800}
-  td.num{text-align:right}
-  .ok{color:#166534;font-weight:800}
-  .mal{color:#c2410c;font-weight:800}
-  #status{font-size:17px;color:#555;padding:6px 0}
+  .diff.mal{color:var(--warn-700)}
+  /* el botón al pie: las tarjetas de una misma fila terminan alineadas */
+  .cards > .card .btn{margin-top:auto}
+  .cards > .card .campos,.cards > .card .diff,.cards > .card .remito{margin-bottom:var(--s3)}
+  .cards > .card .campos + .diff{margin-top:calc(-1 * var(--s1))}
+  #pend .empty,#hechosWrap .empty{grid-column:1 / -1;background:var(--surface);border:1px dashed var(--line-strong);border-radius:var(--r-lg)}
+  #hechosWrap td{white-space:nowrap}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>Control de entregas <span style="font-size:15px;font-weight:700;color:#475569">prov. de servicio, talleristas e insumos</span></h1>
+<div class="card">
+  <div class="header">
+    <h1>Control de entregas <small>prov. de servicio, talleristas e insumos</small></h1>
     <div class="hbtns">
-      <a class="hlink" href="Tablet_GP2.html?modo=recibir">← Recepción</a>
-      <a class="hlink" href="../GP2_MODULOS.html">Menú</a>
+      <a class="back hlink" href="Tablet_GP2.html?modo=recibir">Recepción</a>
+      <a href="../GP2_MODULOS.html">Menú</a>
     </div>
-  </header>
-
-  <div id="status">Cargando…</div>
-
-  <h2>Pendiente de controlar (<span id="nPend">0</span>)</h2>
-  <div class="cards" id="pend"></div>
-
-  <!-- prov. de insumos: se controlan en su propia pantalla; acá está la puerta (v1.5.0) -->
-  <div id="insBox" class="hidden">
-    <h2>Prov. de insumos sin controlar (<span id="nIns">0</span>)</h2>
-    <div class="cards" id="insPend"></div>
   </div>
 
-  <h2>Controlado</h2>
-  <div class="table-wrap" id="hechosWrap"></div>
+  <div class="steps">
+    <div id="status" class="status">Cargando…</div>
+
+    <h2 class="sec-title">Pendiente de controlar <span class="badge dark" id="nPend">0</span></h2>
+    <div class="cards" id="pend"></div>
+
+    <!-- prov. de insumos: se controlan en su propia pantalla; acá está la puerta (v1.5.0) -->
+    <div id="insBox" class="hidden">
+      <h2 class="sec-title">Prov. de insumos sin controlar <span class="badge dark" id="nIns">0</span></h2>
+      <div class="cards" id="insPend"></div>
+    </div>
+
+    <h2 class="sec-title">Controlado</h2>
+    <div class="table-wrap" id="hechosWrap"></div>
+  </div>
 </div>
 
 <script src="../auth-guard.js?v=20261006b"></script>
@@ -327,7 +311,7 @@ function render() {
         (env ? " · " + fmt(env.factor, 0) + " por " + esc(singular(env.label)) : "") + "</div>" +
       '<div class="campos">' + campos + "</div>" +
       '<div class="diff"></div>' +
-      '<button class="btn" type="button" data-a="ok">Confirmar control</button>';
+      '<button class="btn btn-primary btn-lg btn-block" type="button" data-a="ok">Confirmar control</button>';
     cont.appendChild(card);
   });
 
@@ -337,14 +321,14 @@ function render() {
   if (!D.hechos.length) { t.innerHTML = '<div class="empty">Todavía no se controló ninguna entrega.</div>'; }
   else {
     t.innerHTML =
-      '<table><thead><tr><th>Parte</th><th>Proveedor</th><th class="num">Remito</th>' +
+      '<table class="t"><thead><tr><th>Parte</th><th>Proveedor</th><th class="num">Remito</th>' +
       '<th class="num">Contado</th><th class="num">Dif.</th><th class="num">Bultos</th><th>Quién</th></tr></thead><tbody>' +
       D.hechos.map(function (h) {
         var d = Number(h.diff || 0);
         return "<tr><td>" + esc(h.sp_cod || "") + "</td><td>" + esc(h.cp_nombre || "") + "</td>" +
           '<td class="num">' + fmt(Number(h.declarado), 2) + " " + esc(h.unidad) + "</td>" +
           '<td class="num">' + fmt(Number(h.controlado), 2) + " " + esc(h.unidad) + "</td>" +
-          '<td class="num ' + (Math.abs(d) < 0.0005 ? "ok" : "mal") + '">' +
+          '<td class="num ' + (Math.abs(d) < 0.0005 ? "pos" : "neg") + '">' +
             (d > 0 ? "+" : "") + fmt(d, 2) + "</td>" +
           '<td class="num">' + (h.cajones == null ? "—" : fmt(Number(h.cajones), 0)) + "</td>" +
           "<td>" + esc(h.controlado_por || "—") + "</td></tr>";
@@ -369,7 +353,7 @@ function renderInsumos() {
       '<div class="meta">' + fmt(Number(g.n), 0) + (Number(g.n) === 1 ? " recepción" : " recepciones") +
         (g.via === "pesaje" ? " sin pesar" : "") + " · desde " + esc(GP2UI.fechaTsAR(g.desde)) + "</div>" +
       '<div class="remito">' + esc(cods) + "</div>" +
-      '<a class="btn" href="' + esc(href) + '">Controlar →</a></div>';
+      '<a class="btn btn-primary btn-lg btn-block" href="' + esc(href) + '">Controlar →</a></div>';
   }).join("");
 }
 

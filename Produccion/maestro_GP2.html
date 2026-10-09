@@ -9,174 +9,105 @@
   <link rel="icon" href="data:," />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260929a"></script>
+  <link rel="icon" type="image/png" href="../GP2_favicon.png">
+  <link rel="apple-touch-icon" href="../GP2_favicon.png">
+  <link rel="stylesheet" href="../gp2-modulo.css?v=20261009ds">
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', Arial, sans-serif; background: #d9d9de; margin: 0; padding: 16px; color: #222; }
-    .hidden { display: none !important; }
+    /* Solo layout propio: barra, campos, botones, KPIs y tabla son gp2-modulo.css. */
+    .toolbar { align-items: flex-end; }
+    .toolbar select { min-width: 180px; max-width: 280px; }
+    .t td, .t th { white-space: nowrap; }
+    .t td { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+    .t tbody tr { cursor: pointer; }
+    .t td.col-uni-c { font-weight: 700; }
+    .table-wrap > .t > tbody > tr.tm-row > td { background: var(--warn-50); }
+    .table-wrap > .t > tbody > tr.tm-row:hover > td { background: var(--warn-200); }
 
-    .top-bar { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
-    .btn-back { background: #f5f5f5; border: 2px solid #ccc; border-radius: 999px; padding: 8px 18px; font-size: 14px; color: #555; cursor: pointer; text-decoration: none; font-weight: 600; }
-    .btn-back:hover { border-color: #888; }
-    .top-bar h1 { font-size: 22px; color: #111; }
-    .top-bar .tag { background: #111; color: #fff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; letter-spacing: .5px; }
-
-    .card { background: #fff; border: 1px solid #cfcfcf; border-radius: 14px; overflow: hidden; margin-bottom: 16px; max-width: 1300px; }
-    .card-header { background: #111; color: #fff; padding: 16px 22px; font-size: 15px; font-weight: 700; }
-    .card-body { padding: 18px 22px; }
-
-    .filters-grid { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
-    .field { display: flex; flex-direction: column; gap: 4px; }
-    .field label { font-size: 12px; font-weight: 700; color: #555; }
-    .field select, .field input[type="date"] { height: 44px; border: 1px solid #c9d1d9; border-radius: 10px; padding: 0 12px; font-size: 19px; outline: none; background: #fff; min-width: 180px; max-width: 260px; }
-    .field select:focus, .field input[type="date"]:focus { border-color: #cdd7ea; }
-
-    .btn { background: #111; color: #fff; border: none; border-radius: 10px; padding: 10px 24px; font-size: 16px; font-weight: 700; cursor: pointer; height: 44px; display: inline-flex; align-items: center; justify-content: center; }
-    .btn:hover { opacity: 0.85; }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-csv { background: #e7f8ef; }
-
-    .table-wrap { overflow-x: auto; overflow-y: auto; max-height: 70vh; width: fit-content; max-width: 100%; }
-    .row-count { font-size: 13px; color: #666; padding: 10px 0 6px; display: flex; gap: 18px; flex-wrap: wrap; align-items: center; }
-    .row-count strong { color: #111; }
-    table { width: auto; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
-    table col.col-fecha { width: 90px; }
-    table col.col-leg   { width: 60px; }
-    table col.col-oper  { width: 150px; }
-    table col.col-mat   { width: 60px; }
-    table col.col-nom   { width: 170px; }
-    table col.col-uni   { width: 70px; }
-    table col.col-hi    { width: 82px; }
-    table col.col-hf    { width: 82px; }
-    table col.col-seg   { width: 95px; }
-    table col.col-tm    { width: 80px; }
-    table col.col-pje   { width: 75px; }
-    table col.col-tt    { width: 75px; }
-    table col.col-th    { width: 82px; }
-    thead th { background: #f5f5f7; border-bottom: 2px solid #ddd; padding: 10px 10px; text-align: left; font-weight: 700; white-space: nowrap; position: sticky; top: 0; z-index: 2; border-right: 1px solid #e5e5e5; }
-    thead th:last-child { border-right: none; }
-    thead th.r { text-align: right; }
-    tbody td { padding: 8px 10px; border-bottom: 1px solid #eee; border-right: 1px solid #f3f3f3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    tbody td:last-child { border-right: none; }
-    thead th.col-uni-h { background: #e8f0fe; }
-    tbody td.col-uni-c { background: #f7faff; font-weight: 700; }
-    thead th:first-child, tbody td:first-child { padding-left: 12px; }
-    thead th:last-child, tbody td:last-child { padding-right: 12px; }
-    tbody td.r { text-align: right; }
-    tbody tr { cursor: pointer; }
-    tbody tr:nth-child(even) { background: #fafafa; }
-    tbody tr:hover { background: #eef2ff; }
-    tbody tr.tm-row { background: #fffde7 !important; }
-    tbody tr.tm-row:hover { background: #fff9c4 !important; }
-    .badge-tm { display: inline-block; background: #f9a825; color: #3a2c00; font-size: 11px; font-weight: 700; border-radius: 6px; padding: 1px 6px; }
-
-    .loading-msg { text-align: center; padding: 30px; color: #888; font-size: 14px; }
-
-    /* detail modal */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: center; justify-content: center; }
-    .modal-box { background: #fff; border-radius: 18px; width: 460px; max-width: 94vw; box-shadow: 0 12px 40px rgba(0,0,0,0.25); overflow: hidden; }
-    .modal-header { background: #111; color: #fff; padding: 16px 22px; font-weight: 700; font-size: 16px; display: flex; justify-content: space-between; align-items: center; }
-    .modal-header .x { cursor: pointer; font-size: 20px; line-height: 1; opacity: .8; }
-    .modal-header .x:hover { opacity: 1; }
-    .modal-body { padding: 18px 22px; display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; font-size: 14px; }
-    .modal-body .k { color: #666; font-weight: 700; }
-    .modal-body .v { color: #111; word-break: break-word; }
-
-    @media (max-width: 700px) {
-      .filters-grid { flex-direction: column; }
-      .field select, .field input[type="date"] { min-width: 100%; }
+    /* detalle (el sistema no trae modal: se arma con sus tokens) */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.45); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .modal-box { width: 480px; max-width: 100%; max-height: calc(100dvh - 32px); overflow: auto; box-shadow: var(--sh-2); }
+    .modal-box .panel-head .x { margin-left: auto; min-width: var(--touch); }
+    .modal-body { padding: 14px 16px; display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; font-size: var(--fs-td); }
+    .modal-body .k { color: var(--ink-500); font-weight: 600; }
+    .modal-body .v { color: var(--ink-900); word-break: break-word; font-variant-numeric: tabular-nums; }
+    @media (max-width: 640px) {
+      .toolbar .field, .toolbar select { flex: 1 1 100%; max-width: none; }
     }
   </style>
-<link rel="icon" type="image/png" href="../GP2_favicon.png">
-<link rel="apple-touch-icon" href="../GP2_favicon.png">
-<link rel="stylesheet" href="../gp2-claro.css?v=20260903b">
 </head>
 <body>
-<div id="gp2-logobar" style="position:relative;background:#e8edf7;text-align:center;padding:6px 0;border-bottom:1px solid #d0dae7"><a href="../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#385475;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #d1d9e5;border-radius:8px;background:#e9eef7">← Atrás</a><a href="../GP2_MODULOS.html" style="text-decoration:none"><img src="../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
 
-
-  <div class="top-bar">
-    <a href="../Inicio/" class="btn-back">&#8592; Volver</a>
-    <h1>Maestro Produccion</h1>
-    <span class="tag">GP2 · solo lectura</span>
-  </div>
-
-  <div class="card">
-    <div class="card-header">Filtros de busqueda</div>
-    <div class="card-body">
-      <div class="filters-grid">
-        <div class="field">
-          <label>Operario</label>
-          <select id="selOperario"><option value="">Todos</option></select>
-        </div>
-        <div class="field">
-          <label>Fecha desde</label>
-          <input type="date" id="fechaDesde" />
-        </div>
-        <div class="field">
-          <label>Fecha hasta</label>
-          <input type="date" id="fechaHasta" />
-        </div>
-        <div class="field">
-          <label>Matriz</label>
-          <select id="selMatriz"><option value="">Todas</option></select>
-        </div>
-        <div class="field">
-          <label>Tiempo Muerto</label>
-          <select id="selTM"><option value="">Todos</option></select>
-        </div>
-        <div class="field">
-          <label>Orden</label>
-          <select id="selOrden">
-            <option value="desc">Mas nuevo primero</option>
-            <option value="asc">Mas viejo primero</option>
-          </select>
-        </div>
-        <div class="field" style="justify-content:flex-end;">
-          <button class="btn" id="btnBuscar">Buscar</button>
-        </div>
-      </div>
+<div class="card">
+  <div class="header">
+    <h1>Maestro Producción <small>solo lectura</small></h1>
+    <div class="hbtns">
+      <a class="back" href="../GP2_MODULOS.html">Atrás</a>
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-header">Resultados</div>
-    <div class="card-body">
-      <div class="row-count" id="rowCount"></div>
-      <div class="table-wrap">
-        <table>
-          <colgroup>
-            <col class="col-fecha"><col class="col-leg"><col class="col-oper"><col class="col-mat">
-            <col class="col-nom"><col class="col-uni"><col class="col-hi"><col class="col-hf">
-            <col class="col-seg"><col class="col-tm"><col class="col-pje"><col class="col-tt"><col class="col-th">
-          </colgroup>
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Legajo</th>
-              <th>Operario</th>
-              <th>Matriz</th>
-              <th>Nombre Matriz</th>
-              <th class="col-uni-h">Uni</th>
-              <th>Hora Inicio</th>
-              <th>Hora Fin</th>
-              <th class="r">Seg. Trabajados</th>
-              <th class="r">Seg. TM</th>
-              <th class="r">Puntaje</th>
-              <th class="r">T. Toma</th>
-              <th class="r">T. Historico</th>
-            </tr>
-          </thead>
-          <tbody id="tBody"></tbody>
-        </table>
+  <div class="steps">
+    <div class="toolbar">
+      <div class="field">
+        <label for="selOperario">Operario</label>
+        <select id="selOperario"><option value="">Todos</option></select>
       </div>
-      <div id="loadingMsg" class="loading-msg hidden">Cargando...</div>
-      <div id="emptyMsg" class="loading-msg hidden">Sin resultados</div>
+      <div class="field">
+        <label for="fechaDesde">Fecha desde</label>
+        <input type="date" id="fechaDesde" />
+      </div>
+      <div class="field">
+        <label for="fechaHasta">Fecha hasta</label>
+        <input type="date" id="fechaHasta" />
+      </div>
+      <div class="field">
+        <label for="selMatriz">Matriz</label>
+        <select id="selMatriz"><option value="">Todas</option></select>
+      </div>
+      <div class="field">
+        <label for="selTM">Tiempo muerto</label>
+        <select id="selTM"><option value="">Todos</option></select>
+      </div>
+      <div class="field">
+        <label for="selOrden">Orden</label>
+        <select id="selOrden">
+          <option value="desc">Mas nuevo primero</option>
+          <option value="asc">Mas viejo primero</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="btnBuscar">Buscar</button>
     </div>
+
+    <div class="kpis" id="rowCount"></div>
+    <div class="table-wrap">
+      <table class="t">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Legajo</th>
+            <th>Operario</th>
+            <th>Matriz</th>
+            <th>Nombre Matriz</th>
+            <th class="num">Uni</th>
+            <th>Hora Inicio</th>
+            <th>Hora Fin</th>
+            <th class="num">Seg. Trabajados</th>
+            <th class="num">Seg. TM</th>
+            <th class="num">Puntaje</th>
+            <th class="num">T. Toma</th>
+            <th class="num">T. Historico</th>
+          </tr>
+        </thead>
+        <tbody id="tBody"></tbody>
+      </table>
+    </div>
+    <div id="loadingMsg" class="empty hidden">Cargando...</div>
+    <div id="emptyMsg" class="empty hidden">Sin resultados</div>
   </div>
+</div>
 
   <div class="modal-overlay hidden" id="detailModal">
-    <div class="modal-box">
-      <div class="modal-header"><span id="detailTitle">Detalle</span><span class="x" id="detailClose">&times;</span></div>
+    <div class="modal-box panel">
+      <div class="panel-head"><span id="detailTitle">Detalle</span><button class="btn btn-ghost btn-icon x" id="detailClose" aria-label="Cerrar">&times;</button></div>
       <div class="modal-body" id="detailBody"></div>
     </div>
   </div>
@@ -352,17 +283,17 @@
       else { cajones++; sumUni += Number(r.uni || 0); }
     });
     rowCount.innerHTML =
-      '<span><strong>' + rows.length + '</strong> registros</span>' +
-      '<span>Cajones: <strong>' + cajones + '</strong></span>' +
-      '<span>Tiempos muertos: <strong>' + tms + '</strong></span>' +
-      '<span>Total Uni: <strong>' + sumUni.toLocaleString('es-AR') + '</strong></span>';
+      '<div class="kpi"><div class="k">Registros</div><div class="v">' + rows.length + '</div></div>' +
+      '<div class="kpi ok"><div class="k">Cajones</div><div class="v">' + cajones + '</div></div>' +
+      '<div class="kpi warn"><div class="k">Tiempos muertos</div><div class="v">' + tms + '</div></div>' +
+      '<div class="kpi info"><div class="k">Total Uni</div><div class="v">' + sumUni.toLocaleString('es-AR') + '</div></div>';
 
     var frag = document.createDocumentFragment();
     rows.forEach(function (r, idx) {
       var tr = document.createElement('tr');
       if (isTM(r)) tr.classList.add('tm-row');
       var matHtml = isTM(r)
-        ? '<span class="badge-tm">' + esc(r.matriz) + '</span>'
+        ? '<span class="badge warn">' + esc(r.matriz) + '</span>'
         : esc(r.matriz);
       tr.innerHTML =
         '<td>' + fmtDia(r) + '</td>' +
@@ -370,14 +301,14 @@
         '<td>' + esc(r.nombre_empleado || empleadosMap[r.legajo] || '') + '</td>' +
         '<td>' + matHtml + '</td>' +
         '<td>' + esc(r.nombre_matriz) + '</td>' +
-        '<td class="r col-uni-c">' + (isTM(r) ? '' : esc(r.uni)) + '</td>' +
+        '<td class="num col-uni-c">' + (isTM(r) ? '' : esc(r.uni)) + '</td>' +
         '<td>' + esc(r.hora_inicio) + '</td>' +
         '<td>' + esc(r.hora_fin) + '</td>' +
-        '<td class="r">' + esc(r.segundos_trabajados) + '</td>' +
-        '<td class="r">' + esc(r.segundos_tiempo_muerto) + '</td>' +
-        '<td class="r">' + (isTM(r) ? '' : fmt(r.premio)) + '</td>' +
-        '<td class="r">' + (isTM(r) ? '' : fmt(r.tiempo_toma)) + '</td>' +
-        '<td class="r">' + (isTM(r) ? '' : fmt(r.tiempo_historico)) + '</td>';
+        '<td class="num">' + esc(r.segundos_trabajados) + '</td>' +
+        '<td class="num">' + esc(r.segundos_tiempo_muerto) + '</td>' +
+        '<td class="num">' + (isTM(r) ? '' : fmt(r.premio)) + '</td>' +
+        '<td class="num">' + (isTM(r) ? '' : fmt(r.tiempo_toma)) + '</td>' +
+        '<td class="num">' + (isTM(r) ? '' : fmt(r.tiempo_historico)) + '</td>';
       tr.addEventListener('click', function () { openDetail(r); });
       frag.appendChild(tr);
     });
@@ -442,7 +373,7 @@
 
   // boton CSV al lado de Buscar
   var btnCsv = document.createElement('button');
-  btnCsv.className = 'btn btn-csv';
+  btnCsv.className = 'btn btn-secondary';
   btnCsv.textContent = 'Exportar CSV';
   btnCsv.addEventListener('click', exportCSV);
   btnBuscar.parentNode.appendChild(btnCsv);

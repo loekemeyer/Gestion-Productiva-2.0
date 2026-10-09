@@ -10,14 +10,14 @@
 <script src="../supabase-config.js?v=20260929a"></script>
 <script src="../gp2-ui.js?v=20260930a"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
-<link rel="stylesheet" href="../gp2-modulo.css?v=20260912c"/>
+<link rel="stylesheet" href="../gp2-modulo.css?v=20261009ds"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <style>
-  td.num{text-align:right;font-variant-numeric:tabular-nums}
-  td.stk-cell{cursor:pointer;text-decoration:underline dotted}
-  td.stk-cell:hover{background:#eef4fb}
-  .aviso{border:2px solid #f0c36d;background:#fff8e1;color:#7a5b00;border-radius:10px;padding:10px 14px;font-size:15px;margin:10px 0}
+  /* sistema GP2 v2.0 (2026-10-09): look de gp2-modulo.css; acá sólo layout */
+  td.stk-cell{cursor:pointer;text-decoration:underline dotted var(--ink-400)}
+  td.stk-cell:hover{background:var(--brand-100)}
+  .filtros input.search{flex:1 1 360px;min-width:0;width:auto;max-width:640px}
 </style>
 </head>
 <body>
@@ -28,16 +28,16 @@
     <div class="hbtns">
       <button class="hlink" id="btnCSV" type="button">⬇ Exportar CSV</button>
       <a href="../Prov Serv/Control/ControlPS_GP2.html">Control PS</a>
-      <a href="../GP2_MODULOS.html">Atrás</a>
+      <a class="back" href="../GP2_MODULOS.html">Atrás</a>
     </div>
   </div>
 
   <div class="steps">
-    <div class="aviso">Partes que van de un PS a OTRO PS: lo que el <b>PS de origen</b> ya
+    <div class="aviso info">Partes que van de un PS a OTRO PS: lo que el <b>PS de origen</b> ya
     entregó y espera en su sector hasta mandarse al <b>PS siguiente</b>
     (ej. FAAT templa y Guazzaroni niquela). Tocá el Online para ver la composición.</div>
 
-    <div class="search-box"><input type="text" id="q" placeholder="Buscar por parte, SC o proveedor…"></div>
+    <div class="toolbar filtros"><input type="text" class="search" id="q" placeholder="Buscar por parte, SC o proveedor…"></div>
 
     <div class="table-wrap">
       <table class="t">
@@ -85,10 +85,10 @@ function render(){
     var kg  = (x.online!=null && x.kg_x_uni) ? x.online*x.kg_x_uni : null;
     var cj  = (x.online!=null && x.uni_x_cajon) ? x.online/x.uni_x_cajon : null;
     return '<tr>'+
-      '<td><b>'+esc(x.codigo)+'</b><br><small style="color:#777">'+esc(x.descripcion||'')+'</small></td>'+
+      '<td><span class="cod">'+esc(x.codigo)+'</span><span class="sub">'+esc(x.descripcion||'')+'</span></td>'+
       '<td>'+esc(x.sc_cod||'—')+'</td>'+
-      '<td>'+esc(x.ps1_nombre)+'<br><small style="color:#777">'+esc(x.ps1_proceso||'')+'</small></td>'+
-      '<td>'+esc(x.ps2_nombre)+'<br><small style="color:#777">'+esc(x.ps2_proceso||'')+'</small></td>'+
+      '<td>'+esc(x.ps1_nombre)+'<span class="sub">'+esc(x.ps1_proceso||'')+'</span></td>'+
+      '<td>'+esc(x.ps2_nombre)+'<span class="sub">'+esc(x.ps2_proceso||'')+'</span></td>'+
       '<td class="num stk-cell" data-i="'+i+'"><b>'+uni(x.online)+'</b></td>'+
       '<td class="num">'+(kg==null?'—':uni(kg))+'</td>'+
       '<td class="num">'+(cj==null?'—':caj(cj))+'</td>'+

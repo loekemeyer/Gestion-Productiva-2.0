@@ -6,51 +6,64 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Orden de Produccion</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="OrdenProduccion.css?v=20260830l" />
+    <link rel="stylesheet" href="../gp2-modulo.css?v=20261009ds" />
+    <link rel="stylesheet" href="OrdenProduccion.css?v=20261009a" />
   </head>
   <body>
     <div class="card">
-      <button onclick="window.location.href = '../GP2_MODULOS.html'"
-              class="tallerista-btn btn-volver-home no-print">&larr; Volver al inicio</button>
-
-      <h1>Orden de Produccion</h1>
-      <div class="subtitle">
-        Cuanto hay que fabricar en cada matriz para cubrir la demanda mensual (Est Madre x
-        meses de stock) del Sector Crudo y el Sector Procesado. Una orden por matriz, separada
-        por fleje. Tocar el consumo muestra que articulos lo piden.
+      <div class="header">
+        <h1>Orden de Producción <small>por matriz y fleje</small></h1>
+        <div class="hbtns">
+          <button type="button" id="btnImprimir">Imprimir orden</button>
+          <a class="back" href="../GP2_MODULOS.html">Atrás</a>
+        </div>
       </div>
 
-      <div class="toolbar no-print">
-        <input type="text" id="searchInput" class="search-input"
-               placeholder="Buscar matriz, sector o fleje..." />
+      <div class="steps">
+        <!-- en pantalla el título va en la barra; al imprimir la barra se oculta -->
+        <h1 class="solo-print">Orden de Producción</h1>
+        <p class="hint subtitle">
+          Cuanto hay que fabricar en cada matriz para cubrir la demanda mensual (Est Madre x
+          meses de stock) del Sector Crudo y el Sector Procesado. Una orden por matriz, separada
+          por fleje. Tocar el consumo muestra que articulos lo piden.
+        </p>
 
-        <select id="filtroDestino" class="filtro-select">
-          <option value="">Crudo y Procesado</option>
-          <option value="crudo">Solo Sector Crudo</option>
-          <option value="procesado">Solo Sector Procesado</option>
-        </select>
+        <div class="toolbar no-print">
+          <div class="field f-buscar">
+            <label for="searchInput">Buscar</label>
+            <input type="search" id="searchInput" class="search"
+                   placeholder="Matriz, sector o fleje..." />
+          </div>
+          <div class="field">
+            <label for="filtroDestino">Destino</label>
+            <select id="filtroDestino">
+              <option value="">Crudo y Procesado</option>
+              <option value="crudo">Solo Sector Crudo</option>
+              <option value="procesado">Solo Sector Procesado</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="filtroFleje">Fleje</label>
+            <select id="filtroFleje">
+              <option value="">Todos los flejes</option>
+            </select>
+          </div>
+          <label class="chk">
+            <input type="checkbox" id="soloFaltante" checked />
+            Solo matrices con faltante
+          </label>
+        </div>
 
-        <select id="filtroFleje" class="filtro-select">
-          <option value="">Todos los flejes</option>
-        </select>
-
-        <label class="chk">
-          <input type="checkbox" id="soloFaltante" checked />
-          Solo matrices con faltante
-        </label>
-
-        <button type="button" id="btnImprimir" class="btn-accion">Imprimir orden</button>
+        <div id="status" class="status">Cargando...</div>
+        <div id="totales" class="kpis hidden"></div>
+        <div id="result"></div>
       </div>
-
-      <div id="status" class="status">Cargando...</div>
-      <div id="totales" class="totales hidden"></div>
-      <div id="result"></div>
     </div>
 
     <script src="../supabase-config.js?v=20260929a"></script>
     <script src="../gp2-ui.js?v=20260930a"></script>
     <script src="../gp2-numero.js?v=20260911o"></script>
     <script src="../consumo-detalle.js?v=20260921c"></script>
-    <script src="OrdenProduccion.js?v=20260903m"></script>
+    <script src="OrdenProduccion.js?v=20261009a"></script>
   </body>
 </html>

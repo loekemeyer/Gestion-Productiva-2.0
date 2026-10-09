@@ -13,36 +13,19 @@
 <script src="../supabase-config.js?v=20260929a"></script>
 <script src="../gp2-ui.js?v=20260930a"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
-<link rel="stylesheet" href="../gp2-modulo.css?v=20260912c"/>
+<link rel="stylesheet" href="../gp2-modulo.css?v=20261009ds"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <style>
-  .filtros{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0;padding:12px;background:#f6f8fa;border-radius:10px}
-  .filtros label{font-weight:700;font-size:15px;color:#111}
-  .filtros input[type=text], .filtros input[type=date], .filtros select{
-    padding:9px;font-size:18px;border:2px solid #d0d7de;border-radius:8px;color:#111;background:#fff;min-height:44px}
-  .chips{display:flex;gap:8px;flex-wrap:wrap}
-  .chip{padding:8px 14px;border-radius:20px;border:2px solid #d0d7de;background:#fff;font-weight:700;font-size:15px;cursor:pointer;color:#111;min-height:44px}
-  .chip.active{background:#111;color:#fff;border-color:#111}
-  .kpis{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}
-  .kpi{padding:10px 14px;border-radius:10px;background:#eef2f7;border:2px solid #d0d7de;font-weight:800;font-size:16px}
-  .kpi span.n{color:#0b3b73;margin-left:8px;font-size:18px}
-  table.rec{width:100%;border-collapse:collapse;font-size:15px;background:#fff}
-  table.rec th, table.rec td{padding:9px 8px;border-bottom:1px solid #e2e6ea;text-align:left;vertical-align:top}
-  table.rec th{background:#f2f5f8;font-size:14px;color:#111;text-transform:uppercase;letter-spacing:.02em}
-  td.num{text-align:right;font-variant-numeric:tabular-nums}
-  .badge{padding:4px 10px;border-radius:14px;font-size:12px;font-weight:800;display:inline-block}
-  .badge.insumo{background:#e3f2fd;color:#0b3b73}
-  .badge.tallerista{background:#fff3e0;color:#8a4b00}
-  .badge.ok{background:#e8f5e9;color:#0a7a2f}
-  .badge.pend{background:#ffebee;color:#b71c1c}
-  .cod{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:700;color:#111}
-  .muted{color:#666;font-size:13px}
-  .btn-print{padding:11px 18px;font-size:16px;font-weight:800;border-radius:8px;border:2px solid #111;background:#111;color:#fff;cursor:pointer;min-height:44px}
-  @media print {
-    .filtros, .header .hbtns, .btn-print { display:none !important; }
-    body { background:#fff !important; }
-  }
+  /* Lo propio de esta pantalla es layout: el resto lo pone gp2-modulo.css. */
+  .filtros .chips{margin:0}
+  .filtros .f-q{flex:1 1 240px}
+  .filtros > .btn{align-self:flex-end}
+  table.rec td{vertical-align:top}
+  .badge.insumo{background:var(--brand-50);color:var(--brand-700);border-color:var(--brand-200)}
+  .badge.tallerista{background:var(--warn-50);color:var(--warn-700);border-color:var(--warn-200)}
+  .badge.pend{background:var(--err-50);color:var(--err-700);border-color:var(--err-200)}
+  @media print{ .intro{display:none} }
 </style>
 </head>
 <body>
@@ -50,16 +33,17 @@
 <div class="card">
   <div class="header">
     <h1>Recepciones · Checklist Pagos</h1>
-    <div class="hbtns"><a href="../GP2_MODULOS.html">Atrás</a></div>
+    <div class="hbtns"><a class="back" href="../GP2_MODULOS.html">Atrás</a></div>
   </div>
 
-  <p class="muted" style="margin:0 0 10px">
+  <div class="steps">
+  <p class="hint intro">
     Todo lo que entró — insumos por OC y entregas de talleristas — en una sola vista.
     Sirve para cotejar contra facturas antes de cargarlas al sistema. Cada línea trae
     <b>cod_prov</b> (código ISIS del proveedor) y <b>cod_isis</b> (código del ítem).
   </p>
 
-  <div class="filtros">
+  <div class="toolbar filtros">
     <div class="chips" id="chOrigen">
       <button type="button" class="chip active" data-o="todo">Todo</button>
       <button type="button" class="chip" data-o="insumo">Insumos</button>
@@ -70,21 +54,23 @@
       <button type="button" class="chip" data-f="con">Con factura</button>
       <button type="button" class="chip" data-f="sin">Sin factura</button>
     </div>
-    <label>Desde <input type="date" id="fDesde"/></label>
-    <label>Hasta <input type="date" id="fHasta"/></label>
-    <input type="text" id="q" placeholder="Buscar proveedor, código, remito…" style="flex:1;min-width:200px" inputmode="search"/>
-    <button type="button" class="btn-print" id="btnPrint">Imprimir checklist</button>
+  </div>
+  <div class="toolbar filtros">
+    <div class="field"><label for="fDesde">Desde</label><input type="date" id="fDesde"/></div>
+    <div class="field"><label for="fHasta">Hasta</label><input type="date" id="fHasta"/></div>
+    <div class="field f-q"><label for="q">Buscar</label><input type="search" class="search" id="q" placeholder="Proveedor, código, remito…" inputmode="search"/></div>
+    <button type="button" class="btn btn-secondary push" id="btnPrint">Imprimir checklist</button>
   </div>
 
   <div class="kpis">
-    <div class="kpi">Filas <span class="n" id="kpN">0</span></div>
-    <div class="kpi">Insumos <span class="n" id="kpIns">0</span></div>
-    <div class="kpi">Talleristas <span class="n" id="kpTal">0</span></div>
-    <div class="kpi">Sin factura <span class="n" id="kpSin">0</span></div>
+    <div class="kpi"><div class="k">Filas</div><div class="v" id="kpN">0</div></div>
+    <div class="kpi"><div class="k">Insumos</div><div class="v" id="kpIns">0</div></div>
+    <div class="kpi"><div class="k">Talleristas</div><div class="v" id="kpTal">0</div></div>
+    <div class="kpi err"><div class="k">Sin factura</div><div class="v" id="kpSin">0</div></div>
   </div>
 
   <div class="table-wrap">
-    <table class="rec" id="tbl">
+    <table class="t rec" id="tbl">
       <thead><tr>
         <th>Fecha</th>
         <th>Origen</th>
@@ -100,6 +86,7 @@
       </tr></thead>
       <tbody id="tb"></tbody>
     </table>
+  </div>
   </div>
 </div>
 
@@ -158,7 +145,7 @@
         '<td>' + esc(fmtFecha(r.fecha_factura)) + '</td>' +
       '</tr>';
     }).join('');
-    if (!rows.length) tb.innerHTML = '<tr><td colspan="11" style="padding:20px;text-align:center;color:#666">Sin recepciones para estos filtros.</td></tr>';
+    if (!rows.length) tb.innerHTML = '<tr><td colspan="11" class="empty">Sin recepciones para estos filtros.</td></tr>';
   }
 
   async function cargar(){

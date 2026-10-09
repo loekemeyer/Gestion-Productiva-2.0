@@ -203,89 +203,94 @@
      mantenerlas en sync -si allá cambia una columna de movimiento, replicarla acá. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260929a"></script>
-<link rel="stylesheet" href="../gp2-modulo.css?v=20260912c">
+<link rel="stylesheet" href="../gp2-modulo.css?v=20261009ds">
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <style>
- /* grilla de rubros (foto 1): botones que no se estiran a todo el ancho */
- /* v2.5.0: pestañas de planta (Cervantes / Virgilio) */
- .planta-tabs{display:flex;gap:6px;padding:12px 18px 0;border-bottom:2px solid #e5e9ee}
- .planta-tab{padding:10px 18px;min-height:44px;font-size:17px;font-weight:800;border:2px solid #d0d7de;border-bottom:none;border-radius:9px 9px 0 0;background:#f6f8fa;color:#555;cursor:pointer;margin-bottom:-2px}
- .planta-tab.active{background:#fff;color:#111;border-color:#e5e9ee;border-bottom:2px solid #fff}
- .planta-vacia{padding:28px 18px;text-align:center;color:#9aa4af;font-size:16px}
- .planta-tab.sep{margin-left:auto}
- /* v3.2.0: tabla de insumos de Virgilio sin código asignado (arriba de los filtros, sólo en Virgilio) */
- .vins-box{border:2px solid #f0c36d;background:#fffdf5;border-radius:12px;padding:14px 16px;margin:12px 0 6px}
- .vins-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;margin-bottom:6px;cursor:pointer;user-select:none}
- .vins-caret{font-size:16px;color:#8a5a00;line-height:1}
+ /* Rediseño 2026-10-09 (sistema GP2 v2.0): todo lo visual sale de gp2-modulo.css; acá sólo LAYOUT.
+    Pestañas de planta = .tabs del sistema · rubros = .chip en una grilla "grupo | botones" ·
+    filtros en un .panel · popups y Ajuste con .btn / .field. */
+ /* pestañas de planta (Todos / Cervantes / Terceros ······ Virgilio) */
+ .planta-tabs{margin:0 0 var(--s3)}
+ .planta-tab.sep{margin-left:auto;border-left:0}
+ .planta-vacia{padding:28px 18px;text-align:center;color:var(--ink-400)}
+ /* filtros: rubros + buscador en un solo panel */
+ .filtros{padding:12px 14px;margin:0 0 var(--s3)}
+ /* rubros: el rótulo del grupo a la izquierda y sus botones en la misma fila (denso) */
+ #rubros{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 14px;align-items:center}
+ .rubro-grp{grid-column:1;font-size:var(--fs-cap);font-weight:700;color:var(--ink-500);text-transform:uppercase;letter-spacing:.04em;min-width:84px}
+ .rubros{grid-column:2;display:flex;flex-wrap:wrap;gap:6px}
+ .rubro-btn.chip{padding:0 12px;font-size:15px}
+ .filtros .toolbar{margin:10px 0 0;padding-top:10px;border-top:1px solid var(--line-soft)}
+ .filtros .toolbar input.search{flex:1 1 320px;min-width:0;width:auto}
+ .chk{display:flex;align-items:center;gap:8px;min-height:var(--touch);font-size:var(--fs-base);color:var(--ink-700);cursor:pointer;user-select:none}
+ .flje-link{margin-left:auto;font-size:15px;font-weight:650;text-decoration:none;min-height:var(--touch);display:inline-flex;align-items:center}
+ /* v3.2.0: insumos de Virgilio sin código asignado (arriba de los filtros, sólo en Virgilio) */
+ .vins-box{border:1px solid var(--warn-200);border-left:4px solid var(--warn-600);background:var(--warn-50);border-radius:var(--r-lg);padding:10px 14px;margin:0 0 var(--s3)}
+ .vins-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;min-height:var(--touch);align-content:center;cursor:pointer;user-select:none}
+ .vins-caret{font-size:16px;color:var(--warn-700);line-height:1}
  .vins-box.collapsed .vins-body{display:none}
- .vins-box.collapsed{margin-bottom:12px}
- .vins-ttl{font-size:18px;font-weight:800;color:#8a5a00}
- .vins-sub{font-size:14px;color:#7a6a3a}
+ .vins-ttl{font-size:var(--fs-h3);font-weight:700;color:var(--warn-700)}
+ .vins-sub{font-size:var(--fs-sm);color:var(--ink-600)}
  .vins-box .toolbar{margin:6px 0 10px}
- .vins-box table.t td.cod-vacio{color:#c2a84f;text-align:center;font-weight:700}
+ .vins-box table.t td.cod-vacio{color:var(--ink-400);text-align:center;font-weight:700}
  /* v3.3.0: inputs del editor de equivalencia (Cod C / Cod ISIS) + botón guardar */
- .vins-in{padding:6px 8px;font-size:18px;border:2px solid #d0d7de;border-radius:7px;width:96px}
+ .vins-in{width:96px;padding:0 8px!important}
  .vins-cerv{width:118px}
  .vins-cc{white-space:nowrap}
- .vins-ok{margin-left:5px;min-height:38px;padding:4px 11px;font-size:18px;font-weight:800;border:2px solid #15803d;background:#dcfce7;color:#15803d;border-radius:7px;cursor:pointer}
+ .vins-ok{margin-left:5px;width:var(--touch);padding:0}
  .vins-ok[disabled]{opacity:.5;cursor:progress}
- .rubro-lbl{font-size:13px;font-weight:800;color:#666;text-transform:uppercase;letter-spacing:.5px;margin:4px 0 8px}
- .rubro-grp{font-size:12px;font-weight:800;color:#999;text-transform:uppercase;margin:10px 0 6px}
- .rubros{display:flex;flex-wrap:wrap;gap:8px}
- .rubro-btn{padding:11px 16px;min-height:44px;border-radius:9px;border:2px solid #d0d7de;background:#fff;font-weight:700;cursor:pointer;font-size:17px;color:#111}
- .rubro-btn:hover{border-color:#111}
- .rubro-btn.active{background:#111;color:#fff;border-color:#111}
- .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0}
- .toolbar input[type=text]{flex:1 1 260px;min-width:200px;padding:10px 12px;font-size:18px;border:2px solid #d0d7de;border-radius:8px}
- .chk{display:flex;align-items:center;gap:6px;font-size:16px;color:#333;cursor:pointer;user-select:none}
- .chk input{width:20px;height:20px}
- .flje-link{margin-left:auto;font-size:15px;font-weight:700;color:#0066cc;text-decoration:none}
  /* "También en: …" — el componente aparece en otros rubros que el abierto */
- .hint-otros{font-size:16px;color:#333;margin:-4px 0 10px;line-height:1.7}
- .hint-otros b{color:#111}
- .hint-otros a{color:#0066cc;font-weight:800;text-decoration:none;cursor:pointer;white-space:nowrap}
+ .hint-otros{font-size:15px;color:var(--ink-700);margin:0 0 10px;line-height:1.9}
+ .hint-otros b{color:var(--ink-900)}
+ .hint-otros a{color:var(--brand-600);font-weight:700;text-decoration:none;cursor:pointer;white-space:nowrap}
  .hint-otros a:hover{text-decoration:underline}
- .hint-otros .sin-link{font-weight:800;color:#555;white-space:nowrap}
- .nota-tabla{font-size:15px;color:#666;margin:8px 0 0;font-style:italic}
- table.t td.rub-cell{cursor:pointer;color:#0066cc;font-weight:800;text-decoration:underline dotted}
- table.t td.rub-cell:hover{background:#eef4fb}
- table.t td.mov-cell,table.t td.stk-cell,table.t td.max-cell{cursor:pointer;text-decoration:underline dotted}
- table.t td.mov-cell:hover,table.t td.stk-cell:hover,table.t td.max-cell:hover{background:#eef4fb}
+ .hint-otros .sin-link{font-weight:700;color:var(--ink-600);white-space:nowrap}
+ .nota-tabla{font-size:var(--fs-sm);color:var(--ink-500);margin:8px 0 0}
+ /* celdas que se tocan: subrayado punteado (abren un detalle) */
+ table.t td.rub-cell{cursor:pointer;color:var(--brand-600);font-weight:650;text-decoration:underline dotted}
+ table.t td.mov-cell,table.t td.stk-cell,table.t td.max-cell{cursor:pointer;text-decoration:underline dotted var(--ink-400)}
+ table.t td.rub-cell:hover,table.t td.mov-cell:hover,table.t td.stk-cell:hover,table.t td.max-cell:hover{background:var(--brand-100)}
+ /* v3.0.3/v3.0.4: ni las filas con stock ni los movimientos verde/rojo van en negrita */
+ table.t td.pos,table.t td.neg{font-weight:inherit}
+ /* encabezado de 2 filas (Base | Online | Movimientos | Info): la fila de grupos se va con el scroll y
+    queda fija la de columnas — con las dos en top:0 se pisaban (hueco del sistema: thead multi-fila) */
+ #thead > tr:first-child:not(:last-child) > th{position:static}
  /* popup del Máximo: la cuenta en una línea arriba de la tabla */
- .max-linea{font-size:16px;line-height:1.5;margin:0 0 10px;color:#111}
- .max-aviso{font-size:16px;line-height:1.5;margin:0 0 10px;color:#b45309;font-weight:700}
- table.t td.pos{color:#15803d}
- table.t td.neg{color:#b91c1c}
- table.t td.cero{color:#9aa4af}
+ .max-linea{font-size:var(--fs-base);line-height:1.5;margin:0 0 10px;color:var(--ink-900)}
+ .max-aviso{font-size:var(--fs-base);line-height:1.5;margin:0 0 10px;color:var(--warn-700);font-weight:700}
+ .pop-sub{color:var(--ink-500);font-weight:700;font-size:var(--fs-sm)}
  /* popup detalle de movimiento (igual que Stock por Sector) */
- .popup{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
+ .popup{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
  .popup.open{display:flex}
- .pop-card{background:#fff;border-radius:14px;width:100%;max-width:880px;max-height:86vh;overflow:auto;padding:20px}
- .pop-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
- .pop-head h3{font-size:20px;font-weight:800}
+ .pop-card{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--sh-2);width:100%;max-width:960px;max-height:88vh;overflow:auto;padding:18px 20px}
+ .pop-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+ .pop-card .table-wrap{max-height:none}
  /* Ajuste (heredado de Registrar_Movimiento) */
- .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:250;padding:14px}
+ .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.6);display:none;align-items:center;justify-content:center;z-index:250;padding:14px}
  .modal-bg.on{display:flex}
- .modal{background:#fff;border-radius:12px;padding:22px;max-width:600px;width:100%;max-height:94vh;overflow-y:auto}
- .modal h3{margin:0 0 14px;font-size:19px}
- .frow{margin-bottom:12px}
- .frow label{display:block;font-size:13px;text-transform:uppercase;color:#666;font-weight:700;margin-bottom:4px}
- .frow select,.frow input{width:100%;border:2px solid #d0d7de;border-radius:8px;padding:10px 12px;font-size:18px}
- .frow .hint{font-size:13px;color:#666;margin-top:3px;font-style:italic}
- .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;border-top:1px solid #e5e9ee;padding-top:14px}
- .btn-m{padding:12px 20px;border-radius:8px;border:2px solid;font-size:16px;font-weight:800;cursor:pointer;min-height:44px}
- .btn-m.primary{background:#111;border-color:#111;color:#fff}
- .btn-m.primary[disabled]{opacity:.5;cursor:progress}
- .btn-m.cancel{background:#fff;border-color:#d0d7de;color:#111}
- #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#dcfce7;border:1px solid #86efac;color:#15803d;padding:10px 18px;border-radius:8px;font-size:15px;font-weight:700;z-index:300;opacity:0;transition:opacity .2s;pointer-events:none}
+ .modal{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--sh-2);padding:20px 22px;max-width:600px;width:100%;max-height:94vh;overflow-y:auto}
+ .modal h3{margin:0 0 14px;font-size:var(--fs-h2)}
+ .frow{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+ .frow label{font-size:var(--fs-sm);font-weight:600;color:var(--ink-600)}
+ .frow select,.frow input{width:100%}
+ .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+ #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ok-50);border:1px solid var(--ok-200);color:var(--ok-700);padding:10px 18px;border-radius:var(--r-md);box-shadow:var(--sh-2);font-size:15px;font-weight:700;z-index:300;opacity:0;transition:opacity .2s;pointer-events:none}
  #toast.on{opacity:1}
- #toast.err{background:#fee2e2;border-color:#fca5a5;color:#b91c1c}
- .movs-wrap{overflow-x:auto}
- .tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:800;text-transform:uppercase;background:#eef2f7;color:#334}
- details.movs{margin-top:18px;border:1px solid #e5e9ee;border-radius:10px;padding:0 12px}
- details.movs>summary{cursor:pointer;font-weight:800;font-size:17px;padding:12px 0;list-style:none}
- details.movs>summary::-webkit-details-marker{display:none}
+ #toast.err{background:var(--err-50);border-color:var(--err-200);color:var(--err-700)}
+ /* últimos movimientos: acordeón en un panel */
+ details.movs{margin-top:var(--s4);padding:0 14px}
+ details.movs>summary{font-size:var(--fs-h3);font-weight:700;color:var(--ink-900)}
+ details.movs[open]{padding-bottom:14px}
+ @media (max-width:640px){
+   #rubros{display:block}
+   .rubro-grp{margin:8px 0 4px}
+   .rubro-grp:first-child{margin-top:0}
+   .filtros{padding:10px}
+   .planta-tabs{flex-wrap:wrap;overflow:visible}
+   .planta-tabs > *{padding:0 10px}
+   .planta-tab.sep{margin-left:0}
+ }
 </style>
 </head>
 <body>
@@ -295,18 +300,18 @@
     <h1>Stock general</h1>
     <div class="hbtns">
       <button class="hlink" id="btnAjuste" onclick="openAjuste()">± Ajuste</button>
-      <a href="../GP2_MODULOS.html">Atrás</a>
+      <a class="back" href="../GP2_MODULOS.html">Atrás</a>
     </div>
   </div>
 
-  <div class="planta-tabs" role="tablist">
-    <button type="button" class="planta-tab active" id="tabTodos" role="tab" onclick="filtrarPlanta('todos')">🔎 Todos</button>
-    <button type="button" class="planta-tab" id="tabCervantes" role="tab" onclick="filtrarPlanta('cerv')">🏭 Cervantes</button>
-    <button type="button" class="planta-tab" id="tabTerceros" role="tab" onclick="filtrarPlanta('terc')">👥 Terceros</button>
-    <button type="button" class="planta-tab sep" id="tabVirgilio" role="tab" onclick="filtrarPlanta('virg')">🏬 Virgilio</button>
-  </div>
-
   <div class="steps" id="paneCervantes">
+
+    <div class="tabs planta-tabs" role="tablist">
+      <button type="button" class="planta-tab active" id="tabTodos" role="tab" onclick="filtrarPlanta('todos')">🔎 Todos</button>
+      <button type="button" class="planta-tab" id="tabCervantes" role="tab" onclick="filtrarPlanta('cerv')">🏭 Cervantes</button>
+      <button type="button" class="planta-tab" id="tabTerceros" role="tab" onclick="filtrarPlanta('terc')">👥 Terceros</button>
+      <button type="button" class="planta-tab sep" id="tabVirgilio" role="tab" onclick="filtrarPlanta('virg')">🏬 Virgilio</button>
+    </div>
 
     <!-- v3.2.0: insumos de Virgilio sin código asignado (sólo pestaña Virgilio, arriba de los filtros) -->
     <div id="vinsBox" class="vins-box hidden collapsed">
@@ -316,7 +321,7 @@
         <div class="vins-sub" id="vinsSub"></div>
       </div>
       <div class="vins-body" id="vinsBodyWrap">
-        <div class="toolbar"><input type="text" id="vinsQ" placeholder="Buscar insumo sin asignar…"></div>
+        <div class="toolbar"><input type="text" class="search" id="vinsQ" placeholder="Buscar insumo sin asignar…"></div>
         <div class="table-wrap">
           <table class="t">
             <thead><tr>
@@ -330,13 +335,13 @@
       </div>
     </div>
 
-    <div class="rubro-lbl">Rubro</div>
-    <div id="rubros"></div>
-
-    <div class="toolbar">
-      <input type="text" id="q" placeholder="Buscar por código o descripción…">
-      <label class="chk"><input type="checkbox" id="soloStock"> Solo con stock</label>
-      <a id="fljeLink" class="flje-link" style="display:none" href="../StockFlejes/Flejes_GP2.html">Detalle de flejes / rollos →</a>
+    <div class="panel filtros">
+      <div id="rubros"></div>
+      <div class="toolbar">
+        <input type="text" class="search" id="q" placeholder="Buscar por código o descripción…">
+        <label class="chk"><input type="checkbox" id="soloStock"> Solo con stock</label>
+        <a id="fljeLink" class="flje-link" style="display:none" href="../StockFlejes/Flejes_GP2.html">Detalle de flejes / rollos →</a>
+      </div>
     </div>
 
     <div class="hint-otros hidden" id="hintOtros"></div>
@@ -351,9 +356,9 @@
     <div id="notaTabla" class="nota-tabla hidden"></div>
     <div id="status" class="status">Cargando…</div>
 
-    <details class="movs" id="grpMovs">
+    <details class="movs panel" id="grpMovs">
       <summary>📜 Últimos movimientos <span id="movsBadge"></span></summary>
-      <div class="movs-wrap">
+      <div class="table-wrap free">
         <table class="t" id="tblMovs">
           <thead><tr>
             <th>Fecha</th><th>Tipo</th><th>Componente</th><th>Origen</th><th>Destino</th>
@@ -369,7 +374,7 @@
 <!-- popup detalle de un movimiento (rubros de sector) -->
 <div class="popup" id="popup">
   <div class="pop-card">
-    <div class="pop-head"><h3 id="popTitle"></h3><button class="btn-m cancel" id="popClose" type="button">Cerrar</button></div>
+    <div class="pop-head"><h3 id="popTitle"></h3><button class="btn btn-secondary" id="popClose" type="button">Cerrar</button></div>
     <div id="popBody"></div>
   </div>
 </div>
@@ -380,8 +385,8 @@
     <h3 id="modalTitle"></h3>
     <div id="modalForm"></div>
     <div class="actions">
-      <button class="btn-m cancel" onclick="closeModal()">Cancelar</button>
-      <button class="btn-m primary" id="btnSave" onclick="saveModal()">✔ Registrar</button>
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" id="btnSave" onclick="saveModal()">✔ Registrar</button>
     </div>
   </div>
 </div>
@@ -501,7 +506,7 @@ function pintarRubros(){
   lista.forEach(function(r){ var g=r.grupo||""; if(!vistos[g]){ vistos[g]=1; grupos.push(g); } });
   $("rubros").innerHTML = grupos.map(function(g){
     var btns = lista.filter(function(r){ return (r.grupo||"")===g; }).map(function(r){
-      return '<button class="rubro-btn" data-k="'+r.key+'" type="button">'+esc(r.nom)+'</button>';
+      return '<button class="rubro-btn chip" data-k="'+r.key+'" type="button">'+esc(r.nom)+'</button>';
     }).join("");
     return (g ? '<div class="rubro-grp">'+esc(g)+'</div>' : '') + '<div class="rubros">'+btns+'</div>';
   }).join("");
@@ -554,7 +559,7 @@ async function cargarVins(){
   if (!res || res.error || !res.data){
     // una lectura ROTA no es "0 insumos": lo dice, no muestra la tabla vacía.
     VINS = null; $("vinsBody").innerHTML = ""; $("vinsEmpty").classList.add("hidden");
-    $("vinsSub").innerHTML = '<span style="color:#b91c1c;font-weight:700">No se pudo leer el stock de Virgilio — reintentá.</span>';
+    $("vinsSub").innerHTML = '<span class="err-text">No se pudo leer el stock de Virgilio — reintentá.</span>';
     return;
   }
   VINS = res.data;
@@ -570,7 +575,7 @@ function renderVins(){
     var kg = (f.unidad||"").toLowerCase()==="kg";
     return '<tr data-cv="'+esc(f.cod_v||"")+'">'+
       '<td><span class="cod">'+esc(f.cod_v||"")+'</span></td>'+
-      '<td class="vins-cc"><input class="vins-in vins-cerv" type="text" placeholder="Cód. Cervantes"><button type="button" class="vins-ok" title="Vincular esta equivalencia">✓</button></td>'+
+      '<td class="vins-cc"><input class="vins-in vins-cerv" type="text" placeholder="Cód. Cervantes"><button type="button" class="vins-ok btn btn-success" title="Vincular esta equivalencia">✓</button></td>'+
       '<td><input class="vins-in vins-isis" type="text" inputmode="numeric" value="'+esc(f.isis||"")+'" placeholder="ISIS"></td>'+
       '<td>'+esc(f.nombre||"")+'</td>'+
       '<td>'+esc(vinsRubro(f.categoria))+'</td>'+
@@ -1050,7 +1055,7 @@ async function abrirDetalle(cid, colKey){
   var fila = (CUR.filas||[]).filter(function(x){ return String(x.cid)===String(cid); })[0] || {};
   var col  = ((RUBRO&&RUBRO.cols)||[]).filter(function(c){ return c.k===colKey; })[0] || { label:"Movimientos", tipos:[] };
   $("popTitle").innerHTML = '<span class="cod">'+esc(fila.cod||"")+'</span> — '+esc(fila.desc||"")+
-    '<br><small style="color:#666;font-weight:700">'+esc(col.label)+'</small>';
+    '<br><small class="pop-sub">'+esc(col.label)+'</small>';
   $("popBody").innerHTML = '<div class="empty">Cargando…</div>';
   $("popup").classList.add("open");
   var r = await SB.rpc("composicion_stock", { p_comp_id:Number(cid), p_ubic_id:Number(CUR.ubic_id), p_limit:DET_LIMIT });
@@ -1079,7 +1084,7 @@ async function abrirMaximo(cid, uid){
   var fila = (CUR.filas||[]).filter(function(x){ return String(x.cid)===String(cid) && String(x.ubic_id)===String(uid); })[0] || {};
   var titulo = function(lugar){
     $("popTitle").innerHTML = '<span class="cod">'+esc(fila.cod||"")+'</span> — '+esc(fila.desc||"")+
-      '<br><small style="color:#666;font-weight:700">Máximo'+(lugar?' · '+esc(lugar):'')+'</small>';
+      '<br><small class="pop-sub">Máximo'+(lugar?' · '+esc(lugar):'')+'</small>';
   };
   titulo(fila.ubic_nom);
   $("popBody").innerHTML = '<div class="empty">Cargando…</div>';

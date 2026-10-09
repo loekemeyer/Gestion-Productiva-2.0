@@ -9,115 +9,78 @@
 <title>Stock Flejes · GP2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260929a"></script>
+<link rel="stylesheet" href="../gp2-modulo.css?v=20261009ds">
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:Arial,sans-serif;background:#f5f6f8;padding:12px;color:#111}
-  .card{max-width:960px;margin:auto;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);overflow:hidden}
-  .header{background:#ffffff;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-  .header h1{font-size:24px;font-weight:700;letter-spacing:.3px}
-  .header .hbtns{display:flex;gap:8px}
-  .header button,.header a{background:#fff;color:#111;border:none;padding:8px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:18px;text-decoration:none}
+  /* Rediseño 2026-10-09 (sistema GP2 v2.0): tipografía, colores, botones, campos y tablas salen de
+     gp2-modulo.css. Acá queda el LAYOUT propio: la grilla de tarjetas de fleje, las tarjetas de saldo
+     de rollos, el detalle y los modales. */
+  .filtros{padding:12px 14px;margin:0 0 var(--s3)}
+  .filtros .provs-grid{margin:4px 0 10px}
+  .filtros .toolbar{margin:0}
+  .filtros input.search{flex:1 1 300px;min-width:0;width:auto}
+  .prov-btn.chip{font-size:15px;padding:0 12px}
 
-  .steps{padding:14px 18px}
-  .row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;align-items:center}
-  label.lbl{font-weight:800;font-size:20px;min-width:80px}
-  input[type="text"]{height:40px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:20px;width:280px}
+  /* tarjetas de fleje: densas, varias por fila */
+  .items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:var(--s2);margin:var(--s2) 0}
+  .item-btn{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:var(--touch);
+    padding:10px 12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-1);
+    cursor:pointer;text-align:left;transition:border-color .12s,background .12s}
+  .item-btn:hover{border-color:var(--brand-500);background:var(--brand-50)}
+  .item-btn .code{font-size:20px;font-weight:800;color:var(--brand-600);line-height:1.15}
+  .item-btn .code,.item-btn .desc{padding-right:34px}
+  .item-btn .desc{font-size:var(--fs-td);color:var(--ink-900);font-weight:600;line-height:1.25;overflow-wrap:anywhere}
+  .item-btn .med{font-size:var(--fs-sm);color:var(--ink-600);font-weight:600}
+  .item-btn .stk{font-size:18px;margin-top:6px;font-weight:750;font-variant-numeric:tabular-nums}
+  .item-btn .stk.ok{color:var(--ok-700)}
+  .item-btn .stk.low{color:var(--warn-700)}
+  .item-btn .stk.zero{color:var(--ink-500)}
+  .item-btn .mn{font-size:var(--fs-sm);color:var(--ink-500)}
+  .item-btn .ped{color:var(--err-700);font-weight:700}
+  /* ✎ editar: esquina de 44×44 (tocable) con el lápiz chico adentro */
+  .item-btn .ed{position:absolute;top:0;right:0;display:inline-flex;align-items:center;justify-content:center;width:var(--touch);height:var(--touch);
+    font-size:16px;color:var(--brand-600);border-radius:0 var(--r-lg) 0 var(--r-md)}
+  .item-btn .ed:hover{background:var(--brand-100)}
 
-  .btn{padding:10px 16px;border-radius:8px;border:none;font-weight:800;cursor:pointer;font-size:20px}
-  .btn-primary{background:#111;color:#fff}
-  .btn-secondary{background:#fff;border:2px solid #d0d7de;color:#111}
+  /* modales (detalle / edición) */
+  .modal-bg,.popup{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
+  .modal-bg.on,.popup.open{display:flex}
+  .modal,.pmodal{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--sh-2);padding:20px 22px;max-width:480px;width:100%;max-height:92vh;overflow:auto}
+  .modal.ancho{max-width:720px}
+  .pmodal{max-width:520px}
+  .modal h3,.pmodal h3{margin:0 0 4px;font-size:var(--fs-h2);color:var(--ink-900)}
+  .modal > .sub{margin-bottom:12px}
+  .fr{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+  .fr label,.pmodal label{font-size:var(--fs-sm);font-weight:600;color:var(--ink-600)}
+  .pmodal label{display:block;margin:10px 0 4px}
+  .fr input,.pmodal select,.pmodal input{width:100%}
+  .actions,.pmodal .acts{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+  .pmodal .acts .btn{flex:1}
+  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ok-50);border:1px solid var(--ok-200);color:var(--ok-700);
+    padding:10px 18px;border-radius:var(--r-md);box-shadow:var(--sh-2);font-size:15px;font-weight:700;z-index:300;opacity:0;transition:opacity .2s;pointer-events:none}
+  #toast.on{opacity:1} #toast.err{background:var(--err-50);border-color:var(--err-200);color:var(--err-700)}
 
-  .status{margin:8px 0;font-size:18px;color:#555;min-height:10px}
-
-  .provs-grid{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
-  .prov-btn{padding:8px 14px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:700;cursor:pointer;font-size:19px;color:#111}
-  .prov-btn.active{background:#111;color:#fff;border-color:#111}
-
-  .seg{display:flex;gap:6px;flex-wrap:wrap}
-  .seg .prov-btn{font-size:16px;padding:6px 12px}
-
-  .items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin:12px 0}
-  .item-btn{padding:14px 10px;background:#fff;border:2px solid #d0d7de;border-radius:10px;cursor:pointer;text-align:center;transition:all .15s;overflow:hidden;position:relative}
-  .item-btn:hover{border-color:#111;background:#f6f8fa}
-  .item-btn .code{display:block;font-size:26px;font-weight:900;color:#0066cc}
-  .item-btn .desc{display:block;font-size:17px;color:#111;margin-top:6px;font-weight:700;line-height:1.2;white-space:normal;overflow-wrap:anywhere}
-  .item-btn .med{display:block;font-size:16px;color:#0b3b73;margin-top:6px;font-weight:700}
-  .item-btn .stk{display:block;font-size:19px;margin-top:10px;font-weight:900}
-  .item-btn .stk.ok{color:#0a7a2f}
-  .item-btn .stk.low{color:#b45309}
-  .item-btn .stk.zero{color:#475569}
-  .item-btn .mn{display:block;font-size:14px;color:#667085;margin-top:4px}
-  .item-btn .ped{color:#b42318;font-weight:800}
-  .item-btn .ed{position:absolute;top:6px;right:8px;font-size:14px;color:#1d4ed8;border:1px solid #cbd5e1;border-radius:6px;padding:1px 6px;background:#fff}
-  .empty{color:#888;padding:16px;text-align:center;font-style:italic;font-size:18px}
-
-  /* modal edición */
-  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
-  .modal-bg.on{display:flex}
-  .modal{background:#fff;border-radius:14px;padding:26px;max-width:480px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.3)}
-  .modal h3{margin:0 0 4px;font-size:24px;color:#111}
-  .modal .sub{color:#667085;font-size:15px;margin-bottom:14px}
-  .modal .fr{margin-bottom:11px}
-  .modal .fr label{display:block;font-size:14px;color:#475569;margin-bottom:4px;font-weight:700}
-  .modal .fr input{width:100%;background:#fff;color:#111;border:2px solid #d0d7de;border-radius:8px;padding:10px 12px;font-size:18px}
-  .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
-  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#e7f8ed;color:#fff;padding:12px 20px;border-radius:8px;font-size:17px;font-weight:700;z-index:300;opacity:0;transition:opacity .2s;pointer-events:none}
-  #toast.on{opacity:1} #toast.err{background:#f8e8e7}
-
-  /* ── tabs de submódulo ── */
-  .tabs{display:flex;gap:6px;padding:10px 18px 0;background:#fff;border-bottom:1px solid #e3e7ec}
-  .tab-btn{padding:10px 20px;border:2px solid #d0d7de;border-bottom:none;border-radius:10px 10px 0 0;
-           background:#f6f8fa;font-weight:800;font-size:19px;cursor:pointer;color:#555;margin-bottom:-1px}
-  .tab-btn.active{background:#fff;color:#111;border-color:#111;border-bottom:2px solid #fff}
-  .hidden{display:none!important}
-
-  /* ── submódulo Rollos (todo scopeado a #tabRollos para no pisar Flejes) ── */
-  #tabRollos .chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
-  #tabRollos .chip{padding:8px 14px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:700;cursor:pointer;font-size:19px}
-  #tabRollos .chip.active{background:#111;color:#fff;border-color:#111}
-  #tabRollos .saldos{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin:12px 0}
-  #tabRollos .saldo-card{border:2px solid #d0d7de;border-radius:10px;padding:14px;text-align:center;background:#fff}
-  #tabRollos .saldo-card .cod{font-size:22px;font-weight:800;color:#0066cc}
-  #tabRollos .saldo-card .peso{font-size:18px;color:#444;margin-top:2px}
-  #tabRollos .saldo-card .n{font-size:40px;font-weight:900;margin:6px 0}
-  #tabRollos .saldo-card .n.neg{color:#b42318}
-  #tabRollos .saldo-card .kg{font-size:16px;color:#666}
-  #tabRollos .saldo-card.total{border-color:#111;background:#f6f8fa}
-  #tabRollos table{width:100%;border-collapse:collapse;font-size:17px;margin-top:8px}
-  #tabRollos th,#tabRollos td{padding:8px 10px;text-align:left;border-bottom:1px solid #e3e7ec;white-space:nowrap}
-  #tabRollos th{background:#f6f8fa;color:#555;font-size:13px;text-transform:uppercase;letter-spacing:.4px}
-  #tabRollos td.num{text-align:right;font-variant-numeric:tabular-nums}
-  #tabRollos .pos{color:#0a7a2f;font-weight:800} #tabRollos .neg{color:#b42318;font-weight:800}
-  #tabRollos .okc{color:#0a7a2f}
-  #tabRollos .motivo{font-size:14px;padding:2px 9px;border-radius:10px;border:1px solid #d0d7de;background:#f6f8fa}
-  #tabRollos h2{font-size:20px;margin:18px 0 4px;color:#0b3b73}
-  #tabRollos .tscroll{overflow-x:auto}
-  #tabRollos select{height:40px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:19px;background:#fff}
-  #tabRollos .bad{color:#b42318}
+  /* ── submódulo Rollos (scopeado a #tabRollos para no pisar Flejes) ── */
+  #tabRollos .chip{font-size:15px;padding:0 12px}
+  .saldos{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:var(--s2);margin:var(--s2) 0 var(--s3)}
+  .saldo-card,.det-roll{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-1);padding:10px 14px}
+  .saldo-card .cod{font-size:var(--fs-h3)}
+  .saldo-card .peso,.det-roll .peso{font-size:var(--fs-sm);color:var(--ink-600);font-weight:600}
+  .saldo-card .n,.det-roll .n{font-size:var(--fs-kpi);font-weight:750;color:var(--ink-900);line-height:1.15;margin:2px 0;font-variant-numeric:tabular-nums}
+  .saldo-card .n.neg,.det-roll .n.neg{color:var(--err-700)}
+  .saldo-card .kg,.det-roll .kg{font-size:var(--fs-sm);color:var(--ink-500)}
+  .saldo-card.total{border-top:3px solid var(--ink-900);background:var(--surface-2)}
+  #tabRollos .okc{color:var(--ok-700)}
+  #tabRollos .bad{color:var(--err-700)}
+  #tabRollos table.t td{white-space:nowrap}
+  .motivo{font-size:var(--fs-sm)}
+  .evo-nota{font-size:var(--fs-sm);color:var(--ink-500)}
 
   /* detalle del fleje */
-  .det-h2{font-size:17px;font-weight:800;color:#0b3b73;margin:14px 0 6px}
-  .det-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-  .det-roll{border:2px solid #d0d7de;border-radius:10px;padding:10px;text-align:center;background:#fafbfc}
-  .det-roll .peso{font-size:16px;color:#444;font-weight:700}
-  .det-roll .n{font-size:30px;font-weight:900}
-  .det-roll .n.neg{color:#b42318}
-  .det-uso{border:2px solid #ead9cd;background:#fff8e5;border-radius:10px;padding:10px 12px;margin-bottom:6px;font-size:16px}
-  .det-tabla{width:100%;border-collapse:collapse;font-size:15px}
-  .det-tabla th{background:#f6f8fa;color:#555;font-size:12px;text-transform:uppercase;text-align:left;padding:6px 8px;border-bottom:2px solid #e5e9ee}
-  .det-tabla td{padding:6px 8px;border-bottom:1px solid #eef1f4;white-space:nowrap}
-  .det-tabla td.num{text-align:right;font-variant-numeric:tabular-nums}
-  .det-tabla .pos{color:#0a7a2f;font-weight:800}.det-tabla .neg{color:#b42318;font-weight:800}
-
-  /* popup de ajuste de rollos */
-  .popup{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:100;padding:16px}
-  .popup.open{display:flex}
-  .pmodal{background:#fff;border-radius:14px;padding:26px;width:96%;max-width:520px}
-  .pmodal h3{font-size:24px;margin-bottom:14px}
-  .pmodal label{display:block;font-size:16px;font-weight:700;margin:10px 0 4px}
-  .pmodal select,.pmodal input{width:100%;height:40px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:19px;background:#fff}
-  .pmodal .acts{display:flex;gap:10px;margin-top:18px}
-  .pmodal .acts button{flex:1;padding:12px;font-size:20px;font-weight:800;border:none;border-radius:8px;cursor:pointer}
+  .det-h2{font-size:var(--fs-h3);font-weight:700;color:var(--ink-900);margin:14px 0 6px}
+  .det-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:var(--s2)}
+  .det-uso{margin:0 0 6px}
+  .det-uso .cuando{color:var(--ink-500);font-size:var(--fs-sm)}
+  table.t td.pos,table.t td.neg{font-weight:700}
 </style>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
@@ -128,29 +91,31 @@
   <div class="header">
     <h1>Stock Flejes</h1>
     <div class="hbtns">
-      <button id="btnAjuste" class="hidden" style="background:#f0c040">± Inicial / Ajuste</button>
+      <button id="btnAjuste" class="hidden primary">± Inicial / Ajuste</button>
       <a href="../Stocks General/StockGeneral_GP2.html">Ver stock</a>
-      <a href="../GP2_MODULOS.html">Atrás</a>
+      <a class="back" href="../GP2_MODULOS.html">Atrás</a>
     </div>
   </div>
 
+  <div class="steps">
   <!-- Submódulos: el stock por fleje y el stock de rollos de esos mismos flejes -->
   <div class="tabs">
-    <button class="tab-btn active" id="tbFlejes" data-tab="flejes">Flejes</button>
-    <button class="tab-btn" id="tbRollos" data-tab="rollos">🧻 Rollos</button>
+    <button class="active" id="tbFlejes" data-tab="flejes">Flejes</button>
+    <button id="tbRollos" data-tab="rollos">🧻 Rollos</button>
   </div>
 
-  <div class="steps" id="tabFlejes">
-    <div class="row"><label class="lbl">Proveedor</label></div>
-    <div class="provs-grid" id="provGrid"></div>
-
-    <div class="row" style="margin-top:4px">
-      <input type="text" id="q" placeholder="Buscar N°, código, parte o medida…" oninput="render()">
-      <div class="seg" id="segStock">
-        <button class="prov-btn active" data-st="todos">Todos</button>
-        <button class="prov-btn" data-st="con">Con stock</button>
-        <button class="prov-btn" data-st="sin">Sin stock</button>
-        <button class="prov-btn" data-st="bajo">Bajo el máximo</button>
+  <div id="tabFlejes">
+    <div class="panel filtros">
+      <label class="lbl">Proveedor</label>
+      <div class="provs-grid" id="provGrid"></div>
+      <div class="toolbar">
+        <input type="text" class="search" id="q" placeholder="Buscar N°, código, parte o medida…" oninput="render()">
+        <div class="seg" id="segStock">
+          <button class="seg-btn active" data-st="todos">Todos</button>
+          <button class="seg-btn" data-st="con">Con stock</button>
+          <button class="seg-btn" data-st="sin">Sin stock</button>
+          <button class="seg-btn" data-st="bajo">Bajo el máximo</button>
+        </div>
       </div>
     </div>
 
@@ -159,28 +124,29 @@
     <div id="itemsEmpty" class="empty" style="display:none">Sin flejes que coincidan.</div>
   </div>
 
-  <div class="steps hidden" id="tabRollos">
+  <div class="hidden" id="tabRollos">
     <div class="chips" id="chips"></div>
     <div class="saldos" id="saldos"></div>
 
-    <h2>Evolución (ingresos / egresos con saldo)</h2>
-    <div class="row">
+    <h2 class="sec-title">Evolución <span class="meta">ingresos / egresos con saldo</span></h2>
+    <div class="toolbar">
       <select id="fPeso"><option value="">Todos los pesos</option></select>
-      <span style="font-size:15px;color:#666">El saldo arranca del estado inicial y acumula cada movimiento.</span>
+      <span class="evo-nota">El saldo arranca del estado inicial y acumula cada movimiento.</span>
     </div>
-    <div class="tscroll"><table id="tEvo"><thead><tr>
-      <th>Fecha</th><th>Fleje</th><th>Peso</th><th>Mov.</th><th>Motivo</th><th>Quién</th><th style="text-align:right">Saldo</th>
+    <div class="table-wrap"><table class="t" id="tEvo"><thead><tr>
+      <th>Fecha</th><th>Fleje</th><th class="num">Peso</th><th class="num">Mov.</th><th>Motivo</th><th>Quién</th><th class="num">Saldo</th>
     </tr></thead><tbody></tbody></table></div>
     <div id="evoEmpty" class="empty" style="display:none">Sin movimientos todavía. Cargá el estado inicial con el botón de arriba.</div>
 
-    <h2>Rollos usados por los operarios</h2>
-    <div class="tscroll"><table id="tUsos"><thead><tr>
-      <th>Inicio</th><th>Operario</th><th>Fleje</th><th>Peso</th><th>Matriz</th><th>¿Quedó resto?</th>
-      <th style="text-align:right">Unidades</th><th style="text-align:right">Esperadas</th><th></th>
+    <h2 class="sec-title">Rollos usados por los operarios</h2>
+    <div class="table-wrap"><table class="t" id="tUsos"><thead><tr>
+      <th>Inicio</th><th>Operario</th><th>Fleje</th><th class="num">Peso</th><th>Matriz</th><th>¿Quedó resto?</th>
+      <th class="num">Unidades</th><th class="num">Esperadas</th><th></th>
     </tr></thead><tbody></tbody></table></div>
     <div id="usosEmpty" class="empty" style="display:none">Todavía nadie registró uso de rollos.</div>
 
     <div id="statusMsg" class="status"></div>
+  </div>
   </div>
 </div>
 
@@ -202,8 +168,8 @@
     <label>Nota (opcional)</label>
     <input id="ajNota" placeholder="Conteo físico, etc.">
     <div class="acts">
-      <button style="background:#eee" id="ajCancel">Cancelar</button>
-      <button style="background:#111;color:#fff" id="ajOk">Guardar</button>
+      <button class="btn btn-secondary" id="ajCancel">Cancelar</button>
+      <button class="btn btn-primary" id="ajOk">Guardar</button>
     </div>
     <div id="ajMsg" class="status"></div>
   </div>
@@ -212,7 +178,7 @@
 <!-- Detalle del fleje: rollos por kilaje, en uso ahora, saldo de movimientos.
      "Editar datos" (los atributos a mano) vive adentro, como accion secundaria. -->
 <div class="modal-bg" id="detBg">
-  <div class="modal" style="max-width:640px;max-height:88vh;overflow:auto">
+  <div class="modal ancho">
     <h3 id="detTit">Fleje</h3>
     <div class="sub" id="detSub"></div>
     <div id="detBody"><div class="empty">Cargando…</div></div>
@@ -257,8 +223,8 @@ function pintarProvs(){
   var provs=Object.keys(map).sort((a,b)=>{ if(a===SIN)return 1; if(b===SIN)return -1; return map[b]-map[a]||a.localeCompare(b); });
   var g=$('provGrid'); g.innerHTML='';
   provs.forEach(p=>{
-    var b=document.createElement('button'); b.className='prov-btn'+(p===provSel?' active':'');
-    b.innerHTML=esc(p)+' <span style="opacity:.6;font-weight:600">('+map[p]+')</span>';
+    var b=document.createElement('button'); b.className='prov-btn chip'+(p===provSel?' active':'');
+    b.innerHTML=esc(p)+' <span class="n">'+map[p]+'</span>';
     b.addEventListener('click',()=>{
       provSel = (provSel===p)?"":p;
       g.querySelectorAll('.prov-btn').forEach(x=>x.classList.remove('active'));
@@ -269,10 +235,10 @@ function pintarProvs(){
   });
 }
 // segmento stock
-$('segStock').querySelectorAll('.prov-btn').forEach(b=>{
+$('segStock').querySelectorAll('.seg-btn').forEach(b=>{
   b.addEventListener('click',()=>{
     stSel=b.dataset.st;
-    $('segStock').querySelectorAll('.prov-btn').forEach(x=>x.classList.remove('active'));
+    $('segStock').querySelectorAll('.seg-btn').forEach(x=>x.classList.remove('active'));
     b.classList.add('active'); render();
   });
 });
@@ -347,22 +313,22 @@ async function abrirDetalle(cid){
     ? '<div class="det-grid">'+saldos.map(s=>
         '<div class="det-roll"><div class="peso">rollos de '+fmt(s.kg_por_rollo)+' kg</div>'+
         '<div class="n'+(s.rollos<0?' neg':'')+'">'+fmt(s.rollos)+'</div>'+
-        '<div style="font-size:13px;color:#666">'+fmt(s.kg_total)+' kg</div></div>').join('')+'</div>'
+        '<div class="kg">'+fmt(s.kg_total)+' kg</div></div>').join('')+'</div>'
     : '<div class="empty">Sin rollos en stock. Entran solos con el pesaje de la recepción.</div>';
 
   // en uso ahora
   h+='<div class="det-h2">⚙️ En uso ahora</div>';
   h+= enUso.length
-    ? enUso.map(u=>'<div class="det-uso">Rollo de <b>'+fmt(u.kg_por_rollo)+' kg</b> — operario <b>'+
+    ? enUso.map(u=>'<div class="det-uso aviso">Rollo de <b>'+fmt(u.kg_por_rollo)+' kg</b> — operario <b>'+
         esc(u.operario||u.legajo||'?')+'</b>'+(u.matriz_raw?(' en matriz <b>'+esc(u.matriz_raw)+'</b>'):'')+
-        ' <span style="color:#666;font-size:14px">(desde '+ffechaD(u.ts_inicio)+')</span></div>').join('')
+         ' <span class="cuando">(desde '+ffechaD(u.ts_inicio)+')</span></div>').join('')
     : '<div class="empty">Nadie está usando un rollo de este fleje ahora.</div>';
 
   // movimientos con saldo
   h+='<div class="det-h2">📜 Movimientos (saldo acumulado)</div>';
   h+= evs.length
-    ? '<div style="overflow-x:auto"><table class="det-tabla"><thead><tr>'+
-      '<th>Fecha</th><th>Peso</th><th>Mov.</th><th>Motivo</th><th>Quién</th><th style="text-align:right">Saldo</th>'+
+    ? '<div class="table-wrap free"><table class="t det-tabla"><thead><tr>'+
+      '<th>Fecha</th><th class="num">Peso</th><th class="num">Mov.</th><th>Motivo</th><th>Quién</th><th class="num">Saldo</th>'+
       '</tr></thead><tbody>'+evs.map(e=>
         '<tr><td>'+ffechaD(e.fecha)+'</td><td class="num">'+fmt(e.kg_por_rollo)+' kg</td>'+
         '<td class="num '+(e.delta>0?'pos':'neg')+'">'+(e.delta>0?'+':'')+fmt(e.delta)+'</td>'+
@@ -471,11 +437,11 @@ cargar();
     var evs=DR.eventos.filter(function(e){
       return (!flejeSel||e.codigo===flejeSel) && (!$R('fPeso').value||String(e.kg_por_rollo)===$R('fPeso').value); });
     $R('tEvo').querySelector('tbody').innerHTML=evs.map(function(e){
-      return '<tr><td>'+ffecha(e.fecha)+'</td><td><b style="color:#0066cc">'+escR(e.codigo)+'</b></td>'+
+      return '<tr><td>'+ffecha(e.fecha)+'</td><td><span class="cod">'+escR(e.codigo)+'</span></td>'+
         '<td class="num">'+fmtR(e.kg_por_rollo)+' kg</td>'+
         '<td class="num '+(e.delta>0?'pos':'neg')+'">'+(e.delta>0?'+':'')+fmtR(e.delta,0)+'</td>'+
-        '<td><span class="motivo">'+escR(MOTIVOS[e.motivo]||e.motivo)+'</span>'+
-          (e.nota?(' <span style="color:#888;font-size:14px">'+escR(e.nota)+'</span>'):'')+'</td>'+
+        '<td><span class="motivo badge">'+escR(MOTIVOS[e.motivo]||e.motivo)+'</span>'+
+          (e.nota?(' <span class="evo-nota">'+escR(e.nota)+'</span>'):'')+'</td>'+
         '<td>'+escR(e.operario||e.legajo||'')+'</td>'+
         '<td class="num"><b>'+fmtR(e.saldo,0)+'</b></td></tr>'; }).join('');
     $R('evoEmpty').style.display=evs.length?'none':'block';
@@ -486,7 +452,7 @@ cargar();
         ? u.uni_producidas/u.uni_esperadas : null;
       var flag = desvio==null?'' : desvio<0.6?'⚠ muy por debajo' : desvio>1.4?'⚠ muy por encima':'✓';
       return '<tr><td>'+ffecha(u.ts_inicio)+'</td><td>'+escR(u.legajo)+'</td>'+
-        '<td><b style="color:#0066cc">'+escR(u.codigo)+'</b></td>'+
+        '<td><span class="cod">'+escR(u.codigo)+'</span></td>'+
         '<td class="num">'+fmtR(u.kg_por_rollo)+' kg</td>'+
         '<td>'+escR(u.matriz_raw||'')+'</td>'+
         '<td>'+(u.ts_fin==null?'<i>en uso</i>':(u.quedo_resto?'Sí, quedó':'No, se terminó'))+'</td>'+

@@ -20,27 +20,23 @@
 <script src="../supabase-config.js?v=20260929a"></script>
 <script src="../gp2-ui.js?v=20260930a"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
-<link rel="stylesheet" href="../gp2-modulo.css?v=20260912c"/>
+<link rel="stylesheet" href="../gp2-modulo.css?v=20261009ds"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <style>
-  .tcbar{display:flex;gap:14px;flex-wrap:wrap;align-items:center;background:#f6f8fa;border-radius:10px;padding:10px 14px;margin:10px 0;font-size:16px}
-  .tcbar b{font-size:18px}
-  .aviso-reg{border:2px solid #eae0cd;background:#fff8e1;color:#7a5b00;border-radius:10px;padding:8px 12px;font-size:15px;margin:8px 0}
-  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin:12px 0}
-  .kpi{border:2px solid #d0d7de;border-radius:12px;padding:12px 14px;background:#fff}
-  .kpi .lbl{font-size:15px;color:#555;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
-  .kpi .monedas{font-size:20px;font-weight:800;margin-top:4px}
-  .kpi .conv{font-size:17px;color:#0b3b73;font-weight:800;margin-top:2px}
-  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
-  .chip{padding:8px 14px;border-radius:20px;border:2px solid #d0d7de;background:#fff;font-weight:700;font-size:15px;cursor:pointer;color:#111}
-  .chip.active{background:#e7eff8;color:#fff;border-color:#cddaea}
-  td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-  .desg{font-size:13px;color:#555;display:block;white-space:nowrap}
-  .flag{color:#b45309;font-weight:800;font-size:13px;display:block}
-  tfoot td{font-weight:800;background:#f6f8fa;font-size:17px}
-  .t td{font-size:16px}
-  .t td b{font-size:17px}
+  /* Lo propio de esta pantalla es layout: el resto lo pone gp2-modulo.css. */
+  .tcbar{display:flex;gap:6px 14px;flex-wrap:wrap;align-items:baseline;margin:0 0 var(--s2);
+    padding:10px 14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);color:var(--ink-700)}
+  .tcbar b{color:var(--ink-900)}
+  .kpis{grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))}
+  .kpi .v{font-size:22px}
+  .kpi .d{color:var(--brand-700);font-weight:700;font-size:var(--fs-base)}
+  td.num{white-space:nowrap}
+  .desg{font-size:var(--fs-sm);color:var(--ink-500);display:block;white-space:nowrap}
+  .flag{color:var(--warn-700);font-weight:700;font-size:var(--fs-sm);display:block}
+  .filtros{display:flex;flex-wrap:wrap;gap:var(--s2) var(--s3);align-items:center}
+  .filtros .chips{margin:0}
+  .filtros .search-box{flex:1 1 260px;margin:0}
 </style>
 </head>
 <body>
@@ -48,22 +44,22 @@
 <div class="card">
   <div class="header">
     <h1>Valorización · Stock y Pedidos</h1>
-    <div class="hbtns"><a href="../GP2_MODULOS.html">Atrás</a></div>
+    <div class="hbtns"><a class="back" href="../GP2_MODULOS.html">Atrás</a></div>
   </div>
 
   <div class="steps">
     <div class="tcbar" id="tcbar"></div>
-    <div class="aviso-reg" id="avisoReg" hidden></div>
+    <div class="aviso" id="avisoReg" hidden></div>
 
     <div class="kpis">
-      <div class="kpi"><div class="lbl">Stock valorizado (todo)</div>
-        <div class="monedas" id="kStock">—</div><div class="conv" id="kStockConv"></div></div>
-      <div class="kpi"><div class="lbl">Máximo por sector</div>
-        <div class="monedas" id="kPedido">—</div><div class="conv" id="kPedidoConv"></div></div>
+      <div class="kpi info"><div class="k">Stock valorizado (todo)</div>
+        <div class="v" id="kStock">—</div><div class="d" id="kStockConv"></div></div>
+      <div class="kpi info"><div class="k">Máximo por sector</div>
+        <div class="v" id="kPedido">—</div><div class="d" id="kPedidoConv"></div></div>
     </div>
 
-    <h2 style="font-size:19px;margin:14px 0 6px">Por sector</h2>
-    <div class="table-wrap">
+    <h2 class="sec-title">Por sector</h2>
+    <div class="table-wrap free">
       <table class="t">
         <thead><tr><th>Sector</th>
           <th class="num">Stock US$</th><th class="num">Stock $</th><th class="num">Stock total $</th>
@@ -74,14 +70,16 @@
       </table>
     </div>
 
-    <h2 style="font-size:19px;margin:18px 0 6px">Por componente</h2>
-    <div class="chips" id="sectores"></div>
-    <div class="search-box"><input type="text" id="q" placeholder="Buscar componente…"></div>
+    <h2 class="sec-title">Por componente</h2>
+    <div class="filtros">
+      <div class="chips" id="sectores"></div>
+      <div class="search-box"><input type="search" class="search" id="q" placeholder="Buscar componente…"></div>
+    </div>
     <div class="table-wrap">
       <table class="t">
         <thead><tr>
           <th>Componente</th>
-          <th class="num">Costo unitario<br><small>material + servicios + m.obra</small></th>
+          <th class="num">Costo unitario<br><span class="sub">material + servicios + m.obra</span></th>
           <th class="num">Stock</th><th class="num">Valor stock $</th>
           <th class="num">Pedido<br>a máx.</th><th class="num">Valor pedido $</th>
         </tr></thead>
@@ -134,7 +132,7 @@ function pintarTc(){
   var i=D.tc_info||{};
   var f=i.fecha?new Date(i.fecha+'T12:00:00').toLocaleDateString('es-AR'):'';
   $('tcbar').innerHTML=
-    'Dólar oficial: <b>$ '+fmt(D.tc)+'</b>'+(f?(' <span style="color:#777">('+esc(f)+(i.fuente?(' · '+esc(i.fuente)):'')+')</span>'):'')+
+    'Dólar oficial: <b>$ '+fmt(D.tc)+'</b>'+(f?(' <span class="muted">('+esc(f)+(i.fuente?(' · '+esc(i.fuente)):'')+')</span>'):'')+
     ' &nbsp;·&nbsp; Mano de obra: <b>$ '+fmt(D.costo_seg)+'/seg</b> de matriz';
 }
 
@@ -241,7 +239,7 @@ function render(){
     if(n(c.faltan_kg)>0) flags.push(c.faltan_kg+' sin kg');
     if(n(c.faltan_tiempos)>0) flags.push(c.faltan_tiempos+' sin tiempo');
     return '<tr>'+
-      '<td><b>'+esc(c.codigo||'—')+'</b> <small style="color:#777">'+esc(c.descripcion||'')+'</small>'+
+      '<td><span class="cod">'+esc(c.codigo||'—')+'</span> <span class="sub">'+esc(c.descripcion||'')+'</span>'+
         (flags.length?('<span class="flag">⚠ '+flags.join(' · ')+'</span>'):'')+'</td>'+
       '<td class="num">'+fmtMon(c._usd,c._ars)+
         (n(c.total_pesos)>0?('<span class="desg">= $ '+fmt(n(c.total_pesos),2)+'</span>'):'')+

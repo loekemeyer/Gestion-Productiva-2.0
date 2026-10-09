@@ -5,119 +5,75 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Calculadora</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="gp2-modulo.css?v=20261009ds">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      min-height: 100vh;
-      display: flex; align-items: center; justify-content: center;
-      padding: 20px;
+    /* Una calculadora es angosta por naturaleza: un panel centrado con teclas grandes
+       (se usa con el dedo en la tablet del galpón). */
+    .calc{max-width:440px;margin:var(--s2) auto 0;padding:var(--s4)}
+    .display{
+      background:var(--ink-900);color:#fff;padding:18px 18px 14px;border-radius:var(--r-lg);
+      text-align:right;margin-bottom:var(--s4);min-height:104px;
+      display:flex;flex-direction:column;justify-content:flex-end;font-variant-numeric:tabular-nums;
     }
-    .card {
-      background: #fff;
-      border-radius: 24px;
-      padding: 28px;
-      width: 100%; max-width: 380px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.35);
+    .display-prev{font-size:var(--fs-sm);color:var(--ink-400);min-height:20px;word-break:break-all}
+    .display-cur{font-size:var(--fs-hero);font-weight:700;word-break:break-all;line-height:1.15;letter-spacing:-.01em}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s2)}
+    button.key{
+      height:68px;border-radius:var(--r-md);border:1.5px solid var(--line-strong);
+      background:var(--surface);color:var(--ink-900);font-size:24px;font-weight:650;cursor:pointer;
+      transition:background .12s,border-color .12s,transform .06s;
     }
-    .header {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 20px;
-    }
-    h1 {
-      font-size: 18px; font-weight: 800;
-      color: #0f172a; text-transform: uppercase; letter-spacing: 1px;
-    }
-    .back {
-      background: none; border: none;
-      color: #64748b; font-size: 13px; font-weight: 600; cursor: pointer;
-      text-transform: uppercase; letter-spacing: 1px;
-    }
-    .back:hover { color: #0f172a; }
-
-    .display {
-      background: #0f172a;
-      color: #fff;
-      padding: 22px 18px;
-      border-radius: 16px;
-      text-align: right;
-      margin-bottom: 18px;
-      min-height: 96px;
-      display: flex; flex-direction: column; justify-content: flex-end;
-    }
-    .display-prev {
-      font-size: 14px; color: #94a3b8;
-      min-height: 18px;
-      font-family: 'Consolas', monospace;
-      word-break: break-all;
-    }
-    .display-cur {
-      font-size: 38px; font-weight: 700;
-      font-family: 'Consolas', monospace;
-      word-break: break-all;
-      line-height: 1.1;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-    }
-    button.key {
-      height: 60px;
-      border: none; border-radius: 14px;
-      font-family: inherit; font-size: 20px; font-weight: 700;
-      cursor: pointer;
-      transition: transform .06s, opacity .12s;
-      background: #f1f5f9; color: #0f172a;
-    }
-    button.key:hover { opacity: .85; }
-    button.key:active { transform: scale(.96); }
-    button.key.op   { background: #fef3c7; color: #92400e; }
-    button.key.eq   { background: #10b981; color: #fff; grid-column: span 2; }
-    button.key.del  { background: #fee2e2; color: #991b1b; }
-    button.key.zero { grid-column: span 1; }
+    button.key:hover{border-color:var(--ink-500);background:var(--ink-50)}
+    button.key:active{transform:translateY(1px)}
+    button.key.op{background:var(--ink-100);border-color:var(--ink-100);color:var(--ink-700)}
+    button.key.op:hover{background:var(--ink-200)}
+    button.key.del{background:var(--err-50);border-color:var(--err-200);color:var(--err-700)}
+    button.key.eq{background:var(--brand-600);border-color:var(--brand-600);color:#fff;grid-column:span 2}
+    button.key.eq:hover{background:var(--brand-500)}
+    @media (max-width:640px){ .calc{padding:var(--s3)} button.key{height:62px} }
   </style>
 </head>
 <body>
   <div class="card">
     <div class="header">
-      <button class="back" onclick="window.location.href='calculadora.html'">← Volver</button>
-      <h1>Calculadora</h1>
-      <span></span>
+      <h1>Calculadora Básica</h1>
+      <div class="hbtns">
+        <a class="back" href="calculadora.html">Atrás</a>
+      </div>
     </div>
+    <div class="steps">
+      <div class="panel calc">
+        <div class="display">
+          <div class="display-prev" id="prev"></div>
+          <div class="display-cur" id="cur">0</div>
+        </div>
 
-    <div class="display">
-      <div class="display-prev" id="prev"></div>
-      <div class="display-cur" id="cur">0</div>
-    </div>
+        <div class="grid">
+          <button class="key del" onclick="clr()">C</button>
+          <button class="key del" onclick="back()">⌫</button>
+          <button class="key op"  onclick="op('%')">%</button>
+          <button class="key op"  onclick="op('/')">÷</button>
 
-    <div class="grid">
-      <button class="key del" onclick="clr()">C</button>
-      <button class="key del" onclick="back()">⌫</button>
-      <button class="key op"  onclick="op('%')">%</button>
-      <button class="key op"  onclick="op('/')">÷</button>
+          <button class="key" onclick="num('7')">7</button>
+          <button class="key" onclick="num('8')">8</button>
+          <button class="key" onclick="num('9')">9</button>
+          <button class="key op" onclick="op('*')">×</button>
 
-      <button class="key" onclick="num('7')">7</button>
-      <button class="key" onclick="num('8')">8</button>
-      <button class="key" onclick="num('9')">9</button>
-      <button class="key op" onclick="op('*')">×</button>
+          <button class="key" onclick="num('4')">4</button>
+          <button class="key" onclick="num('5')">5</button>
+          <button class="key" onclick="num('6')">6</button>
+          <button class="key op" onclick="op('-')">−</button>
 
-      <button class="key" onclick="num('4')">4</button>
-      <button class="key" onclick="num('5')">5</button>
-      <button class="key" onclick="num('6')">6</button>
-      <button class="key op" onclick="op('-')">−</button>
+          <button class="key" onclick="num('1')">1</button>
+          <button class="key" onclick="num('2')">2</button>
+          <button class="key" onclick="num('3')">3</button>
+          <button class="key op" onclick="op('+')">+</button>
 
-      <button class="key" onclick="num('1')">1</button>
-      <button class="key" onclick="num('2')">2</button>
-      <button class="key" onclick="num('3')">3</button>
-      <button class="key op" onclick="op('+')">+</button>
-
-      <button class="key zero" onclick="num('0')">0</button>
-      <button class="key" onclick="dot()">.</button>
-      <button class="key eq" onclick="eq()">=</button>
+          <button class="key zero" onclick="num('0')">0</button>
+          <button class="key" onclick="dot()">.</button>
+          <button class="key eq" onclick="eq()">=</button>
+        </div>
+      </div>
     </div>
   </div>
 

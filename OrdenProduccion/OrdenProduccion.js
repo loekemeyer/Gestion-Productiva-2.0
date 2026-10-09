@@ -115,7 +115,7 @@ async function cargarTodo() {
     filtrarYRender();
   } catch (e) {
     statusEl.textContent = "Error cargando datos: " + e.message;
-    statusEl.classList.add("status-error");
+    statusEl.classList.add("err");
   }
 }
 
@@ -338,11 +338,11 @@ function renderTotales(bloques) {
 
   totalesEl.classList.remove("hidden");
   totalesEl.innerHTML = `
-    <div class="tot-item"><span class="tot-lbl">Matrices</span><span class="tot-val">${matrices.size}</span></div>
-    <div class="tot-item"><span class="tot-lbl">Ordenes (matriz x fleje)</span><span class="tot-val">${bloques.length}</span></div>
-    <div class="tot-item"><span class="tot-lbl">Unidades a fabricar</span><span class="tot-val">${fmtUni(totUni)}</span></div>
-    <div class="tot-item"><span class="tot-lbl">Cajones a llenar</span><span class="tot-val">${fmtDec(totCaj, 1)}</span></div>
-    <div class="tot-item"><span class="tot-lbl">Kg de fleje a consumir</span><span class="tot-val">${fmtDec(totKgFleje, 1)}</span></div>
+    <div class="kpi"><div class="k">Matrices</div><div class="v">${matrices.size}</div></div>
+    <div class="kpi"><div class="k">Ordenes (matriz x fleje)</div><div class="v">${bloques.length}</div></div>
+    <div class="kpi info"><div class="k">Unidades a fabricar</div><div class="v">${fmtUni(totUni)}</div></div>
+    <div class="kpi"><div class="k">Cajones a llenar</div><div class="v">${fmtDec(totCaj, 1)}</div></div>
+    <div class="kpi"><div class="k">Kg de fleje a consumir</div><div class="v">${fmtDec(totKgFleje, 1)}</div></div>
   `;
 
   statusEl.textContent = bloques.length
@@ -352,7 +352,7 @@ function renderTotales(bloques) {
 
 function renderOrdenes(bloques) {
   if (!bloques.length) {
-    resultEl.innerHTML = `<div class="vacio">No hay ordenes con los filtros actuales.</div>`;
+    resultEl.innerHTML = `<div class="empty">No hay ordenes con los filtros actuales.</div>`;
     return;
   }
 
@@ -366,12 +366,12 @@ function renderOrdenes(bloques) {
   const html = [...porMatriz.entries()].map(([nMatriz, lista]) => {
     const desc = lista[0].descMatriz;
     const avisoFlejes = lista.length > 1
-      ? `<div class="aviso-flejes">Esta matriz entra desde ${lista.length} flejes distintos: cada bloque va por separado, no mezclar.</div>`
+      ? `<div class="aviso aviso-flejes">Esta matriz entra desde ${lista.length} flejes distintos: cada bloque va por separado, no mezclar.</div>`
       : "";
 
     return `
-      <section class="orden">
-        <header class="orden-head">
+      <section class="grp orden">
+        <header class="gh orden-head">
           <div class="orden-matriz">
             <span class="mat-n">Matriz ${escapeHtml(nMatriz)}</span>
             <span class="mat-desc">${escapeHtml(desc)}</span>
@@ -390,26 +390,26 @@ function renderBloque(b) {
   const entradaLbl = b.esFleje
     ? `Fleje N° ${escapeHtml(b.nFleje || "?")}` +
       (b.medidaFleje ? ` <span class="fleje-med">${escapeHtml(b.medidaFleje)}</span>` : "") +
-      ` <span class="fleje-cod">${escapeHtml(b.entradaCod)}</span>`
-    : `Entrada ${escapeHtml(b.entradaCod)} <span class="fleje-cod">${escapeHtml(b.entradaTipo)}</span>`;
+      ` <span class="badge fleje-cod">${escapeHtml(b.entradaCod)}</span>`
+    : `Entrada ${escapeHtml(b.entradaCod)} <span class="badge fleje-cod">${escapeHtml(b.entradaTipo)}</span>`;
 
   const kgFlejeTot = b.esFleje && b.partesPorKilo > 0
     ? `${fmtDec(b.totalKgFleje, 1)} kg`
     : "&mdash;";
 
   const filas = b.destinosCalc.map(d => `
-    <tr class="${d.faltanteUni > 0 ? "" : "fila-ok"}">
-      <td class="sector">${escapeHtml(d.sector)}</td>
+    <tr class="${d.faltanteUni > 0 ? "" : "off"}">
+      <td class="cod sector">${escapeHtml(d.sector)}</td>
       <td>${escapeHtml(d.descripcion)}
-        ${d.viaTransito ? `<span class="via">via ${escapeHtml(d.pasoDirecto)}</span>` : ""}
+        ${d.viaTransito ? `<span class="badge via">via ${escapeHtml(d.pasoDirecto)}</span>` : ""}
       </td>
-      <td><span class="chip chip-${d.tipo}">${d.tipo === "crudo" ? "Crudo" : "Procesado"}</span></td>
+      <td><span class="badge ${d.tipo === "crudo" ? "warn" : "info"}">${d.tipo === "crudo" ? "Crudo" : "Procesado"}</span></td>
       <td class="num">${d.consumoUniMes == null
         ? `<span class="sin-consumo">sin consumo</span>`
         : `<span class="cd-tocable" data-det="${d.compId}">${fmtUni(d.consumoUniMes)}</span>`}</td>
       <td class="num">${fmtUni(d.maximoUni)}</td>
       <td class="num">
-        <input inputmode="numeric" type="number" class="stock-input ${d.stockManual ? "manual" : ""}"
+        <input inputmode="numeric" type="number" class="cell-in stock-input ${d.stockManual ? "manual" : ""}"
                data-comp="${d.compId}" min="0" step="1"
                value="${Math.round(d.stockUsado)}" />
       </td>
@@ -429,8 +429,8 @@ function renderBloque(b) {
           <span>Fleje a consumir: <b>${kgFlejeTot}</b></span>
         </div>
       </div>
-      <div class="tabla-wrap">
-        <table class="tabla">
+      <div class="table-wrap free">
+        <table class="t">
           <thead>
             <tr>
               <th>Sector</th>
@@ -449,7 +449,7 @@ function renderBloque(b) {
         </table>
       </div>
       ${b.esFleje && b.partesPorKilo > 0
-        ? `<div class="bloque-nota">${fmtDec(b.partesPorKilo, 2)} piezas por kilo de fleje (con desperdicio).</div>`
+        ? `<div class="hint bloque-nota">${fmtDec(b.partesPorKilo, 2)} piezas por kilo de fleje (con desperdicio).</div>`
         : ""}
     </div>`;
 }

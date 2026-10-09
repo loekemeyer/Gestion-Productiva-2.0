@@ -150,7 +150,7 @@ function montarPantalla(){
     (CFG.links || []).forEach(function(l){
       var a = document.createElement("a");
       a.href = l[1]; a.textContent = l[0];
-      if (l[2] === "destacado") a.setAttribute("style", "background:#0b5cad;color:#fff");
+      if (l[2] === "destacado") a.className = "primary";   // azul GP2 de la barra (sistema 2026-10-09)
       frag.appendChild(a);
     });
     hb.insertBefore(frag, atras);
@@ -307,7 +307,7 @@ async function abrirDetalle(comp_id, colKey){
   var col  = (CFG.columnas||[]).filter(function(c){ return c.k===colKey; })[0] || { label:"Movimientos", tipos:[] };
 
   $("popTitle").innerHTML = '<span class="cod">'+esc(fila.cod||"")+'</span> — '+esc(fila["desc"]||"")+
-    '<br><small style="color:#666;font-weight:600">'+esc(col.label)+'</small>';
+    '<br><small class="sub">'+esc(col.label)+'</small>';
   $("popBody").innerHTML = '<div class="empty">Cargando…</div>';
   $("popup").classList.add("open");
 
@@ -335,8 +335,8 @@ async function abrirDetalle(comp_id, colKey){
     '</tr></thead><tbody>'+
     rows.map(function(m){
       var signo = m.signo==="ent" ? "+" : "−";
-      var via = m.via ? ' <small style="color:#777">(vía '+esc(m.via)+')</small>' : "";
-      var falt = m.faltante ? ' <span style="color:#c2410c;font-weight:800">F</span>' : "";
+      var via = m.via ?  ' <small class="sub">(vía '+esc(m.via)+')</small>' : "";
+      var falt = m.faltante ?  ' <span class="badge warn">F</span>' : "";
       return '<tr><td>'+esc(fmtFecha(m.fecha))+'</td>'+
         '<td>'+esc(m.tipo)+via+falt+'</td>'+
         '<td>'+esc(m.contraparte||"—")+'</td>'+
@@ -344,7 +344,7 @@ async function abrirDetalle(comp_id, colKey){
         '<td class="num">'+(m.cajones!=null?fmt(m.cajones,1):"—")+'</td></tr>';
     }).join("")+
     '</tbody><tfoot><tr><td colspan="3">'+rows.length+' movimientos'+
-    (truncado?' <small style="color:#c2410c;font-weight:700">(solo los últimos '+DET_LIMIT+' del componente: puede haber más viejos y el total no cerrar)</small>':'')+'</td>'+
+    (truncado? ' <small class="err-text">(solo los últimos '+DET_LIMIT+' del componente: puede haber más viejos y el total no cerrar)</small>':'')+'</td>'+
     '<td class="num '+clsNum(tot)+'">'+fmt(tot,0)+'</td><td></td></tr></tfoot></table></div>';
 }
 

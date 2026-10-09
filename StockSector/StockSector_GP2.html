@@ -14,21 +14,24 @@
      en el mapa, no aca. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=20260929a"></script>
-<link rel="stylesheet" href="../gp2-modulo.css?v=20260912c"/>
+<link rel="stylesheet" href="../gp2-modulo.css?v=20261009ds"/>
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <style>
-  .seg{display:flex;gap:6px;flex-wrap:wrap}
-  table.t tr.bajo td{background:#fff7ed}
-  td.mov-cell,td.stk-cell{cursor:pointer;text-decoration:underline dotted}
+  /* sistema GP2 v2.0 (2026-10-09): look de gp2-modulo.css; acá sólo layout */
+  .filtros{margin:0 0 var(--s3)}
+  .filtros input.search{flex:1 1 300px;min-width:0;width:auto}
+  td.mov-cell,td.stk-cell{cursor:pointer;text-decoration:underline dotted var(--ink-400)}
   /* 2026-10-01: sin negrita en la tabla (ni Uni ni los movimientos verde/rojo de gp2-modulo.css) */
   td.mov-cell,td.stk-cell{font-weight:400}
-  td.mov-cell:hover,td.stk-cell:hover{background:#eef4fb}
-  .popup{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
+  td.mov-cell:hover,td.stk-cell:hover{background:var(--brand-100)}
+  /* encabezado de 2 filas: la de grupos se va con el scroll, queda fija la de columnas */
+  #thead > tr:first-child:not(:last-child) > th{position:static}
+  .popup{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
   .popup.open{display:flex}
-  .pop-card{background:#fff;border-radius:14px;width:100%;max-width:880px;max-height:86vh;overflow:auto;padding:20px}
-  .pop-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
-  .pop-head h3{font-size:20px;font-weight:800}
+  .pop-card{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--sh-2);width:100%;max-width:960px;max-height:88vh;overflow:auto;padding:18px 20px}
+  .pop-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+  .pop-card .table-wrap{max-height:none}
 </style>
 </head>
 <body>
@@ -39,7 +42,7 @@
          gp2-stock-sector.js segun el sector; "Atras" queda fijo y siempre ultimo -->
     <h1 id="titulo">Stock por sector</h1>
     <div class="hbtns" id="hbtns">
-      <a href="../GP2_MODULOS.html">Atrás</a>
+      <a class="back" href="../GP2_MODULOS.html">Atrás</a>
     </div>
   </div>
 
@@ -47,7 +50,8 @@
     <div class="kpis" id="kpis"></div>
     <div class="aviso hidden" id="avisoFactores"></div>
 
-    <div class="row">
+    <div class="toolbar filtros">
+      <input type="text" class="search" id="q" placeholder="Buscar por código o descripción…">
       <div class="seg">
         <button class="seg-btn active" data-f="todos" type="button">Todos</button>
         <button class="seg-btn" data-f="con" type="button">Con stock</button>
@@ -56,8 +60,6 @@
         <button class="seg-btn" data-f="mov" type="button">Con movimientos</button>
       </div>
     </div>
-
-    <div class="search-box"><input type="text" id="q" placeholder="Buscar por código o descripción…"></div>
 
     <div class="table-wrap">
       <table class="t">
@@ -88,6 +90,6 @@ window.SB_CLIENT = GP2_SB();
 <script src="../gp2-ui.js?v=20260930a"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <script src="../gp2-composicion.js?v=20260911p"></script>
-<script src="../gp2-stock-sector.js?v=20261001a"></script>
+<script src="../gp2-stock-sector.js?v=20261009c"></script>
 </body>
 </html>
