@@ -320,6 +320,8 @@ tr.off > td,tr.muted > td{color:var(--ink-400)}
 }
 .table-wrap > table{border:0}
 .table-wrap thead th{position:sticky;top:0;z-index:5}
+/* encabezado de 2 filas: la segunda se pega debajo de la primera (alto de una fila de th ≈ 34px) */
+.table-wrap thead tr + tr th{top:var(--th-row,34px)}
 .table-wrap > table > thead > tr:first-child > th:first-child{border-top-left-radius:var(--r-lg)}
 .table-wrap > table > thead > tr:first-child > th:last-child{border-top-right-radius:var(--r-lg)}
 /* primera columna fija (código / nombre) cuando la tabla es más ancha que la pantalla */
