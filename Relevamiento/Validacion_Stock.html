@@ -1,6 +1,11 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.2.0 (2026-10-09) — SE LLEGA DERECHO DESDE EL CONTEO [Thomas: "cuando termino de cargar el
+     conteo que lo mande a validación stock para poner si quiero que siga el stock del sistema o
+     quede el del conteo"]. Relevamiento_GP2.html, al completar, abre esta pantalla con ?id=<conteo>
+     y acá se abre esa comparación sola. Con ?volver=tablet el "Atrás" vuelve a la tablet, y
+     "← Volver" / "Aplicar" devuelven al Conteo (donde queda el ✓ Hecho). -->
 <!-- v1.1.0 (2026-09-30) — VALIDACIÓN DE STOCK TIENE DOS MÓDULOS [usuario 2026-09-30: "Dentro de
      validación stock quiero que haya un módulo para validar lo del conteo vs lo que hay cargado en
      el sistema y otro módulo para validar lo que se anotó en el remito vs lo que se controló"].
@@ -97,7 +102,7 @@
 <div class="card">
   <div class="header">
     <h1>✅ Validación de Stock</h1>
-    <div class="hbtns"><a href="../GP2_MODULOS.html">Atrás</a></div>
+    <div class="hbtns"><a id="btnAtrasHeader" href="../GP2_MODULOS.html">Atrás</a></div>
   </div>
 
   <div class="steps">
@@ -164,6 +169,13 @@ function msg(t, malo){
 }
 
 var D={}, REL=null, COMP=[];
+/* Llegada desde el Conteo (2026-10-09): ?id=<relevamiento> abre esa comparacion; ?volver=tablet
+   hace que el Atras vuelva a la tablet. Al terminar, se vuelve al Conteo. */
+var QS = new URLSearchParams(location.search);
+var ID_INICIAL = Number(QS.get('id')) || null;
+var DE_TABLET = QS.get('volver') === 'tablet';
+if(DE_TABLET) $('btnAtrasHeader').href = '../Tablet/Tablet_GP2.html';
+function volverAlConteo(){ location.href = 'Relevamiento_GP2.html' + (DE_TABLET ? '?volver=tablet' : ''); }
 
 async function boot(){
   var r = await SB.rpc('validacion_bundle');
@@ -171,6 +183,7 @@ async function boot(){
   D = r.data || {};
   pintarLista();
   $('status').textContent='';
+  if(ID_INICIAL){ var id = ID_INICIAL; ID_INICIAL = null; await verComparacion(id); }
 }
 
 function pintarLista(){
@@ -274,6 +287,7 @@ $('btnAplicar').addEventListener('click', async function(){
     var r = await SB.rpc('relevamiento_aplicar', { p_id: REL.id });
     if(r.error) throw r.error;
     msg('✓ Stock actualizado — '+(r.data.ajustes||0)+' ajuste(s).');
+    if(QS.get('id')){ setTimeout(volverAlConteo, 1200); return; }   // vino del Conteo: vuelve ahi
     REL=null; COMP=[];
     await boot();
     mostrar('lista');
@@ -295,7 +309,10 @@ function mostrar(p){
   $('panLista').classList.toggle('hidden', p!=='lista');
   $('panComp').classList.toggle('hidden', p!=='comp');
 }
-$('btnVolver').addEventListener('click', async function(){ REL=null; COMP=[]; await boot(); mostrar('lista'); });
+$('btnVolver').addEventListener('click', async function(){
+  if(QS.get('id')) return volverAlConteo();   // vino del Conteo: "← Volver" vuelve ahi
+  REL=null; COMP=[]; await boot(); mostrar('lista');
+});
 
 boot();
 </script>
