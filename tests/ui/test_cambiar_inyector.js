@@ -1,7 +1,8 @@
 /* CambiarInyector/CambiarInyector_GP2.html (2026-10-09) — quién tiene la matriz de cada familia de plásticos.
    Fija: una tarjeta por familia (sin "Otros"), el inyector actual marcado, tocar otro pide confirmar, Confirmar
    manda cambiar_inyector_familia con la familia y el inyector, Cancelar no escribe, la O.C. abierta del
-   inyector anterior se avisa, y la familia con piezas repartidas lo dice. */
+   inyector anterior se avisa, y la familia con piezas repartidas lo dice. Las familias con matriz de tercero
+   (Base Afila, Cierra Bolsa, Cuchillo Untar Blanco) no llegan: las filtra cambiar_inyector_bundle. */
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
@@ -11,9 +12,9 @@ const EXE = process.env.CHROMIUM_PATH || (fs.existsSync('/opt/pw-browsers/chromi
 const BUNDLE = {
   iny: [ { id: 19, n: 'JL Matriceria' }, { id: 12, n: 'Kollplast' }, { id: 11, n: 'Pat Bet Plast' }, { id: 10, n: 'Pettofrezza Rafael' } ],
   fam: [
-    { n: 'Cierra Bolsa', min: 10000, prov: 'JL Matriceria',
-      partes: [ { id: 1, cod: 'PC4', d: 'Cierra bolsa', prov: 'JL Matriceria' } ],
-      oc: [ { numero: 3, prov: 'JL Matriceria', pend: 10000 } ] },
+    { n: 'Mangos LK', min: 6000, prov: 'Pat Bet Plast',
+      partes: [ { id: 1, cod: 'PA17', d: 'Mango LK', prov: 'Pat Bet Plast' } ],
+      oc: [ { numero: 3, prov: 'Pat Bet Plast', pend: 6000 } ] },
     { n: 'Pirolos', min: 36000, prov: 'Pat Bet Plast',
       partes: [ { id: 2, cod: 'PA12', d: 'Pirolo rojo', prov: 'Pat Bet Plast' },
                 { id: 3, cod: 'PA7A', d: 'Pirolo blanco', prov: 'Pat Bet Plast' },
@@ -86,9 +87,9 @@ window.supabase = { createClient: function(){ return {
   ok(await page.$eval('[data-fam="Pirolos"] .prov-btn.active', b => b.textContent) === 'Kollplast', 'queda marcado Kollplast');
 
   // O.C. abierta con el inyector anterior: se avisa antes de confirmar
-  await page.click('[data-fam="Cierra Bolsa"] .prov-btn:has-text("Kollplast")');
-  ok(/O\.C\. N° 3 de JL Matriceria/.test(await page.textContent('[data-fam="Cierra Bolsa"] .ci-conf')), 'avisa la O.C. abierta del inyector anterior');
-  await page.click('[data-fam="Cierra Bolsa"] [data-cancel]');
+  await page.click('[data-fam="Mangos LK"] .prov-btn:has-text("Kollplast")');
+  ok(/O\.C\. N° 3 de Pat Bet Plast/.test(await page.textContent('[data-fam="Mangos LK"] .ci-conf')), 'avisa la O.C. abierta del inyector anterior');
+  await page.click('[data-fam="Mangos LK"] [data-cancel]');
 
   // error del server: se muestra en la tarjeta y no marca nada
   await page.click('[data-fam="Plaquitas"] .prov-btn:has-text("Kollplast")');
