@@ -6,6 +6,9 @@
 <script src="../gp2-ui.js?v=20260930a"></script>
 <script src="../gp2-numero.js?v=20260911o"></script>
 <title>Stock general · GP2</title>
+<!-- v3.5.0 (2026-10-09) - BOTÓN "⤓ Excel" [Thomas: "Agregame una opción en stock general para poder descargar en
+     Excel"]. Baja lo que muestra la tabla (rubro, pestaña de planta, búsqueda, "Solo con stock") con sus mismas
+     columnas y SIN el tope de 400 filas de "Todos". Sale por GP2UI.exportarCSV (el de la casa, abre en Excel). -->
 <!-- v3.4.1 (2026-10-07) - SIN LOS 4 CUADROS DE TOTALES [usuario: "No quiero que me aparezcan estos datos en
      stock general"]. Se sacaron Filas/Componentes, Total uni, Total kg y Bajo el máximo (y el cálculo que los
      alimentaba). La tabla, el buscador y el rojo de "bajo el máximo" en cada fila no se tocan. -->
@@ -295,6 +298,7 @@
     <h1>Stock general</h1>
     <div class="hbtns">
       <button class="hlink" id="btnAjuste" onclick="openAjuste()">± Ajuste</button>
+      <button class="hlink" id="btnExcel" type="button" onclick="exportarExcel()" title="Baja lo que muestra la tabla (rubro, pestaña, búsqueda y «Solo con stock»), sin el tope de 400 filas">⤓ Excel</button>
       <a href="../GP2_MODULOS.html">Atrás</a>
     </div>
   </div>
@@ -1008,6 +1012,33 @@ function render(){
       (r.mostrar_fleje?'<td class="num">'+(x.n_fleje!=null?esc(x.n_fleje):"—")+'</td>':"");
     tb.appendChild(tr);
   });
+}
+
+/* ---------- v3.5.0: descargar a Excel lo que muestra la tabla ----------
+   Mismas columnas que renderHead y mismas filas que filtradas() (rubro, pestaña de planta, búsqueda,
+   "Solo con stock"), pero SIN el tope de 400 de "Todos": el archivo lleva todas. El armado es el de
+   la casa (GP2UI.exportarCSV: ";", BOM, coma decimal), que Excel es-AR abre directo en columnas. */
+function exportarExcel(){
+  if (!RUBRO || !CUR.filas.length){ toast("Todavía no hay datos para descargar.", true); return; }
+  var r = RUBRO, cols = (r.mode==="sector" ? r.cols : []) || [];
+  var red = function(n, d){ if (n==null || !isFinite(n)) return ""; var k=Math.pow(10,d); return Math.round(Number(n)*k)/k; };
+  var enc = [].concat(r.mostrar_rubro ? ["Rubro"] : [], r.mostrar_ubic ? [r.mostrar_ubic] : [],
+    ["Código","Descripción","Kg"], r.sin_caj ? [] : ["Caj"], ["Uni"],
+    cols.map(function(c){ return c.label; }),
+    ["Kg × Uni"], r.sin_caj ? [] : ["Uni × Cajón"], r.sin_max ? [] : ["Máximo"], r.mostrar_fleje ? ["N° Fleje"] : []);
+  var filas = filtradas().map(function(x){
+    var kg = kgDe(x), caj = cajDe(x);
+    return [].concat(r.mostrar_rubro ? [x.rubro_nom||""] : [], r.mostrar_ubic ? [x.ubic_nom||""] : [],
+      [x.cod||"", x.desc||"", red(kg,2)], r.sin_caj ? [] : [red(caj,1)], [esKg(x) ? "" : red(x.online||0,2)],
+      cols.map(function(c){ return red(valorCol(x,c),2); }),
+      [x.kg_x_uni ? red(x.kg_x_uni,6) : ""], r.sin_caj ? [] : [x.uni_x_cajon ? red(x.uni_x_cajon,2) : ""],
+      r.sin_max ? [] : [x.maximo!=null ? red(x.maximo,2) : ""], r.mostrar_fleje ? [x.n_fleje!=null ? x.n_fleje : ""] : []);
+  });
+  if (!filas.length){ toast("Con estos filtros no hay filas para descargar.", true); return; }
+  var pl = (r.mode==="global" && PLANTA!=="todos") ? "_" + ({cerv:"Cervantes",virg:"Virgilio",terc:"Terceros"})[PLANTA] : "";
+  var nom = (r.mode==="global" ? "Todos" : r.nom).replace(/[^\wÁÉÍÓÚÑáéíóúñ]+/g, "_").replace(/^_+|_+$/g, "");
+  GP2UI.exportarCSV("stock_general_" + nom + pl + "_" + GP2UI.hoyAR(), [enc].concat(filas));
+  toast("Descargado: " + fmt(filas.length) + " filas.");
 }
 
 /* ---------- seleccionar rubro (carga perezosa del sector) ---------- */
