@@ -16324,6 +16324,10 @@ la idea es que pueda cambiar quién posee la matriz de la familia. Que me deje c
 - ⚠ **El cero no dura**: con la entrada de Virgilio prendida, la próxima entrega cargada en Virgilio vuelve a crear
   `consumo_virgilio` / `recepcion_virgilio` y mueve stock de talleristas. Decisión del dueño, avisada antes.
 - Precedente: el reset del 02/10 (§4ih) se revirtió a la hora; por eso el respaldo es obligatorio.
+- **Ampliado el mismo día** [Thomas, 09/10: *"Todos los stocks y movimientos de GP2, si no te deja subir por el delete lo
+  subo yo"*]: el script borra **TODOS** los movimientos (sin filtro de ubicación, así entran también los que el espejo de
+  Virgilio cree entre la medición y la corrida), la cola `virgilio_espejo_pend` (2) y termina con `inventario.cantidad = 0`
+  como red (con el libro vacío ya da 0). Las O.C. siguen sin borrarse.
 ## 4kj. Conteo (Relevamientos): entran SC, SP y Movimiento con el stock del sistema, y al completar se va a Validación (2026-10-09) — v1.260.0
 
 `[usuario Thomas, 09/10]` *«Agregame al módulo de conteo de versión tablet logística, sc y sp. Quiero que en ese módulo

@@ -1,13 +1,12 @@
--- Reset de stock y movimientos — Cervantes + talleristas (Thomas, 09/10/2026):
+-- Reset de TODO el stock y TODOS los movimientos de GP2 (Thomas, 09/10/2026):
+--   "Todos los stocks y movimientos de GP2, si no te deja subir por el delete lo subo yo".
+-- Historia del pedido:
 --   "Todo lo que se recibe en Cervantes eliminá el stock y movimiento" · "Lo de los talleristas también en 0"
 --   · "No apagues la entrada de Virgilio".
 -- ⚠ CORRER EN EL SQL EDITOR DE SUPABASE: el conector de Claude retiene todo texto con DELETE y se corta a los 60 s.
 -- Medido antes (09/10): 308 movimientos, 226 filas de inventario <> 0, 20 recepciones, 3 O.C. (7 renglones).
--- Alcance: todo movimiento que toca una ubicación de Cervantes (sector, art_terminado, virgilio_sector), de un
--- tallerista, de un P.S. (Pedernera / Carlos Aguirre es la única con movimientos que quedarían: 31, stock -22.319)
--- o de un inyector. Con las 4 juntas son los 308 movimientos: el inventario queda TODO en 0.
---   · Para dejar Pedernera afuera: sacar 'proveedor_servicio' de la lista (quedan 31 mov, Pedernera -22.319 y
---     Virgilio (Distribución) 6.336).
+-- Alcance: TODOS los movimientos (Cervantes, talleristas, P.S., inyectores, Virgilio), la cola del espejo de
+-- Virgilio y las recepciones con sus controles y rollos. El inventario queda TODO en 0.
 -- NO toca: el trigger trg_virgilio_espejo_gp2 (sigue prendido: la próxima entrega de Virgilio vuelve a mover
 -- stock), las O.C. (trg_movimiento_oc_recibido les devuelve el "recibido" a 0 y deja el cruce en 0 como rastro),
 -- inventario.maximo, ni la frontera ingreso_virgilio (sólo se suelta su vínculo a la recepción borrada).
@@ -15,11 +14,7 @@
 -- D de db/verificar.sql da 1 mientras exista, a propósito.
 begin;
 create temp table _del on commit drop as
-  select m.id from "GP2".movimiento m
-   where m.ubic_origen_id  in (select id from "GP2".ubicacion where tipo in
-                                 ('sector','art_terminado','virgilio_sector','tallerista','proveedor_servicio','inyector'))
-      or m.ubic_destino_id in (select id from "GP2".ubicacion where tipo in
-                                 ('sector','art_terminado','virgilio_sector','tallerista','proveedor_servicio','inyector'));
+  select m.id from "GP2".movimiento m;   -- TODOS [Thomas 09/10: «Todos los stocks y movimientos de GP2»]
 create temp table _rec on commit drop as
   select id from "GP2".recepcion_insumo where movimiento_id in (select id from _del);
 
@@ -38,6 +33,7 @@ create table "GP2".bkp_reset_cervantes_20261009 as
   union all select 'orden_compra_item', to_jsonb(oi) from "GP2".orden_compra_item oi
   union all select 'orden_compra', to_jsonb(o) from "GP2".orden_compra o
   union all select 'oc_item_recepcion', to_jsonb(x) from "GP2".oc_item_recepcion x
+  union all select 'virgilio_espejo_pend', to_jsonb(vp) from "GP2".virgilio_espejo_pend vp
   union all select 'ingreso_virgilio', to_jsonb(iv) from "GP2".ingreso_virgilio iv where iv.recepcion_insumo_id in (select id from _rec);
 alter table "GP2".bkp_reset_cervantes_20261009 enable row level security;
 
@@ -53,6 +49,9 @@ delete from "GP2".rollo_evento where control_rollo_id is null           -- los d
 -- trg_movimiento_aplicar devuelve el stock; trg_movimiento_oc_recibido baja el "recibido" de la O.C. y deja
 -- el cruce oc_item_recepcion en 0 como rastro (por eso el cruce NO se borra antes: el trigger lo necesita)
 delete from "GP2".movimiento where id in (select id from _del);
+delete from "GP2".virgilio_espejo_pend;   -- la cola del espejo: si quedara, al reprocesarla volverían movimientos
+-- con el libro vacío el inventario ya da 0 por el trigger; esto sólo cubre un desfase previo (queda en el respaldo)
+update "GP2".inventario set cantidad = 0 where cantidad <> 0;
 commit;
 
 -- Verificación (correr después; todo debe dar 0 salvo lo que quede afuera a propósito):
