@@ -16260,7 +16260,7 @@ se cuenta cada sector" (los crudos `CV*` en kilos): **no** van en kilos, van en 
   Los 4 registros de prueba del 06/10 (legajo 1 «Pruebas», ids 7513-7516) quedaron en la 512.
 
 
-## 4ki. Cambiar Inyector: quién tiene la matriz de cada FAMILIA de plásticos (2026-10-09) — v1.260.0
+## 4ki. Cambiar Inyector: quién tiene la matriz de cada FAMILIA de plásticos (2026-10-09) — v1.259.0
 
 `[usuario Thomas, 09/10: «Quiero que agregues el módulo de Cambiar Inyectores que está oculto con la finalidad de poder
 cambiar las partes que produce cada uno. Los inyectores se llevan las matrices. Hay una matriz por familia. Estas familias
@@ -16289,7 +16289,7 @@ la idea es que pueda cambiar quién posee la matriz de la familia. Que me deje c
 - **Menú**: la 9ª baldosa de Herramientas no entraba en 375×600 (646 de 600). En pantalla baja el encabezado del menú pasa a
   una línea (logo 100px + versión al lado). Con el menú rediseñado de Naza también se pasa (632 de 600): lo tiene que
   resolver el merge.
-## 4kh. Conteo (Relevamientos): entran SC, SP y Movimiento con el stock de hoy, y al completar se va a Validación (2026-10-09) — v1.260.0
+## 4kh. Conteo (Relevamientos): entran SC, SP y Movimiento con el stock del sistema, y al completar se va a Validación (2026-10-09) — v1.260.0
 
 `[usuario Thomas, 09/10]` *«Agregame al módulo de conteo de versión tablet logística, sc y sp. Quiero que en ese módulo
 aparezca el stock de hoy … registrar a la derecha … cuántos cajones hay realmente … me calcule cuántos kilos hay y cuántas
