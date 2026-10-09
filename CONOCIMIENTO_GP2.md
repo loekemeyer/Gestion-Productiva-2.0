@@ -15087,7 +15087,7 @@ de Cuchara, Cucharon, etc"*.
   AA exige que el paso de insumo diga lo mismo que la receta). 4 artículos, 4 terminados, 8 recetas, 8 rutas, 24
   pasos. **Sin fila de inventario para el terminado**, igual que 942E y otros 118: `inv_delta` la crea sola en
   la ubicación «Art. Terminado (Fábrica)» cuando la tablet registra la producción `[dato]`.
-- **La matriz 512 cierra DOS artículos** (323E y 838E): la tablet de operarios pregunta cuál se armó
+- **La matriz 512 cierra DOS artículos** (323E y 838E) — ⚠ **CORREGIDO 09/10: es la 514**, ver §4kg: la tablet de operarios pregunta cuál se armó
   (`matriz_salidas`) y pide CAJAS × 12. 509 y 510 cierran uno solo (`unica` = 12). Sin cambio de código `[dato]`.
 - **No se tocó el vínculo GV → GP2.** El resolutor `importado_virgilio_componente_de` mira SÓLO
   `importado_virgilio_componente`, nunca `componente.codigo`, así que el terminado `599E`/`522E` de GP2 no le
@@ -16243,3 +16243,17 @@ se cuenta cada sector" (los crudos `CV*` en kilos): **no** van en kilos, van en 
   **bidones de 20 l**. El operario va a leer "cajones" y el sistema multiplica por 2 kg / 20 l. Sin respuesta
   del usuario todavía.
 - `db/migracion_relev_envase_remache_20261008.sql`, `tests/ui/test_relevamiento.js`.
+
+## 4kg. 323E y 838E se envasan con la matriz 514, no con la 512 (2026-10-09)
+
+- **Corrección** `[usuario Thomas, 09/10: «tanto en el artículo 323E y 838E utilizan la matriz 514 como envasado y no la
+  512»]`. El alta del 05/10 (§ envasado de importados) había puesto la 512 «Reenvasado imp rallador»; la 514 ni existía en
+  GP2 (§ verificación de cajones, 06/10: «la 513 y 514 no existen»).
+- **Qué se hizo** `[dato]`: alta de `GP2.matriz` id 419 = **514 «Env Rallador Mini Imp.»** (descripción de Entero); los 4
+  pasos de envasado (rutas 1105-1108) y el selector Loeke/Chef (`matriz_salida_etiqueta`) pasan a la 514.
+  `db/migracion_matriz_514_rallador_mini_20261009.sql` (con revert).
+- **⚠ Sin tiempo histórico**: Entero tampoco lo tiene y no se inventa. 323E y 838E bajan de **$122,90 a $13,90** (MO $109 → 0,
+  `faltan_tiempos = 1`): están subvaluados hasta que se cargue el tiempo de la 514. El resto de los costos no cambió.
+- **La 512 sigue activa y sin pasos**: en Entero es real (8 registros, 888 u, último 28/09) — qué artículo cierra no está en GP2.
+  Los 4 registros de prueba del 06/10 (legajo 1 «Pruebas», ids 7513-7516) quedaron en la 512.
+
