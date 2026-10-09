@@ -16259,3 +16259,31 @@ se cuenta cada sector" (los crudos `CV*` en kilos): **no** van en kilos, van en 
 - **La 512 sigue activa y sin pasos**: en Entero es real (8 registros, 888 u, último 28/09) — qué artículo cierra no está en GP2.
   Los 4 registros de prueba del 06/10 (legajo 1 «Pruebas», ids 7513-7516) quedaron en la 512.
 
+
+## 4kh. Cambiar Inyector: quién tiene la matriz de cada FAMILIA de plásticos (2026-10-09) — v1.258.0
+
+`[usuario Thomas, 09/10: «Quiero que agregues el módulo de Cambiar Inyectores que está oculto con la finalidad de poder
+cambiar las partes que produce cada uno. Los inyectores se llevan las matrices. Hay una matriz por familia. Estas familias
+están modeladas en órdenes de compra de plásticos. La única familia que no va en este módulo es la familia Otros. Entonces
+la idea es que pueda cambiar quién posee la matriz de la familia. Que me deje cambiar por cada familia»]`
+
+- **El modelo ya estaba, no hizo falta tabla nueva**: familia = `GP2.familia_pedido` (una matriz del inyector, §OC v1.43.0);
+  inyector de cada pieza = `componente.proveedor`. Cambiar quién tiene la matriz = pasar el proveedor de **todas** las piezas
+  de la familia juntas. "Otros" = piezas con `familia_pedido` NULL (20 en el sector 6): no son familia y no entran.
+- **Pantalla nueva** `CambiarInyector/CambiarInyector_GP2.html`, en **Herramientas** debajo de Cambiar Tallerista/Prov. A.T.
+  Una tarjeta por familia (29) con sus piezas y un botón por inyector (los 4 con ubicación `inyector`: JL Matriceria,
+  Kollplast, Pat Bet Plast, Pettofrezza Rafael). Tocar otro → confirmar → `cambiar_inyector_familia`. Hecha con el sistema de
+  diseño v2.0 de la sesión de Naza (09/10) [Thomas: «Pushea con el diseño que está generando la sesión de "Naza 09.10"»].
+- **La pantalla vieja "Inyectores · Quién hace cada parte" (`Compras/Inyectores_GP2.html`) sigue OCULTA** a propósito: es pieza
+  por pieza, tiene todos los rubros y el panel de material; ésta es la que pidió Thomas, por familia. Si alguien cambia una
+  pieza suelta desde la vieja, la familia queda "repartida" y la nueva lo avisa (borde ámbar) hasta que se elija uno.
+- **Lo que NO mueve el cambio** `[deducido]`: las O.C. ya abiertas siguen con el inyector viejo (se avisa antes de confirmar:
+  al 09/10, O.C. N° 3 de JL Matriceria con Cierra Bolsa y Cuchillo Untar pendientes) y la resina que el inyector viejo tiene en
+  su poder queda en su ubicación (Control Partes Inyectores). Las próximas O.C. de la familia salen para el nuevo.
+- Al 09/10 las 29 familias tenían un solo inyector cada una (0 repartidas). Ojo: algunas `familia_pedido.nota` nombran a
+  Kollplast (Bujes, Insertos) pero las piezas están en Pat Bet Plast — la nota es texto viejo de la planilla, manda `proveedor`.
+- Base: `db/migracion_cambiar_inyector_20261009.sql` (`cambiar_inyector_bundle` anon+auth, `cambiar_inyector_familia` sólo
+  authenticated con `_exigir_autorizado`). Probada con rollback. Test: `tests/ui/test_cambiar_inyector.js`.
+- **Menú**: la 9ª baldosa de Herramientas no entraba en 375×600 (646 de 600). En pantalla baja el encabezado del menú pasa a
+  una línea (logo 100px + versión al lado). Con el menú rediseñado de Naza también se pasa (632 de 600): lo tiene que
+  resolver el merge.

@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="es">
+<head>
+<!-- v1.0.0 (2026-10-09) — CAMBIAR INYECTOR POR FAMILIA [Thomas: "Quiero que agregues el módulo de Cambiar
+     Inyectores que está oculto con la finalidad de poder cambiar las partes que produce cada uno. Los inyectores
+     se llevan las matrices. Hay una matriz por familia. Estas familias están modeladas en órdenes de compra de
+     plásticos. La única familia que no va en este módulo es la familia Otros. Entonces la idea es que pueda
+     cambiar quién posee la matriz de la familia. Que me deje cambiar por cada familia"].
+
+     Una tarjeta por familia de pedido (GP2.familia_pedido = una matriz del inyector) con sus piezas y un botón
+     por inyector. Tocar otro inyector pide confirmar y pasa TODAS las piezas de la familia juntas
+     (cambiar_inyector_familia -> componente.proveedor). "Otros" (piezas sin familia) no aparece. La pieza por
+     pieza sigue en Compras/Inyectores_GP2.html (oculta), que además tiene el panel de material. -->
+<meta charset="utf-8"/>
+<script src="../auth-guard.js?v=20261006b"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Cambiar inyector · GP2</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js?v=20260929a"></script>
+<link rel="stylesheet" href="../gp2-modulo.css?v=20261009ds"/>
+<link rel="icon" type="image/png" href="../GP2_favicon.png">
+<link rel="apple-touch-icon" href="../GP2_favicon.png">
+<style>
+  /* Sistema de diseño GP2 v2.0 (gp2-modulo.css, DISENO_GP2.md — sesión de Naza, 09/10): acá va sólo el
+     LAYOUT propio. Los colores salen de los tokens; el segundo valor de cada var() es el respaldo
+     mientras el gp2-modulo.css v2.0 no esté en main. Botón de inyector = .prov-btn (.active = el que
+     tiene la matriz), avisos = .aviso, acciones = .btn. */
+  .ci-buscar{margin:0 0 var(--s2,8px)}
+  .ci-buscar input{width:100%;font-size:20px}
+  .ci-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));gap:var(--s3,12px);margin:var(--s2,8px) 0;align-items:start}
+  .ci-fam{background:var(--surface,#fff);border:1px solid var(--line,#e2e8f0);border-radius:var(--r-lg,12px);
+          box-shadow:var(--sh-1,none);padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+  .ci-fam.mixta{border-top:3px solid var(--warn-600,#d97706)}
+  .ci-tit{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .ci-tit b{font-size:19px;font-weight:800;color:var(--ink-900,#0f172a)}
+  .ci-tit .min{font-size:var(--fs-sm,13.5px);color:var(--ink-500,#64748b);white-space:nowrap;font-variant-numeric:tabular-nums}
+  .ci-hoy{font-size:var(--fs-base,16px);color:var(--ink-700,#334155)}
+  .ci-hoy b{color:var(--ink-900,#0f172a)}
+  .ci-partes{display:flex;flex-wrap:wrap;gap:6px}
+  .ci-pz{font-size:var(--fs-sm,13.5px);padding:3px 9px;border-radius:var(--r-pill,999px);background:var(--ink-100,#f1f5f9);
+         color:var(--ink-700,#334155);border:1px solid var(--line,#e2e8f0)}
+  .ci-pz b{color:var(--brand-600,#163e98);font-weight:700}
+  .ci-btns{display:grid;grid-template-columns:1fr 1fr;gap:var(--s2,8px)}
+  .ci-btns .prov-btn{width:100%;min-height:var(--touch,44px);align-items:center;text-align:center;font-size:var(--fs-base,16px)}
+  .ci-btns .prov-btn.active{cursor:default}
+  .ci-btns .prov-btn:disabled{opacity:.5;cursor:wait}
+  .ci-conf{border:1px solid var(--brand-200,#c7d7f6);border-top:3px solid var(--brand-500,#1f55c9);border-radius:var(--r-lg,12px);
+           background:var(--brand-50,#f0f4fd);padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+  .ci-conf .q{font-size:18px;color:var(--ink-800,#1e293b)}
+  .ci-conf .aviso{margin:0}
+  .ci-acc{display:flex;gap:10px;flex-wrap:wrap}
+  .ci-acc .btn{flex:1 1 150px}
+  .ci-msg{font-size:var(--fs-base,16px);font-weight:600}
+  .ci-msg.ok{color:var(--ok-700,#15803d)}
+  .ci-msg.err{color:var(--err-700,#b91c1c)}
+  .ci-mas{font-size:var(--fs-base,16px);color:var(--ink-500,#64748b);margin:4px 0}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <h1>Cambiar inyector <small>quién tiene la matriz de cada familia</small></h1>
+    <div class="hbtns">
+      <a class="back" href="../GP2_MODULOS.html">Atrás</a>
+    </div>
+  </div>
+
+  <div class="steps page-mid">
+    <div class="field ci-buscar">
+      <label for="q">Familia o pieza</label>
+      <input type="text" id="q" class="search" inputmode="text" autocomplete="off" placeholder="Ej: pirolos o PA7A">
+    </div>
+    <div id="status" class="status">Cargando…</div>
+    <div id="lista" class="ci-lista"></div>
+  </div>
+</div>
+
+<script src="../gp2-ui.js?v=20260930a"></script>
+<script src="../gp2-numero.js?v=20260911o"></script>
+<script>
+"use strict";
+
+var $ = GP2UI.$, esc = GP2UI.esc;
+var fmt = GP2N.fmt;
+
+var SB = GP2_SB();
+
+var B = null;      // bundle: { iny[{id,n}], fam[{n, min, prov, partes[{id,cod,d,prov}], oc[{numero,prov,pend}]}] }
+var SEL = null;    // cambio que se esta confirmando: { fam, prov }
+var MSG = {};      // ultimo resultado por familia (se muestra en su tarjeta)
+
+function norm(s){
+  return String(s == null ? "" : s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+}
+
+/* ---------- carga ---------- */
+async function cargar(){
+  var r = await SB.rpc("cambiar_inyector_bundle");
+  if (r.error){ $("status").className = "status err bad"; $("status").textContent = "Error: " + r.error.message; return; }
+  B = r.data || { iny: [], fam: [] };
+  render();
+}
+
+function famDe(nombre){
+  return ((B && B.fam) || []).filter(function(f){ return f.n === nombre; })[0];
+}
+
+/* "Hoy" = el inyector de todas las piezas. Si no coinciden (se cambió una pieza suelta desde
+   Inyectores · Quién hace cada parte) se avisa: confirmar las pasa todas al mismo. */
+function hoyTxt(f){
+  if (f.prov) return 'Tiene la matriz: <b>' + esc(f.prov) + '</b>';
+  var ps = {};
+  (f.partes || []).forEach(function(p){ ps[p.prov || "sin asignar"] = true; });
+  return '⚠ Las piezas están repartidas (' + esc(Object.keys(ps).join(", ")) + '). Elegí quién tiene la matriz.';
+}
+
+function confHtml(f){
+  var h = '<div class="ci-conf">' +
+    '<div class="q"><b>' + esc(f.n) + '</b>: ' + esc(f.prov || "repartida") + ' → <b>' + esc(SEL.prov) + '</b></div>' +
+    '<div class="aviso info">' + ((f.partes || []).length === 1 ? 'Pasa la pieza ' : 'Pasan las ' + (f.partes || []).length + ' piezas: ') +
+      esc((f.partes || []).map(function(p){ return p.cod; }).join(", ")) +
+      '. Las próximas O.C. de esta familia salen para ' + esc(SEL.prov) + '.</div>';
+  (f.oc || []).forEach(function(o){
+    if (o.prov === SEL.prov) return;
+    h += '<div class="aviso">⚠ La O.C. N° ' + esc(o.numero) + ' de ' + esc(o.prov) + ' tiene ' +
+         esc(fmt(o.pend, 0)) + ' uni pendientes de esta familia: no cambia, se recibe igual.</div>';
+  });
+  h += '<div class="ci-acc">' +
+       '<button class="btn btn-primary" type="button" data-ok="1">Confirmar</button>' +
+       '<button class="btn btn-secondary" type="button" data-cancel="1">Cancelar</button></div></div>';
+  return h;
+}
+
+function render(){
+  var q = norm($("q").value).trim();
+  var fams = ((B && B.fam) || []).filter(function(f){
+    if (!q) return true;
+    var txt = f.n + " " + (f.prov || "") + " " + (f.partes || []).map(function(p){ return p.cod + " " + (p.d || ""); }).join(" ");
+    return norm(txt).indexOf(q) >= 0;
+  });
+  var cont = $("lista"); cont.innerHTML = "";
+  fams.forEach(function(f){
+    var d = document.createElement("div");
+    d.className = "ci-fam" + (f.prov ? "" : " mixta");
+    d.setAttribute("data-fam", f.n);
+    var h = '<div class="ci-tit"><b>' + esc(f.n) + '</b>' +
+            (f.min ? '<span class="min">mín. ' + esc(fmt(f.min, 0)) + ' uni</span>' : '') + '</div>' +
+            '<div class="ci-hoy">' + hoyTxt(f) + '</div>' +
+            '<div class="ci-partes">' + (f.partes || []).map(function(p){
+              return '<span class="ci-pz"><b>' + esc(p.cod) + '</b> ' + esc(p.d || "") + '</span>';
+            }).join("") + '</div>' +
+            '<div class="ci-btns">' + ((B && B.iny) || []).map(function(i){
+              var on = f.prov === i.n;
+              return '<button type="button" class="prov-btn' + (on ? " active" : "") + '" data-prov="' + esc(i.n) + '"' +
+                     (on ? ' aria-pressed="true"' : '') + '>' + esc(i.n) + '</button>';
+            }).join("") + '</div>';
+    if (SEL && SEL.fam === f.n) h += confHtml(f);
+    if (MSG[f.n]) h += '<div class="ci-msg ' + MSG[f.n].cls + '">' + esc(MSG[f.n].txt) + '</div>';
+    d.innerHTML = h;
+    cont.appendChild(d);
+  });
+  if (!fams.length && B){
+    var v = document.createElement("div"); v.className = "ci-mas";
+    v.textContent = "Ninguna familia coincide con «" + $("q").value + "».";
+    cont.appendChild(v);
+  }
+  var rep = ((B && B.fam) || []).filter(function(f){ return !f.prov; }).length;
+  $("status").className = "status";
+  $("status").textContent = fams.length + " de " + ((B && B.fam) || []).length + " familias" +
+    (rep ? " · " + rep + " con piezas repartidas" : "");
+}
+
+async function confirmar(card){
+  if (!SEL) return;
+  var f = famDe(SEL.fam), prov = SEL.prov;
+  card.querySelectorAll("button").forEach(function(b){ b.disabled = true; });
+  var r = await SB.rpc("cambiar_inyector_familia", { p_familia: f.n, p_proveedor: prov });
+  SEL = null;
+  if (r.error){
+    MSG[f.n] = { cls: "err", txt: "⛔ No se pudo cambiar: " + r.error.message };
+    render();
+    return;
+  }
+  var d = r.data || {};
+  f.prov = d.proveedor || prov;
+  (f.partes || []).forEach(function(p){ p.prov = f.prov; });
+  MSG[f.n] = { cls: "ok", txt: "✓ " + f.n + " → " + f.prov + " (" + (d.n || 0) + " piezas)." };
+  render();
+}
+
+/* ---------- eventos ---------- */
+$("q").addEventListener("input", render);
+$("lista").addEventListener("click", function(e){
+  var card = e.target.closest("[data-fam]"); if (!card) return;
+  var fam = card.getAttribute("data-fam");
+  var b = e.target.closest("[data-prov]");
+  if (b){
+    var f = famDe(fam);
+    if (f.prov === b.getAttribute("data-prov")) return;     // ya la tiene
+    SEL = { fam: fam, prov: b.getAttribute("data-prov") };
+    delete MSG[fam];
+    render();
+    return;
+  }
+  if (e.target.closest("[data-ok]")) confirmar(card);
+  else if (e.target.closest("[data-cancel]")){ SEL = null; render(); }
+});
+
+cargar();
+</script>
+</body>
+</html>

@@ -190,6 +190,13 @@ span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
   /* v1.212.1: 5px (antes 6) porque "Órdenes Compra Insumos" va en 2 lineas y el menu se pasaba 1px de 600 */
   body.fijo .card.open a.op,body.fijo .card.open span.op.lock{min-height:44px;padding:5px 8px}
   body.fijo .card.open .btns > :last-child:nth-child(odd){min-height:44px}
+  /* v1.258.0: con "Cambiar Inyector" Herramientas tiene 9 baldosas (una fila mas) y el menu se pasaba
+     46px de 600. Las baldosas ya estan en el piso tocable (44): lo que se aprieta es el encabezado,
+     que pasa a UNA linea (logo chico + version al lado) en vez de logo arriba y version abajo. */
+  body.fijo .header{display:flex;align-items:center;justify-content:center;gap:10px;padding:2px 0}
+  body.fijo .header img{width:100px}
+  body.fijo .card.open .card-head{padding:6px 12px}
+  body.fijo .header .header-sub{margin:0}
 }
 
 /* ── 📱 Versión Tablet (2026-09-13, v1.146.0) ── una sola pantalla con Enviar / Recibir /
@@ -244,7 +251,7 @@ a.tablet-link:hover{background:#1d4ed8}
     (GP2_AUTH_ON=false) no hay sesion que cerrar: el link se oculta solo -->
     <span id="sesion" hidden>&nbsp;·&nbsp; <a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}"
     style="color:#b42318;text-decoration:none;font-weight:700">⎋ Cerrar sesión</a></span></div>
-  <script src="version.js?v=20261008m"></script>
+  <script src="version.js?v=20261009c"></script>
   <script>if (window.GP2_AUTH_ON !== false) document.getElementById('sesion').hidden = false;</script>
   <div class="tablet-links">
     <a class="tablet-link" href="Tablet/Tablet_GP2.html">📱 <span class="tl-v">Versión </span><span class="tl-t">Tablet </span>Logística</a>
@@ -260,7 +267,12 @@ a.tablet-link:hover{background:#1d4ed8}
 
 <div class="wrap"><div class="grid" id="grid"></div></div>
 <script>
-/* v1.197.0 (2026-10-01) - entra "Control Partes Inyectores" en Stocks, debajo de los otros 3
+/* v1.258.0 (2026-10-09) - entra "Cambiar Inyector" al final de Herramientas [Thomas: "agregues el modulo de
+   Cambiar Inyectores que esta oculto ... que pueda cambiar quien posee la matriz de la familia. Que me deje
+   cambiar por cada familia"]: una tarjeta por familia de pedido de plasticos (sin "Otros") y un boton por
+   inyector; el cambio pasa todas las piezas de la familia. "Inyectores · Quien hace cada parte" (pieza por
+   pieza + material) sigue oculto en Insumos.
+   v1.197.0 (2026-10-01) - entra "Control Partes Inyectores" en Stocks, debajo de los otros 3
    controles (Talleristas / P.S. / Prov. A.T.). Mismo molde que Control P.S., pero por inyector
    las filas son las RESINAS en kg (Enviado/Consumido/Saldo): el inyector guarda resina, no piezas.
    v1.196.0 (2026-09-28) - MENU REDUCIDO A DOS GRUPOS [Thomas: "Dos módulos en vez de 10 ... El
@@ -290,6 +302,7 @@ const MENU = [
    ["Casos Especiales", "CasosEspeciales/CasosEspeciales_GP2.html"],
    ["Devolución Cervantes", "Talleristas/Recepcion/DevolucionCervantes_GP2.html"],
    ["Cambiar Tallerista/Prov. A.T.", "CambiarTallerista/CambiarTallerista_GP2.html"],
+   ["Cambiar Inyector", "CambiarInyector/CambiarInyector_GP2.html"],
  ]],
 ];
 
