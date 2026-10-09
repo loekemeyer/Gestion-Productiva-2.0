@@ -7,8 +7,9 @@
 -- Medido antes (09/10): 308 movimientos, 226 filas de inventario <> 0, 20 recepciones, 3 O.C. (7 renglones).
 -- Alcance: TODOS los movimientos (Cervantes, talleristas, P.S., inyectores, Virgilio), la cola del espejo de
 -- Virgilio y las recepciones con sus controles y rollos. El inventario queda TODO en 0.
+-- Borra también las 3 O.C. con sus renglones y cruces [Thomas 09/10: «las 3 o.c. tambien»].
 -- NO toca: el trigger trg_virgilio_espejo_gp2 (sigue prendido: la próxima entrega de Virgilio vuelve a mover
--- stock), las O.C. (trg_movimiento_oc_recibido les devuelve el "recibido" a 0 y deja el cruce en 0 como rastro),
+-- stock),
 -- inventario.maximo, ni la frontera ingreso_virgilio (sólo se suelta su vínculo a la recepción borrada).
 -- Respaldo: GP2.bkp_reset_cervantes_20261009 (t, fila jsonb), RLS prendida sin policy (deny-all) → el invariante
 -- D de db/verificar.sql da 1 mientras exista, a propósito.
@@ -52,11 +53,13 @@ delete from "GP2".movimiento where id in (select id from _del);
 delete from "GP2".virgilio_espejo_pend;   -- la cola del espejo: si quedara, al reprocesarla volverían movimientos
 -- con el libro vacío el inventario ya da 0 por el trigger; esto sólo cubre un desfase previo (queda en el respaldo)
 update "GP2".inventario set cantidad = 0 where cantidad <> 0;
+-- las 3 O.C. también [Thomas 09/10: «las 3 o.c. tambien»]: cascada a orden_compra_item y oc_item_recepcion
+delete from "GP2".orden_compra;
 commit;
 
 -- Verificación (correr después; todo debe dar 0 salvo lo que quede afuera a propósito):
 select (select count(*) from "GP2".movimiento) movimientos,
        (select count(*) from "GP2".inventario where cantidad <> 0) inventario_no_cero,
        (select count(*) from "GP2".recepcion_insumo) recepciones,
-       (select count(*) from "GP2".orden_compra_item where recibido <> 0) oc_con_recibido,
+       (select count(*) from "GP2".orden_compra) ordenes_compra,
        (select count(*) from "GP2".bkp_reset_cervantes_20261009) filas_respaldo;
