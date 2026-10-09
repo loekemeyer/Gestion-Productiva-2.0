@@ -16317,10 +16317,11 @@ unidades … y que yo pueda modificar … cuántos kilos hay … me debe corregi
 cantidad de cajones como un dato fijo»* y, después, *«Agregar también sector movimiento y sector transito. Además cuando termino
 de cargar el conteo que lo mande a validación stock para poner si quiero que siga el stock del sistema o quede el del conteo»*.
 
-- **A demanda, sin cronograma.** Sector Crudo (1), Procesado (2) y Movimiento (3) salen arriba de todo en el Conteo, con fecha
-  de HOY (AR) y la pastilla «A demanda». Su conteo es el abierto o el aplicado hoy; mañana vuelve «Contar». Los 7 sectores con
+- **A demanda, sin cronograma y SIN FECHA.** Sector Crudo (1), Procesado (2) y Movimiento (3) salen arriba de todo en el
+  Conteo **sin fecha** `[Thomas 09/10, corrigiendo la primera versión que decía «Es hoy»: «No es Hoy. Estos stocks no tienen
+  fecha»]`. (La base manda la fecha de hoy sólo para ordenar; la pantalla no la muestra.) Su conteo es el abierto o el aplicado hoy; mañana vuelve «Contar». Los 7 sectores con
   cronograma quedaron idénticos (verificado por md5 del bundle antes/después).
-- **La planilla de esos 3 sectores**: izquierda **Stock de hoy** (programa: cajones = uni ÷ uni_x_cajon, kg = uni × kg_x_uni,
+- **La planilla de esos 3 sectores**: izquierda **Stock del sistema** (programa: cajones = uni ÷ uni_x_cajon, kg = uni × kg_x_uni,
   uni); derecha **Conteo real**: Cajones → Kg (calculado) → Uni. **Si se pesa y se corrige el kg, las uni salen del kg y los
   cajones quedan como se cargaron** (`relevamiento_item.kg` se guarda SÓLO si se pesó; NULL = calculado). «↺» vuelve al
   calculado. El cálculo lo hace la base (`relev_total_uni`, rama sectores 1-3).

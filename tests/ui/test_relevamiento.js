@@ -125,12 +125,14 @@ window.supabase = { createClient: function(){ return {
 
   // ── SP: a demanda, stock de hoy | conteo real, cajones -> kg -> uni ──
   const linea = await page.$eval('.cl', e => e.textContent);
-  ok(/Procesado \(SP\)/.test(linea) && /A demanda/.test(linea) && /Stock de hoy/.test(linea),
-     'SP sale primero, a demanda, con "Stock de hoy" — ' + linea);
+  ok(/Procesado \(SP\)/.test(linea) && !/Próximo|Es hoy|\d{2}\/\d{2}\/\d{4}/.test(linea),
+     'SP sale primero y SIN fecha (no tiene cronograma) — ' + linea);
   await abrir(2);
   ok(await page.evaluate(() => window.__abrir.p_crono_id === null), 'sin cronograma se abre con p_crono_id null (no NaN)');
   const sup = await page.$eval('#cargaBody tr.sup', e => e.textContent);
-  ok(/Stock de hoy/.test(sup) && /Conteo real/.test(sup), 'encabezado: stock de hoy | conteo real — ' + sup);
+  ok(/Stock del sistema/.test(sup) && /Conteo real/.test(sup), 'encabezado: stock del sistema | conteo real — ' + sup);
+  const sub = await page.$eval('#cargaBody tr.sub', e => e.textContent);
+  ok(!/Sueltas|Total/.test(sub) && /Cajones/.test(sub) && /Kg/.test(sub) && /Uni/.test(sub), 'columnas Cajones · Kg · Uni, sin Sueltas ni Total — ' + sub);
   const hoy = await page.$$eval('[data-row="' + SP[0].item_id + '"] td.hoy', xs => xs.map(x => x.textContent));
   ok(hoy.join(' | ') === '2 | 60 | 1.512', 'A1 stock de hoy: 2 cajones · 60 kg · 1.512 uni — ' + hoy.join(' | '));
   const idA = SP[0].item_id, idZ = SP[1].item_id;
