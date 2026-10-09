@@ -655,6 +655,7 @@
      columna angosta a la izquierda y la tabla al lado, arrancando arriba (menos scroll). El par queda CENTRADO en la
      página (v1.40.0: «todo centrado y sin tanto blanco»), con los botones alineados a la izquierda (v1.40.1).
      La última fila de la grilla es 1fr: absorbe el alto de la tabla para que los bloques de la izquierda no se separen. */
+  #elegiSector .en-ancha{display:none}
   @media (min-width:1100px){
     #panGen{display:grid;grid-template-columns:minmax(300px,360px) minmax(0,1fr);
             grid-template-rows:repeat(6,auto) 1fr;column-gap:20px;align-items:start}
@@ -668,7 +669,12 @@
     #zonaLista:not(.hidden){display:contents}
     #zonaLista > *{grid-column:1;min-width:0}
     #zonaLista > .table-wrap,#zonaLista > #tblEmpty,#panGen > #elegiSector{grid-column:2;grid-row:1 / -1;margin-top:var(--s2)}
-    #panGen > #elegiSector{align-self:start;min-width:420px}
+    /* sin sector elegido, el cartel va CENTRADO en el lugar de la tabla [Thomas: «En el espacio en blanco, que quede
+       centrado»]: ocupa el alto que queda de pantalla y se centra en los dos sentidos */
+    #panGen > #elegiSector{align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      min-height:calc(100vh - var(--bar-h) - 150px);margin-top:var(--s2);border:1.5px dashed var(--line-strong);border-radius:var(--r-lg)}
+    #elegiSector .en-angosta{display:none}
+    #elegiSector .en-ancha{display:inline}
     .filtros{align-items:stretch;margin-top:var(--s2)}
     .filtro{display:flex;flex-direction:column;gap:8px;padding:10px}
     .filtro-lb{min-height:28px;align-self:flex-start}
@@ -753,7 +759,7 @@
       </div>
       <div id="tblEmpty" class="empty hidden">Sin insumos en este sector.</div>
       </div>
-      <div id="elegiSector" class="empty">Elegí un <b>sector</b> arriba para ver los insumos y armar la orden.</div>
+      <div id="elegiSector" class="empty"><span>Elegí un <b>sector</b> <span class="en-angosta">arriba</span><span class="en-ancha">a la izquierda</span> para ver los insumos y armar la orden.</span></div>
     </div>
 
     <div id="panOcs" class="hidden">
