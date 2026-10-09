@@ -16374,7 +16374,9 @@ tengas miedo de cambiarlo"*]
 - **Señales únicas**: tinta 900 rellena = elegido; azul GP2 (el del logo, `#163e98`) = acción que avanza;
   verde/ámbar/rojo = bien/alerta/error. Barra fija `‹ Atrás · GP2 · Título · acciones` en todas.
 - **Menú**: misma barra; accesos rápidos (Tablet Logística, Tablet Operarios, Monitor) como baldosas grandes;
-  KPIs de hoy/mes como `.kpi`; grupos con baldosas en 2 columnas; link "Ver todos los módulos" (= `?todos=1`).
+  grupos con baldosas en 2 columnas. ⚠ v1.261.1: se SACARON los KPIs «Unidades hoy / del mes» y el link «Ver todos los
+  módulos» [usuario, 09/10: «No quiero ver unidades hoy y unidades del mes. Tampoco quiero la opción de ver todos los módulos.
+  Esos están ocultos»]; `?todos=1` sigue andando tipeando la URL, pero no se ofrece.
   En el celular se conserva todo lo pedido antes (los 2 grupos entran en una pantalla, pastillas abajo).
 - **Tablet de operarios**: se rediseñó en el origen, Registro Producción 3.0 v3.1.11 [Elías: «Habilito lo de tablet de operarios»],
   y se copió acá con su script (hoy es la copia de v3.1.13).

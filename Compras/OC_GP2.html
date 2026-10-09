@@ -664,6 +664,31 @@
   .rep-tag{display:block;font-size:var(--fs-cap);font-weight:700;white-space:nowrap}
   .rep-pend{color:var(--brand-700)}
   td.bajo-min b, td.bajo-min{color:var(--err-700)}
+  /* v2.1 (2026-10-09) — FILTROS A LA IZQUIERDA, TABLA AL LADO [Thomas, con captura: «Quedó mucho espacio del lado
+     derecho»]. Con la barra a todo el ancho, la tabla (que abraza el dato, v1.35.0) dejaba media pantalla vacía a la
+     derecha. En pantalla ancha la generación de OC pasa a dos columnas: Sector / Proveedor / Buscar / Crear OC en una
+     columna angosta a la izquierda y la tabla al lado, arrancando arriba (menos scroll). El par queda CENTRADO en la
+     página (v1.40.0: «todo centrado y sin tanto blanco»), con los botones alineados a la izquierda (v1.40.1).
+     La última fila de la grilla es 1fr: absorbe el alto de la tabla para que los bloques de la izquierda no se separen. */
+  @media (min-width:1100px){
+    #panGen{display:grid;grid-template-columns:minmax(300px,360px) minmax(0,max-content);
+            grid-template-rows:repeat(6,auto) 1fr;column-gap:20px;justify-content:start;align-items:start}
+    /* el bloque entero (pestañas + filtros + tabla) centrado y del ancho del contenido */
+    body > .card > .steps{max-width:1320px}
+    #panGen > *{grid-column:1;min-width:0}
+    #zonaLista:not(.hidden){display:contents}
+    #zonaLista > *{grid-column:1;min-width:0}
+    #zonaLista > .table-wrap,#zonaLista > #tblEmpty,#panGen > #elegiSector{grid-column:2;grid-row:1 / -1;margin-top:var(--s2)}
+    #panGen > #elegiSector{align-self:start;min-width:420px}
+    .filtros{align-items:stretch;margin-top:var(--s2)}
+    .filtro{display:flex;flex-direction:column;gap:8px;padding:10px}
+    .filtro-lb{min-height:28px;align-self:flex-start}
+    .filtro .chips{flex:none}
+    .prov-info{width:auto}
+    #panGen .search-box{width:auto}
+    #panGen .search-box input{width:100%}
+    .acc-crear .btn-crear{width:100%}
+  }
   /* 390px: nada de scroll horizontal en la pagina (las tablas scrollean en .table-wrap) */
   @media(max-width:430px){
     /* En el celular los anchos fijos empujaban "Pedir" fuera de la pantalla, que es

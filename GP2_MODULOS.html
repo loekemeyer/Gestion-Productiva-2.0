@@ -54,9 +54,6 @@ a.tablet-link .tl-i{display:inline-flex;align-items:center;justify-content:cente
   background:var(--brand-600);font-size:19px;flex:none}
 a.tablet-link .tl-s{display:block;font-size:var(--fs-sm);font-weight:500;color:var(--ink-400)}
 
-/* ── KPIs de hoy / mes (inicio_bundle) ── */
-#kpiResumen{margin:0 0 var(--s4)}
-#kpiResumen:empty{display:none}
 
 /* ── grupos ── */
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-1)}
@@ -110,7 +107,6 @@ span.op.lock .lk{font-size:13px;margin-left:auto;opacity:.7}
   .header-sub #sesion a{min-height:34px;padding:0 8px;font-size:12.5px}
   .wrap{padding:8px 8px 12px}
   .foot{display:none}
-  #kpiResumen{display:none}               /* en el celular no entra: los grupos primero */
   .grid{grid-template-columns:1fr 1fr;gap:8px}
   .card{border-radius:12px;position:relative}
   .card-head{flex-direction:column;align-items:flex-start;justify-content:center;
@@ -209,7 +205,7 @@ span.op.lock .lk{font-size:13px;margin-left:auto;opacity:.7}
   <div class="header-sub">Versión <b id="appVersion">2.0</b><!-- con el login apagado
     (GP2_AUTH_ON=false) no hay sesion que cerrar: el link se oculta solo -->
     <span id="sesion" hidden><a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}">⎋ Cerrar sesión</a></span></div>
-  <script src="version.js?v=20261009t"></script>
+  <script src="version.js?v=20261009w"></script>
   <script>if (window.GP2_AUTH_ON !== false) document.getElementById('sesion').hidden = false;</script>
 </div>
 
@@ -220,10 +216,9 @@ span.op.lock .lk{font-size:13px;margin-left:auto;opacity:.7}
     <a class="tablet-link" href="Produccion/RegistroApp/Operarios_GP2.html"><span class="tl-i">📱</span><span><span class="tl-v">Versión </span><span class="tl-t">Tablet </span>Operarios<span class="tl-s">Registro de producción</span></span></a>
     <a class="tablet-link" href="Produccion/MonitorIngreso/MonitorIngreso_GP2.html"><span class="tl-i">🔑</span><span>Monitor<span class="tl-s">Código de ingreso</span></span></a>
   </div>
-  <div id="kpiResumen" class="kpis"></div>
   <div class="grid" id="grid"></div>
-  <!-- los grupos ocultos siguen vivos con ?todos=1 (v1.196.0): acá se llega sin tipear la URL -->
-  <div class="foot"><a id="verTodos" href="?todos=1">Ver todos los módulos →</a></div>
+  <!-- v1.261.1: sin KPIs de unidades ni «Ver todos los módulos» [usuario: «No quiero ver unidades hoy y unidades del mes.
+       Tampoco quiero la opción de ver todos los módulos. Esos están ocultos»]. ?todos=1 sigue andando tipeando la URL. -->
 </div>
 <script>
 /* v1.259.0 (2026-10-09) - entra "Cambiar Inyector" al final de Herramientas [Thomas: "agregues el modulo de
@@ -374,7 +369,6 @@ const MENU_VISIBLE = VER_TODOS ? MENU.concat(MENU_OCULTO) : MENU;
    Herramientas arrancan abiertos, sin chevron ni click que los cierre. Con ?todos=1 sigue el
    acordeon de siempre (13 grupos no entran abiertos). */
 const FIJO = !VER_TODOS;
-if (VER_TODOS) { const vt = document.getElementById("verTodos"); vt.href = "GP2_MODULOS.html"; vt.textContent = "← Menú reducido"; }
 if (FIJO) document.body.classList.add("fijo");
 MENU_VISIBLE.forEach(([icon, titulo, items]) => {
   const allLocked = items.every(i => !i[1]);
@@ -473,15 +467,6 @@ if (MENU_VISIBLE.length % 2 === 1) grid.lastElementChild.classList.add("solo");
       if (a) a.textContent = a.textContent + " (" + nRec + " de más)";
     }
 
-    // KPIs de hoy y del mes, debajo de la version.
-    const d = bundle.dia || {}, m = bundle.mes || {};
-    const kpi = document.getElementById("kpiResumen");
-    if (kpi) {
-      const f = v => Number(v || 0).toLocaleString("es-AR");
-      const t = (k, v, d) => '<div class="kpi"><div class="k">' + k + '</div><div class="v">' + v + '</div><div class="d">' + d + '</div></div>';
-      kpi.innerHTML = t("Unidades hoy", f(d.uni), f(d.registros) + " registros · " + f(d.empleados) + " operarios") +
-        t("Unidades del mes", f(m.uni), f(m.registros) + " registros · " + f(m.empleados) + " operarios");
-    }
   } catch (e) { console.error(e); }
 })();
 </script>
