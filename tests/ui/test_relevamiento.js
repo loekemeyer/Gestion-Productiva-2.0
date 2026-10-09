@@ -6,7 +6,11 @@
      - Sector Remache: "Dividí en 2. 1) Bolsas … 2) Cajones para todo el resto". El envase lo decide
        la base (relev_factor + componente.relev_envase); la pantalla, con 2+ envases, parte la tabla
        en un bloque por envase con su propio encabezado. Con un solo envase queda como siempre.
-   Tambien: 390px sin scroll horizontal de la pagina. */
+   Tambien: 390px sin scroll horizontal de la pagina.
+   2026-10-09 [Thomas]: SC y SP entran al Conteo "a demanda", con el stock de hoy a la izquierda y
+   el conteo real a la derecha: Cajones -> Kg (calculado) -> Uni; el kg se puede pisar (se peso) y
+   las uni salen del kg, con los cajones fijos. Mismo dia: entra Movimiento, y "Completar conteo"
+   abre Validacion de Stock con ese conteo (?id=) para elegir sistema o conteo. */
 const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
@@ -26,20 +30,30 @@ const REMACHE = [it('CV1', 'Cajones', 71428), it('CV11', 'Cajones', 34106), it('
 const GARAGE = [it('GRJ10', 'Cajones', 50), it('GRJ10A', 'Cajones', 40), it('GRJ12', null, null),
                 it('GRJ2', 'Cajones', 30), it('GRJ9', 'Cajones', 20)];
 
+// SP: A1 756 uni/cajon × 0,0397 kg/uni (≈ 30 kg el cajon), stock de hoy 1.512 (2 cajones);
+// Z44 sin uni×cajon ni kg×uni -> se cuenta en uni.
+const sp = (codigo, factor, kxu, stock) => Object.assign(it(codigo, 'Cajones', factor), { kg_x_uni: kxu, stock_programa: stock });
+const SP = [sp('A1', 756, 0.0397, 1512), sp('Z44', null, null, 1296)];
+SP[1].envase = 'Cajones';
+
 const STUB = `
 window.supabase = { createClient: function(){ return {
   auth: { getSession: async function(){ return { data: { session: null } }; },
           onAuthStateChange: function(){ return { data: { subscription: { unsubscribe: function(){} } } }; } },
   rpc: async function(name, args){
-    var R = ${JSON.stringify({ REMACHE, GARAGE })};
+    var R = ${JSON.stringify({ REMACHE, GARAGE, SP })};
     if(name==='relevamiento_bundle') return { data: { cronograma: [
+      { crono_id: null, sector_id: 2, tipo: 'Procesado (SP)', fecha: '2026-10-09', dias: 0, a_demanda: true, componentes: 2, relevamiento: null },
       { crono_id: 1, sector_id: 8, tipo: 'Sector Remache', fecha: '2026-10-29', dias: 21, componentes: 9, relevamiento: null },
       { crono_id: 2, sector_id: 4, tipo: 'Sector Garage',  fecha: '2026-10-09', dias: 1,  componentes: 5, relevamiento: null } ] }, error: null };
-    if(name==='relevamiento_abrir') return { data: args.p_sector_id, error: null };
+    if(name==='relevamiento_abrir'){ window.__abrir = args; return { data: args.p_sector_id, error: null }; }
+    if(name==='relevamiento_guardar'){ window.__guardar = args.p_items; return { data: args.p_items.length, error: null }; }
     if(name==='relevamiento_detalle') return { data: {
       relevamiento: { id: args.p_id, fecha: '2026-10-08', estado: 'en_curso' },
-      sector: args.p_id===8 ? 'Sector Remache' : 'Sector Garage',
-      items: args.p_id===8 ? R.REMACHE : R.GARAGE }, error: null };
+      sector: args.p_id===8 ? 'Sector Remache' : (args.p_id===2 ? 'Sector Procesado' : 'Sector Garage'),
+      caj_kg: args.p_id===2,
+      items: args.p_id===8 ? R.REMACHE : (args.p_id===2 ? R.SP : R.GARAGE) }, error: null };
+    if(name==='relevamiento_cerrar') return { data: { id: args.p_id, estado: 'contado' }, error: null };
     if(name==='relevamiento_descartar_si_vacio') return { data: true, error: null };
     if(name==='validacion_bundle') return { data: { pendientes: [
       { id: 8, sector: 'Sector Remache', fecha: '2026-10-08', contados: 9, items: 9, difieren: 0 } ], aplicados: [] }, error: null };
@@ -105,6 +119,64 @@ window.supabase = { createClient: function(){ return {
 
   const sw = await page.evaluate(() => document.documentElement.scrollWidth);
   ok(sw <= 390, '390px: la pagina no scrollea horizontal — ' + sw);
+
+  await page.click('#btnVolver');
+  await page.waitForSelector('[data-abrir="2"]', { state: 'visible' });
+
+  // ── SP: a demanda, stock de hoy | conteo real, cajones -> kg -> uni ──
+  const linea = await page.$eval('.cl', e => e.textContent);
+  ok(/Procesado \(SP\)/.test(linea) && /A demanda/.test(linea) && /Stock de hoy/.test(linea),
+     'SP sale primero, a demanda, con "Stock de hoy" — ' + linea);
+  await abrir(2);
+  ok(await page.evaluate(() => window.__abrir.p_crono_id === null), 'sin cronograma se abre con p_crono_id null (no NaN)');
+  const sup = await page.$eval('#cargaBody tr.sup', e => e.textContent);
+  ok(/Stock de hoy/.test(sup) && /Conteo real/.test(sup), 'encabezado: stock de hoy | conteo real — ' + sup);
+  const hoy = await page.$$eval('[data-row="' + SP[0].item_id + '"] td.hoy', xs => xs.map(x => x.textContent));
+  ok(hoy.join(' | ') === '2 | 60 | 1.512', 'A1 stock de hoy: 2 cajones · 60 kg · 1.512 uni — ' + hoy.join(' | '));
+  const idA = SP[0].item_id, idZ = SP[1].item_id;
+  await page.fill('input[data-k="envases"][data-id="' + idA + '"]', '3');
+  await page.dispatchEvent('input[data-k="envases"][data-id="' + idA + '"]', 'input');
+  ok((await page.$eval('input[data-k="kg"][data-id="' + idA + '"]', e => e.value)) === '90,04', '3 cajones -> 90,04 kg calculado');
+  ok((await page.$eval('[data-tot="' + idA + '"]', e => e.textContent)) === '2.268', '3 cajones -> 2.268 uni');
+  await page.fill('input[data-k="kg"][data-id="' + idA + '"]', '80');
+  await page.dispatchEvent('input[data-k="kg"][data-id="' + idA + '"]', 'input');
+  ok((await page.$eval('[data-tot="' + idA + '"]', e => e.textContent)) === '2.015', 'kg pesado 80 -> 2.015 uni (80 / 0,0397)');
+  ok((await page.$eval('input[data-k="envases"][data-id="' + idA + '"]', e => e.value)) === '3', 'los cajones quedan fijos en 3');
+  await page.fill('input[data-k="envases"][data-id="' + idA + '"]', '4');
+  await page.dispatchEvent('input[data-k="envases"][data-id="' + idA + '"]', 'input');
+  ok((await page.$eval('input[data-k="kg"][data-id="' + idA + '"]', e => e.value)) === '80', 'con kg pesado, cambiar cajones no pisa el kg');
+  ok(await page.$eval('input[data-k="sueltas"][data-id="' + idZ + '"]', e => !!e) &&
+     /sin uni × cajón/.test(await page.$eval('[data-row="' + idZ + '"]', e => e.textContent)),
+     'Z44 sin factor ni kg×uni: se carga en uni directo');
+  await page.click('#btnGuardar');
+  await page.waitForFunction(() => !!window.__guardar);
+  const pay = await page.evaluate(() => window.__guardar);
+  const pA = pay.filter(x => x.item_id === idA)[0];
+  ok(pA.envases === 4 && pA.kg === 80, 'payload: cajones 4 + kg pesado 80 — ' + JSON.stringify(pA));
+  await page.click('[data-reset="' + idA + '"]');
+  ok((await page.$eval('input[data-k="kg"][data-id="' + idA + '"]', e => e.value)) === '120,05' &&
+     (await page.$eval('[data-tot="' + idA + '"]', e => e.textContent)) === '3.024', '↺ vuelve al calculado: 4 cajones = 120,05 kg = 3.024 uni');
+  await page.evaluate(() => { window.__guardar = null; });
+  await page.click('#btnGuardar');
+  await page.waitForFunction(() => !!window.__guardar);
+  ok((await page.evaluate(() => window.__guardar))[0].kg === null, 'kg calculado no viaja: la base calcula de los cajones');
+  const sw2 = await page.evaluate(() => document.documentElement.scrollWidth);
+  ok(sw2 <= 390, 'SP 390px: la pagina no scrollea horizontal — ' + sw2);
+
+  // ── Completar conteo -> Validacion de Stock con ese conteo abierto ──
+  await page.click('#btnCompletar');
+  await page.waitForURL(/Validacion_Stock\.html\?id=2$/);
+  await page.waitForFunction(() => document.querySelectorAll('#compBody tr').length > 0);
+  ok(await page.$eval('#panComp', e => !e.classList.contains('hidden')), 'al completar se abre Validacion de Stock con la comparacion de ese conteo');
+  ok((await page.$$eval('[data-pick]', xs => xs.length)) > 0, 'ahi se elige Conteo o Programa (sistema)');
+  await page.click('#btnVolver');
+  await page.waitForURL(/Relevamiento_GP2\.html$/);
+  ok(true, '"← Volver" en la validacion devuelve al Conteo');
+
+  // desde la tablet, el Atras de la validacion vuelve a la tablet
+  await page.goto(ROOT + '/Relevamiento/Validacion_Stock.html?id=8&volver=tablet');
+  await page.waitForFunction(() => document.querySelectorAll('#compBody tr').length > 0);
+  ok(/Tablet\/Tablet_GP2\.html$/.test(await page.$eval('#btnAtrasHeader', e => e.getAttribute('href'))), 'con volver=tablet el Atras va a la tablet');
 
   // ── Validacion de Stock: mismo orden natural ──
   await page.goto(ROOT + '/Relevamiento/Validacion_Stock.html');

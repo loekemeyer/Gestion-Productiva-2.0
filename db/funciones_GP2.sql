@@ -8066,12 +8066,25 @@ CREATE OR REPLACE FUNCTION "GP2".relev_total_uni(p_componente_id bigint, p_envas
  STABLE
  SET search_path TO 'GP2'
 AS $function$
-DECLARE f numeric; es_kg boolean; env text; um text; kxu numeric;
+DECLARE f numeric; es_kg boolean; env text; um text; kxu numeric; v_sector bigint;
 BEGIN
   SELECT rf.factor, rf.cuenta_kg, rf.envase INTO f, es_kg, env
   FROM "GP2".relev_factor(p_componente_id) rf;
-  SELECT c.unidad_medida, nullif(c.kg_x_uni,0) INTO um, kxu
+  SELECT c.unidad_medida, nullif(c.kg_x_uni,0), c.sector_id INTO um, kxu, v_sector
   FROM "GP2".componente c WHERE c.id=p_componente_id;
+
+  -- SC / SP: cajones + kg [Thomas 09/10]. El kg pesado manda sobre los cajones para las unidades;
+  -- los cajones quedan como dato contado.
+  IF v_sector IN (1, 2, 3) THEN
+    IF p_kg IS NOT NULL THEN
+      IF kxu IS NULL THEN RETURN NULL; END IF;
+      RETURN round(p_kg / kxu);
+    END IF;
+    IF p_envases IS NOT NULL AND f IS NOT NULL THEN
+      RETURN round(p_envases * f) + coalesce(p_sueltas,0);
+    END IF;
+    RETURN p_sueltas;                         -- sin factor: se cuenta suelto
+  END IF;
 
   IF es_kg THEN
     IF p_kg IS NULL THEN RETURN NULL; END IF;
@@ -8111,8 +8124,10 @@ BEGIN
 
   SELECT k.fecha INTO v_fecha FROM "GP2".relevamiento_cronograma k WHERE k.id = p_crono_id;
 
+  -- sin cronograma (SC/SP, a demanda) la fecha es HOY en Argentina (2026-10-09)
   INSERT INTO "GP2".relevamiento (sector_id, fecha, encargado, cronograma_id)
-  VALUES (p_sector_id, coalesce(v_fecha, current_date), nullif(trim(p_encargado),''), p_crono_id)
+  VALUES (p_sector_id, coalesce(v_fecha, (now() at time zone 'America/Argentina/Buenos_Aires')::date),
+          nullif(trim(p_encargado),''), p_crono_id)
   RETURNING id INTO v_id;
 
   -- La materia prima BRUTA de un PS hibrido (proveedor_servicio.mp_componente_id: ALAMBRE -> Charcas,
@@ -8198,7 +8213,8 @@ AS $function$
     where not exists (select 1 from prox p where p.clave = b.clave)
     order by b.clave, b.fecha desc
   ),
-  fila as (select * from prox union all select * from ult)
+  fila as (select * from prox union all select * from ult),
+  hoy as (select (now() at time zone 'America/Argentina/Buenos_Aires')::date d)
   select jsonb_build_object(
     'hoy', current_date,
     'cronograma', coalesce(jsonb_agg(x order by x->>'fecha'), '[]'::jsonb)
@@ -8223,6 +8239,31 @@ AS $function$
       )
     ) x
     from fila f join "GP2".sector s on s.id = f.sector_id
+    union all
+    -- SC y SP: a demanda, sin cronograma [Thomas 09/10: «que aparezca el stock de hoy»].
+    -- Su conteo es el abierto (en_curso/contado) o el que se aplico HOY; mañana vuelve «Contar».
+    select jsonb_build_object(
+      'tipo', case s.id when 1 then 'Crudo (SC)' when 2 then 'Procesado (SP)' else 'Movimiento' end,
+      'sector_id', s.id, 'sector', s.nombre,
+      'crono_id', null, 'fecha', h.d, 'dias', 0, 'vencido', false, 'a_demanda', true,
+      'componentes', (select count(*) from "GP2".componente c where c.sector_id = s.id
+                        and not exists (select 1 from "GP2".proveedor_servicio ps where ps.mp_componente_id = c.id)),
+      'relevamiento', (
+        select jsonb_build_object('id', r.id, 'estado', r.estado,
+                 'contados', (select count(*) from "GP2".relevamiento_item ri
+                              where ri.relevamiento_id = r.id and ri.contado),
+                 'items', (select count(*) from "GP2".relevamiento_item ri
+                           where ri.relevamiento_id = r.id))
+        from "GP2".relevamiento r
+        where r.sector_id = s.id and r.cronograma_id is null
+          and (r.estado in ('en_curso','contado')
+               or (r.estado = 'aplicado'
+                   and (r.aplicado_en at time zone 'America/Argentina/Buenos_Aires')::date = h.d))
+        order by r.id desc limit 1
+      )
+    ) x
+    from "GP2".sector s cross join hoy h
+    where s.id in (1, 2, 3)
   ) t;
 $function$
 ;
@@ -8356,6 +8397,8 @@ AS $function$
   select jsonb_build_object(
     'relevamiento', to_jsonb(r) - 'creado_en',
     'sector', s.nombre,
+    -- SC / SP se cuentan en cajones + kg (2026-10-09)
+    'caj_kg', (r.sector_id in (1, 2, 3)),
     'items', coalesce((
       select jsonb_agg(jsonb_build_object(
         'item_id', ri.id,

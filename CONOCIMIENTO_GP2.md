@@ -16260,7 +16260,7 @@ se cuenta cada sector" (los crudos `CV*` en kilos): **no** van en kilos, van en 
   Los 4 registros de prueba del 06/10 (legajo 1 «Pruebas», ids 7513-7516) quedaron en la 512.
 
 
-## 4ki. Cambiar Inyector: quién tiene la matriz de cada FAMILIA de plásticos (2026-10-09) — v1.259.0
+## 4ki. Cambiar Inyector: quién tiene la matriz de cada FAMILIA de plásticos (2026-10-09) — v1.260.0
 
 `[usuario Thomas, 09/10: «Quiero que agregues el módulo de Cambiar Inyectores que está oculto con la finalidad de poder
 cambiar las partes que produce cada uno. Los inyectores se llevan las matrices. Hay una matriz por familia. Estas familias
@@ -16289,3 +16289,29 @@ la idea es que pueda cambiar quién posee la matriz de la familia. Que me deje c
 - **Menú**: la 9ª baldosa de Herramientas no entraba en 375×600 (646 de 600). En pantalla baja el encabezado del menú pasa a
   una línea (logo 100px + versión al lado). Con el menú rediseñado de Naza también se pasa (632 de 600): lo tiene que
   resolver el merge.
+## 4kh. Conteo (Relevamientos): entran SC, SP y Movimiento con el stock de hoy, y al completar se va a Validación (2026-10-09) — v1.260.0
+
+`[usuario Thomas, 09/10]` *«Agregame al módulo de conteo de versión tablet logística, sc y sp. Quiero que en ese módulo
+aparezca el stock de hoy … registrar a la derecha … cuántos cajones hay realmente … me calcule cuántos kilos hay y cuántas
+unidades … y que yo pueda modificar … cuántos kilos hay … me debe corregir a cuántas unidades hay realmente, pero mantener la
+cantidad de cajones como un dato fijo»* y, después, *«Agregar también sector movimiento y sector transito. Además cuando termino
+de cargar el conteo que lo mande a validación stock para poner si quiero que siga el stock del sistema o quede el del conteo»*.
+
+- **A demanda, sin cronograma.** Sector Crudo (1), Procesado (2) y Movimiento (3) salen arriba de todo en el Conteo, con fecha
+  de HOY (AR) y la pastilla «A demanda». Su conteo es el abierto o el aplicado hoy; mañana vuelve «Contar». Los 7 sectores con
+  cronograma quedaron idénticos (verificado por md5 del bundle antes/después).
+- **La planilla de esos 3 sectores**: izquierda **Stock de hoy** (programa: cajones = uni ÷ uni_x_cajon, kg = uni × kg_x_uni,
+  uni); derecha **Conteo real**: Cajones → Kg (calculado) → Uni. **Si se pesa y se corrige el kg, las uni salen del kg y los
+  cajones quedan como se cargaron** (`relevamiento_item.kg` se guarda SÓLO si se pesó; NULL = calculado). «↺» vuelve al
+  calculado. El cálculo lo hace la base (`relev_total_uni`, rama sectores 1-3).
+- **Lo que la pieza no permite no se inventa**: sin uni_x_cajon no hay cajones, sin kg_x_uni no hay kg; sin ninguno de los dos
+  se cargan las uni directo. `[dato 09/10]` SC 74/74 completos; SP 73/82 (C13, Z12, Z31 sin uni_x_cajon —usan su envase de
+  entrega—; Z44, Z46-Z50 sin nada); **Movimiento 0/63** (WIP entre matrices, §2c-undecies): hoy se cuenta todo en uni.
+- **«Sector Tránsito» NO se agregó** `[deducido, sin confirmar]`: el que se llamaba así ES el Sector Movimiento (renombrado el
+  2026-09-03). El «Stock Tránsito PS» no es una ubicación: esas piezas viven físicamente en SC/SP y ya se cuentan ahí; contarlas
+  aparte las contaría dos veces. Queda a confirmar con Thomas qué quiso decir.
+- **Completar conteo → Validación de Stock** con ese conteo abierto (`?id=`), donde se elige Conteo o Programa (sistema) por
+  ítem. ⚠ Esto **revierte** la separación del 2026-09-04 («el operario cuenta, el operador valida») para quien tenga acceso;
+  el rol `envios` NO tiene Validación en `auth-guard.js`, así que a él se le sigue diciendo «Queda para validar» (no se le
+  amplió el permiso: decidir el stock sigue fuera de ese rol).
+- `db/migracion_relev_sc_sp_cajones_kg_20261009.sql`, `tests/ui/test_relevamiento.js`.
