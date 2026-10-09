@@ -656,10 +656,14 @@
      página (v1.40.0: «todo centrado y sin tanto blanco»), con los botones alineados a la izquierda (v1.40.1).
      La última fila de la grilla es 1fr: absorbe el alto de la tabla para que los bloques de la izquierda no se separen. */
   @media (min-width:1100px){
-    #panGen{display:grid;grid-template-columns:minmax(300px,360px) minmax(0,max-content);
-            grid-template-rows:repeat(6,auto) 1fr;column-gap:20px;justify-content:start;align-items:start}
-    /* el bloque entero (pestañas + filtros + tabla) centrado y del ancho del contenido */
-    body > .card > .steps{max-width:1320px}
+    #panGen{display:grid;grid-template-columns:minmax(300px,360px) minmax(0,1fr);
+            grid-template-rows:repeat(6,auto) 1fr;column-gap:20px;align-items:start}
+    /* v2.2 [Thomas: «que complete toda la pantalla. Como los otros módulos»]: la tabla ocupa todo el ancho que
+       queda al lado de los filtros (deja de abrazar el dato en pantalla ancha, como el resto de GP2). */
+    #zonaLista > .table-wrap{width:auto}
+    #zonaLista > .table-wrap > table.t.t-insumos{width:100%}
+    /* el ancho que sobra lo reparten Insumo y Proveedor: los números quedan juntos (sin huecos entre columnas, v1.39.0) */
+    #zonaLista table.t.t-insumos th:nth-child(n+3),#zonaLista table.t.t-insumos td:nth-child(n+3){width:1%}
     #panGen > *{grid-column:1;min-width:0}
     #zonaLista:not(.hidden){display:contents}
     #zonaLista > *{grid-column:1;min-width:0}
