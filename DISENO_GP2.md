@@ -46,7 +46,7 @@ visibles mientras hago scroll"*]
 ```
 
 ## Componentes (clases)
-- **Botones**: `.btn` + `.btn-primary` | `.btn-secondary` | `.btn-ghost` | `.btn-success` | `.btn-danger`; `.btn-lg`, `.btn-block`, `.btn-icon`.
+- **Botones**: `.btn` + `.btn-primary` | `.btn-secondary` | `.btn-ghost` | `.btn-success` | `.btn-danger` (relleno) | `.btn-danger-outline` (borrar algo que no es la acción principal); `.btn-lg`, `.btn-block`, `.btn-icon`.
 - **Elegir**: `.prov-btn` (con `.meta`), `.chip` (con `.n`), `.seg` > `.seg-btn`, `.tabs` > botones; estado `.active`.
 - **Campos**: `.field` > `label` + input; `.toolbar` (fila densa); `input.search`; `.err` / `.ok`.
 - **Paneles**: `.panel` > `.panel-head` + `.panel-body`; rejillas `.grid-auto`, `.grid-2`, `.grid-3`.

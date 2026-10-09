@@ -215,6 +215,8 @@ label.lbl{font-size:var(--fs-sm);font-weight:700;color:var(--ink-600);text-trans
 .btn-ghost:hover{background:var(--ink-100)}
 .btn-danger{background:var(--err-700);color:#fff;border-color:var(--err-700)}
 .btn-danger:hover{background:var(--err-600)}
+.btn-danger-outline{background:var(--surface);color:var(--err-700);border-color:var(--err-200)}
+.btn-danger-outline:hover{background:var(--err-50);border-color:var(--err-600)}
 .btn-success,.btn-ok{background:var(--ok-700);color:#fff;border-color:var(--ok-700)}
 .btn-success:hover,.btn-ok:hover{background:var(--ok-600)}
 .btn-lg{min-height:52px;padding:0 24px;font-size:18px}
@@ -273,8 +275,8 @@ input.ok,.is-ok{border-color:var(--ok-600)!important}
 }
 .prov-btn .meta,.tallerista-btn .prov-meta,.chip .meta{display:block;font-size:var(--fs-cap);font-weight:600;color:var(--ink-500);margin-top:2px}
 .prov-btn.active .meta,.tallerista-btn.active .prov-meta,.chip.active .meta{color:var(--ink-300)}
-.chip .n,.seg-btn .n{display:inline-block;margin-left:6px;padding:0 7px;border-radius:var(--r-pill);background:var(--ink-100);color:var(--ink-600);font-size:var(--fs-cap);font-weight:700}
-.chip.active .n,.seg-btn.active .n{background:rgba(255,255,255,.16);color:#fff}
+.chip .n,.seg-btn .n,.prov-btn .n{display:inline-block;margin-left:6px;padding:0 7px;border-radius:var(--r-pill);background:var(--ink-100);color:var(--ink-600);font-size:var(--fs-cap);font-weight:700}
+.chip.active .n,.seg-btn.active .n,.prov-btn.active .n{background:rgba(255,255,255,.16);color:#fff}
 /* segmentado: botones pegados en una cápsula (Todos | Con stock | Sin stock) */
 .seg{display:inline-flex;padding:3px;gap:3px;background:var(--ink-100);border-radius:10px;flex-wrap:wrap}
 .seg > .seg-btn{border-color:transparent;background:transparent;min-height:var(--touch)}
