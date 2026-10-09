@@ -255,7 +255,7 @@ window.supabase = { createClient: function(){ return {
   const heads = await page.evaluate(() => [].map.call(
     document.getElementById('tbody').closest('table').querySelectorAll('thead th'),
     x => x.textContent.replace(/\s+/g, '').trim()));
-  ok(heads.join('|') === 'Insumo|Proveedor|Stockactual|Máximo|Ocupaciónsector|Pedir|UniMedida|Prioridad',
+  ok(heads.join('|') === 'Insumo|Proveedor|Stockactual|Máximo|Ocupaciónsector|Pedir|UniMedida|Prioridad|Pedidomínimo',
      'columnas: ' + heads.join(' · '));
   // La plata no se muestra por fila: se mira en la barra y en la OC ya creada.
   ok(!(await page.textContent('#tbody')).includes('US$'), 'no hay precios ni subtotales en la tabla');
@@ -381,10 +381,13 @@ window.supabase = { createClient: function(){ return {
   // v1.43.0: la pieza con familia de pedido va bajo el titulo de su familia, con el minimo de la
   // FAMILIA y lo pedido entre todas sus piezas; la fila no repite el minimo.
   const famP = await page.$$eval('#tbody tr.fam-hdr td', xs => xs.map(x => x.textContent.trim()));
-  ok(famP.length === 1 && /^Pirolos · 1 pieza · mín\. familia 36\.000 uni · pedido 2\.500 uni$/.test(famP[0]),
-     'titulo de familia del plastico: ' + famP.join(' | '));
+  // v1.52.0: el minimo de la familia salio del titulo y va en la columna Pedido mínimo de cada pieza.
+  ok(famP.length === 1 && /^Pirolos · 1 pieza · pedido 2\.500 uni$/.test(famP[0]),
+     'titulo de familia del plastico, sin el minimo: ' + famP.join(' | '));
   ok(await page.$eval('#tbody tr.fam-hdr', x => x.classList.contains('corto')), 'la familia corta (2.500 < 36.000) va en rojo');
-  ok(!(await page.$('tr[data-id="13"] .min-uni')), 'la fila con familia no repite el minimo por pieza');
+  const minFam = await page.$eval('tr[data-id="13"] td.min-cell', x => [x.textContent.trim(), x.classList.contains('corto')]);
+  ok(minFam[0] === '36.000 uni(familia)' && minFam[1], 'columna Pedido mínimo de la pieza: el de la familia, en rojo: ' + minFam[0]);
+  ok((await page.$$('.min-uni')).length === 0, 'ya no hay minimo en letra chica');
   // v1.38.0: los resortes que Charcas nos VENDE se reciben en unidades y se piden en unidades
   // [Thomas 2026-09-28: "los resortes batidor los pido en unidades"]. El paquete de 10 kg es solo
   // para sus flejes (sector 5).
@@ -462,8 +465,9 @@ window.supabase = { createClient: function(){ return {
   ok(!(await page.$eval('#btnCrear', b => b.disabled)), 'btnCrear sigue habilitado con el multiplo roto');
   // ...pero la tirada de la familia se lee en la fila, debajo de Pedir.
   // v1.42.0: el minimo es POR CARTON (pedido_minimo_uni), no la tirada de la familia.
-  const tir = await page.textContent('tr[data-id="3"] .min-uni');
-  ok(/mín\. pedido 48 paq 250 \(= 12\.000 uni\)/.test(tir), 'el minimo del carton en la unidad de la O.C. (paq) y en uni: ' + tir.trim());
+  const tir = await page.textContent('tr[data-id="3"] td.min-cell');
+  ok(/^48 paq 250\(= 12\.000 uni\)$/.test(tir.trim()), 'columna Pedido mínimo del carton en la unidad de la O.C. (paq) y en uni: ' + tir.trim());
+  ok(await page.$eval('tr[data-id="3"] td:last-child', x => x.classList.contains('min-cell')), 'Pedido mínimo es la ultima columna');
   // ...y la tabla de cartones va separada por familia, con un renglon de titulo por familia.
   const hdrs = await page.$$eval('tr.fam-hdr td', xs => xs.map(x => x.textContent.trim()));
   ok(hdrs.length >= 3 && hdrs.some(h => /^Formato C · /.test(h)) && hdrs.some(h => /^Formato Huevo · /.test(h)) && !hdrs.some(h => /LOEKE|CHEF/.test(h)),
@@ -505,7 +509,7 @@ window.supabase = { createClient: function(){ return {
   await prioridades();
   ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')),
      'abajo del minimo tampoco hay cartel (v1.41.0); se ve en la fila');
-  ok((await page.$eval('tr[data-id="10"] .min-uni', x => x.classList.contains('corto'))),
+  ok((await page.$eval('tr[data-id="10"] td.min-cell', x => x.classList.contains('corto'))),
      'la fila del carton corto se marca en rojo (min. por carton 2.000)');
 
   // "Usar sugeridos" deja el carton YA VALIDO (usuario 2026-09-03: "sí, redondeá
@@ -609,9 +613,10 @@ window.supabase = { createClient: function(){ return {
   const corto = await page.evaluate(() => {
     const i = D.insumos.find(x => x.comp_id === 14); i.pedido_minimo_uni = 20000;
     rubroSel = null; provSel = null; render();
-    return [notaMinUni(i, 9400, false, 0), notaMinUni(i, 25000, false, 0), notaMinUni(i, 0, false, 0)];
+    i.familia_pedido = null;
+    return [celdaMinimo(i, 9400, false, 0), celdaMinimo(i, 25000, false, 0), celdaMinimo(i, 0, false, 0)];
   });
-  ok(corto[0].includes('min-uni corto'), 'pide 9.400 con minimo 20.000: rojo y negrita');
+  ok(corto[0].includes('min-cell corto'), 'pide 9.400 con minimo 20.000: rojo y negrita');
   ok(!corto[1].includes('corto'), 'pide 25.000: normal');
   ok(!corto[2].includes('corto'), 'sin pedido no se marca');
   ok(/table\.t\.t-insumos\{width:auto\}/.test(await page.content()), 'la tabla no hereda el 100% de table.t (sin huecos)');

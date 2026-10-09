@@ -16400,6 +16400,11 @@ cuál 3"* · *"una columna a la derecha de máximo que sea OCUPACIÓN SECTOR …
 - **Se guarda**: `GP2.orden_compra_item.prioridad` (única dentro de la OC; null en las OC anteriores). `crear_oc` la
   exige (entera > 0, sin repetir); la OC gemela (Altrak/Aperam) va con prioridad 1. `oc_bundle` la devuelve y ordena
   los renglones por ella; se ve en Órdenes, en la hoja impresa y en el WhatsApp (`1) código …`).
+- **Pedido mínimo = última columna** (OC v1.52.0) [Thomas: *"quiero que el PEDIDO MINIMO no me aparezca como
+  comentario de letra chica. Eliminalos de donde estén hoy y agregalo como una columna a lo último"*]: sale de abajo
+  de Pedir y del título de la familia de plástico. En la unidad de la O.C. (y la equivalencia si convierte); rojo y
+  negrita si lo pedido no llega. En la pieza con familia de pedido dice el mínimo de la FAMILIA contra lo pedido entre
+  todas sus piezas; el título de la familia queda con «pedido N uni».
 - **Ocupación sector** = stock / máximo en %, en la misma unidad del bundle (la misma comparación que pinta el stock
   en rojo). Sin máximo, máximo 0 o sin stock: «—».
 - `db/migracion_oc_prioridad_20261009.sql` (aplicada; probada en transacción deshecha: sin prioridad y repetida

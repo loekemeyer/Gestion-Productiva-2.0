@@ -1,6 +1,12 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.52.0 (2026-10-09) — EL PEDIDO MINIMO ES LA ULTIMA COLUMNA [Thomas: "quiero que el PEDIDO MINIMO no me aparezca
+     como comentario de letra chica. Eliminalos de donde esten hoy y agregalo como una columna a lo ultimo"]. Sale de
+     abajo de Pedir (notaMinUni, v1.39.0-v1.44.0) y del titulo de la familia de plastico ("mín. familia N uni"); la
+     columna "Pedido mínimo" (celdaMinimo) lo dice en la unidad de la O.C. y, si convierte, la equivalencia; en rojo y
+     negrita si lo pedido no llega. En la pieza con familia de pedido es el minimo de la FAMILIA contra lo pedido
+     entre todas sus piezas. El titulo de la familia queda con "pedido N uni" (rojo si no llega). -->
 <!-- v1.51.0 (2026-10-09) — PEDIR VACIO, PRIORIDAD OBLIGATORIA Y OCUPACION DEL SECTOR [Thomas: "en la columna pedir
      no quiero que me aparezca ya puesto el numero a pedir. Lo quiero escribir yo" / "una columna de PRIORIDAD...
      si en la columna pedir complete 3 campos tengo que poner cual es prioridad 1, cual 2 y cual 3" / "una columna a
@@ -601,9 +607,10 @@
   #panGen .table-wrap > table.t > tbody > tr.fam-hdr > td{background:var(--ink-100);color:var(--brand-700);font-weight:700;
     font-size:var(--fs-sm);padding:6px 8px;text-align:left}
   #panGen .table-wrap > table.t > tbody > tr.fam-hdr.corto > td{color:var(--err-700)}
-  .min-uni{font-size:var(--fs-cap);color:var(--warn-700);display:block}
+  /* v1.52.0: Pedido minimo es una columna (antes letra chica debajo de Pedir) */
+  td.min-cell{white-space:nowrap}
   /* no cumple el minimo: rojo y negrita [Thomas 2026-09-28] */
-  .min-uni.corto{font-weight:800;color:var(--err-700)}
+  td.min-cell.corto{font-weight:800;color:var(--err-700)}
   /* El proveedor dentro de la celda del insumo: solo se ve en pantalla chica. */
   .prov-mini{display:none}
   /* v1.48.0: el proveedor alternativo es una FILA REPETIDA del insumo (sin precio). v1.49.0: con su propio campo
@@ -670,16 +677,26 @@
      columna angosta a la izquierda y la tabla al lado, arrancando arriba (menos scroll). El par queda CENTRADO en la
      página (v1.40.0: «todo centrado y sin tanto blanco»), con los botones alineados a la izquierda (v1.40.1).
      La última fila de la grilla es 1fr: absorbe el alto de la tabla para que los bloques de la izquierda no se separen. */
+  #elegiSector .en-ancha{display:none}
   @media (min-width:1100px){
-    #panGen{display:grid;grid-template-columns:minmax(300px,360px) minmax(0,max-content);
-            grid-template-rows:repeat(6,auto) 1fr;column-gap:20px;justify-content:start;align-items:start}
-    /* el bloque entero (pestañas + filtros + tabla) centrado y del ancho del contenido */
-    body > .card > .steps{max-width:1320px}
+    #panGen{display:grid;grid-template-columns:minmax(300px,360px) minmax(0,1fr);
+            grid-template-rows:repeat(6,auto) 1fr;column-gap:20px;align-items:start}
+    /* v2.2 [Thomas: «que complete toda la pantalla. Como los otros módulos»]: la tabla ocupa todo el ancho que
+       queda al lado de los filtros (deja de abrazar el dato en pantalla ancha, como el resto de GP2). */
+    #zonaLista > .table-wrap{width:auto}
+    #zonaLista > .table-wrap > table.t.t-insumos{width:100%}
+    /* el ancho que sobra lo reparten Insumo y Proveedor: los números quedan juntos (sin huecos entre columnas, v1.39.0) */
+    #zonaLista table.t.t-insumos th:nth-child(n+3),#zonaLista table.t.t-insumos td:nth-child(n+3){width:1%}
     #panGen > *{grid-column:1;min-width:0}
     #zonaLista:not(.hidden){display:contents}
     #zonaLista > *{grid-column:1;min-width:0}
     #zonaLista > .table-wrap,#zonaLista > #tblEmpty,#panGen > #elegiSector{grid-column:2;grid-row:1 / -1;margin-top:var(--s2)}
-    #panGen > #elegiSector{align-self:start;min-width:420px}
+    /* sin sector elegido, el cartel va CENTRADO en el lugar de la tabla [Thomas: «En el espacio en blanco, que quede
+       centrado»]: ocupa el alto que queda de pantalla y se centra en los dos sentidos */
+    #panGen > #elegiSector{align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      min-height:calc(100vh - var(--bar-h) - 150px);margin-top:var(--s2);border:1.5px dashed var(--line-strong);border-radius:var(--r-lg)}
+    #elegiSector .en-angosta{display:none}
+    #elegiSector .en-ancha{display:inline}
     .filtros{align-items:stretch;margin-top:var(--s2)}
     .filtro{display:flex;flex-direction:column;gap:8px;padding:10px}
     .filtro-lb{min-height:28px;align-self:flex-start}
@@ -758,14 +775,14 @@
           <thead><tr>
             <th>Insumo</th><th>Proveedor</th>
             <th class="num">Stock<br>actual</th><th class="num">Máximo</th><th class="num">Ocupación<br>sector</th>
-            <th class="num">Pedir</th><th>Uni<br>Medida</th><th class="num">Prioridad</th>
+            <th class="num">Pedir</th><th>Uni<br>Medida</th><th class="num">Prioridad</th><th class="num">Pedido<br>mínimo</th>
           </tr></thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>
       <div id="tblEmpty" class="empty hidden">Sin insumos en este sector.</div>
       </div>
-      <div id="elegiSector" class="empty">Elegí un <b>sector</b> arriba para ver los insumos y armar la orden.</div>
+      <div id="elegiSector" class="empty"><span>Elegí un <b>sector</b> <span class="en-angosta">arriba</span><span class="en-ancha">a la izquierda</span> para ver los insumos y armar la orden.</span></div>
     </div>
 
     <div id="panOcs" class="hidden">
@@ -1207,16 +1224,25 @@ function notaRepo(i){
 // y no vuelve): el comprador ve cuanto pide el proveedor como minimo y decide. Para Charcas, que se
 // pide en paquetes, se muestra tambien el equivalente en paquetes (round up). Se marca "corto"
 // cuando lo pedido queda por debajo del minimo.
-function notaMinUni(i, ped, esChar, uxpChar, um){
+/* v1.52.0: EL PEDIDO MINIMO ES UNA COLUMNA, la ultima [Thomas 2026-10-09: "quiero que el PEDIDO MINIMO no me
+   aparezca como comentario de letra chica. Eliminalos de donde esten hoy y agregalo como una columna a lo ultimo"].
+   Sale de abajo de Pedir y del titulo de la familia de plastico. Mismo dato y misma regla de "corto" (rojo y
+   negrita); en la pieza con familia de pedido, la celda dice el minimo DE LA FAMILIA y se compara con lo pedido
+   entre todas sus piezas. Devuelve el <td> entero. */
+function celdaMinimo(i, ped, esChar, uxpChar, um){
+  var fm = i.familia_pedido ? (Number(i.familia_minimo)||0) : 0;
+  if(i.familia_pedido){
+    if(fm<=0) return '<td class="num min-cell">—</td>';
+    var tf = totalFamilia(i.familia_pedido);
+    return '<td class="num min-cell'+(tf>0 && tf<fm?' corto':'')+'">'+fmt(fm)+' uni<br>(familia)</td>';
+  }
   var m = Number(i.pedido_minimo_uni)||0;
   // v1.42.0: en el CARTON el minimo tambien es POR CARTON (componente.pedido_minimo_uni, cargado
   // desde la planilla: 12.000 / 16.000 / 25.000 / 30.000 / 18.000 / 24.000 segun el carton), aunque
   // se agrupen por familia [Thomas 2026-09-29: "En cartones los minimos son por carton, aunque
   // esten agrupados por familia"]. La v1.41.0 mostraba aca la tirada de la familia
   // (pliegos_multiplo); era una lectura equivocada de la planilla y se saco.
-  // v1.43.0: si la pieza tiene familia de pedido, el minimo es de la familia y se lee en su titulo.
-  if(i.familia_pedido) return '';
-  if(m<=0) return '';
+  if(m<=0) return '<td class="num min-cell">—</td>';
   var pedUni = esChar ? (Number(ped)||0)*uxpChar : (Number(ped)||0);
   var corto = pedUni>0 && pedUni<m;
   // v1.44.0: el minimo se lee PRIMERO en la unidad de la O.C. (la del remito: kg, paq, cajas...) y
@@ -1226,10 +1252,15 @@ function notaMinUni(i, ped, esChar, uxpChar, um){
   // que usa el campo Pedir (umRemito). Clavo 505: 1.000 kg (= 153.139 uni).
   var canon = i.unidad==='kg' ? 'kg' : 'uni';
   var txt;
-  if(esChar && uxpChar>0) txt = 'mín. pedido '+fmt(Math.ceil(m/uxpChar))+' paq (= '+fmt(m)+' uni)';
-  else if(um && um.k!==1) txt = 'mín. pedido '+fmt(m*um.k, um.lbl==='kg'?2:0)+' '+esc(um.lbl)+' (= '+fmt(m)+' '+canon+')';
-  else txt = 'mín. pedido '+fmt(m)+' '+canon;   // v1.43.1 [Thomas: 'que me diga min. pedido en vez de min. proveedor']
-  return '<span class="min-uni'+(corto?' corto':'')+'">'+txt+'</span>';
+  if(esChar && uxpChar>0) txt = fmt(Math.ceil(m/uxpChar))+' paq<br>(= '+fmt(m)+' uni)';
+  else if(um && um.k!==1) txt = fmt(m*um.k, um.lbl==='kg'?2:0)+' '+esc(um.lbl)+'<br>(= '+fmt(m)+' '+canon+')';
+  else txt = fmt(m)+' '+canon;
+  return '<td class="num min-cell'+(corto?' corto':'')+'">'+txt+'</td>';
+}
+// Lo pedido (en uni) entre todas las piezas visibles de una familia de pedido del plastico.
+function totalFamilia(fam){
+  return filtradas().filter(function(x){ return String(x.familia_pedido||'')===String(fam); })
+                    .reduce(function(a,x){ return a+pedidoUniDe(x); },0);
 }
 
 // v1.42.0: los CARTONES se listan SEPARADOS POR FAMILIA (formato + marca + categoria), con un
@@ -1266,8 +1297,9 @@ function conTitulosDeFamiliaPlastico(fs){
     var xs=grupos[k], m=(k==='Otros')?0:(Number(xs[0].familia_minimo)||0);
     var tot=xs.reduce(function(a,i){ return a+pedidoUniDe(i); },0);
     var corto=m>0 && tot>0 && tot<m;
+    // v1.52.0: el minimo de la familia salio del titulo y va en la columna Pedido mínimo de cada pieza.
     out.push({hdr:k+' · '+xs.length+(xs.length===1?' pieza':' piezas')+
-                  (m>0?(' · mín. familia '+fmt(m)+' uni · pedido '+fmt(tot)+' uni'):''), corto:corto});
+                  (m>0?(' · pedido '+fmt(tot)+' uni'):''), corto:corto});
     (k==='Otros' ? ordenadoPorProveedor(xs) : expandir(xs)).forEach(function(f){ out.push(f); });
   });
   return out.concat(ordenadoPorProveedor(resto));
@@ -1320,7 +1352,7 @@ function ocupacion(st, mx){
 function render(){
   var fs=filtradas();
   $('tbody').innerHTML=conTitulosDeFamilia(fs).map(function(fila){
-    if(fila.hdr) return '<tr class="fam-hdr'+(fila.corto?' corto':'')+'"><td colspan="8">'+esc(fila.hdr)+'</td></tr>';
+    if(fila.hdr) return '<tr class="fam-hdr'+(fila.corto?' corto':'')+'"><td colspan="9">'+esc(fila.hdr)+'</td></tr>';
     var i=fila.it;
     // v1.49.0: cada fila es un insumo A UN PROVEEDOR. rep = la fila repetida del alternativo (sin proveedor
     // elegido): tiene su campo Pedir pero no repite el desglose del maximo ni los avisos, que son del insumo.
@@ -1340,7 +1372,7 @@ function render(){
     var um=umRemito(i, p);
     // v1.44.2: SIN equivalencias debajo del campo ("= 227 bolsas de 150", "= 11.000 uni", "= N paq")
     // [Thomas 2026-09-29: "Estas aclaraciones no las quiero, solo el min pedido"]. Queda la linea del
-    // minimo (notaMinUni) y el "ya pediste N (en camino)" (notaRepo). El campo ya va en la unidad del
+    // minimo (desde v1.52.0 en su columna, celdaMinimo) y el "ya pediste N (en camino)" (notaRepo). El campo ya va en la unidad del
     // remito, asi que la equivalencia no agregaba nada.
     var paqEq='';
     var cl=[rep?'fila-alt':'', ped>0?'con-pedido':''].filter(Boolean).join(' ');
@@ -1360,11 +1392,12 @@ function render(){
       '<td class="num'+(mx!=null&&!rep?' max-cell" data-max="'+i.comp_id+'" title="Ver de qué se compone':'')+'">'+(mx==null?'—':fmt(mx))+'</td>'+
       '<td class="num ocup">'+ocupacion(st, mx)+'</td>'+
       '<td class="num"><input class="pedir-in" data-in="'+i.comp_id+'" data-prov="'+esc(p)+'" inputmode="decimal" value="'+(ped?valCampo(ped*um.k):'')+'" placeholder="'+esc(um.lbl)+'">'+
-        (rep ? '' : notaMinUni(i, ped, esChar, uxpChar, um)+paqEq+notaRepo(i))+'</td>'+
+        (rep ? '' : paqEq+notaRepo(i))+'</td>'+
       '<td class="um-cell">'+esc(um.lbl)+'</td>'+
       // La prioridad se pide solo en lo que lleva cantidad: sin pedido no hay renglon que ordenar.
       '<td class="num">'+(ped>0?('<input class="prio-in" data-k="'+esc(String(kp))+'" inputmode="numeric" aria-label="Prioridad" value="'+
         (PRIO[kp]!=null?PRIO[kp]:'')+'">'):'')+'</td>'+
+      (rep ? '<td class="num min-cell"></td>' : celdaMinimo(i, ped, esChar, uxpChar, um))+
     '</tr>';
   }).join('');
   // Toda la zona de armar la OC (buscador, leyenda, tabla y barras) aparece recien
@@ -1624,7 +1657,7 @@ function validarCarton(items){
     // v1.41.0: el MULTIPLO de la familia y el minimo por codigo YA NO frenan ni avisan aca
     // [Thomas 2026-09-28: "Que esto no aparezca", sobre el cartel rojo "Formato LOKE CHEF: el
     // total (60.000) debe ser multiplo de 16.000 / Ajustar al multiplo"]. La tirada se lee en
-    // cada fila, debajo de Pedir (notaMinUni), y "Sugerir" sigue dejando el carton redondeado a
+    // cada fila, en la columna Pedido minimo (celdaMinimo), y "Sugerir" sigue dejando el carton redondeado a
     // su familia (ajustarPedidoCarton). Lo que el comprador escribe a mano es su decision.
     // Solo queda el PISO de la familia (carton_formato.pedido_minimo: la bolsa de Vihal 20.000).
   });
