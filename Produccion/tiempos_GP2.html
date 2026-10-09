@@ -229,12 +229,18 @@
     pill.classList.toggle('pill-entero', FUENTE === 'entero');
   }
 
+  /* Operarios: la MISMA lista que Registro Producción 3.0 (reg_prod_3_0.operario, vía GP2.operarios_lista con el login)
+     [Elías, 09/10: «GP2 y 3.0 Cervantes tienen que tomar del mismo lugar»]. Trae el legajo verdadero (c19); la Carga Manual
+     y Registro 2.0 guardan el número (19): mismaPersona() junta los dos. */
+  function mismaPersona(leg) { var l = String(leg || '').trim().toLowerCase(), n = l.replace(/^c/, ''); return n === l ? [l] : [l, n]; }
   async function cargarOperarios() {
-    var r = await sb.from('empleado').select('legajo,nombre,activo').order('nombre');
-    if (r.error) { console.warn('empleado:', r.error); return; }
+    var r = await sb.rpc('operarios_lista');
+    if (r.error) { console.warn('operarios_lista:', r.error); return; }
     var sel = $('fOperario');
     (r.data || []).forEach(function (e) {
       EMP[String(e.legajo).trim()] = e.nombre;
+      var num = String(e.legajo).trim().replace(/^c/i, '');
+      if (!EMP[num]) EMP[num] = e.nombre;   /* lo de 2.0 y la Carga Manual viene con el número */
       var o = document.createElement('option');
       o.value = e.legajo;
       o.textContent = e.nombre + ' (' + e.legajo + ')' + (e.activo === false ? ' · inactivo' : '');
@@ -289,7 +295,7 @@
           .select('id,Fecha,Legajo,Matriz,Nombre_Matriz,Uni,Segundos_Trabajados,Tiempo_Toma,Anular_Tiempo,Premio,Eliminar')
           .gt('Uni', 0).neq('Legajo', '1')
           .gte('Fecha', desde).lte('Fecha', hasta).order('id');
-        if (op) q = q.eq('Legajo', op);
+        if (op) q = q.in('Legajo', mismaPersona(op));
         return q;
       });
     } else {
@@ -298,7 +304,7 @@
           .select('id,fecha,legajo,matriz_raw,nombre_matriz,uni,segundos_trabajados,tiempo_toma,anular_tiempo,premio,hora_inicio,hora_fin,segundos_tiempo_muerto,segundos_historico,eliminar')
           .gt('uni', 0)
           .gte('fecha', desde).lte('fecha', hasta).order('id');
-        if (op) q = q.eq('legajo', op);
+        if (op) q = q.in('legajo', mismaPersona(op));
         return q;
       });
     }

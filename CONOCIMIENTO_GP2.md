@@ -16416,3 +16416,19 @@ cuál 3"* · *"una columna a la derecha de máximo que sea OCUPACIÓN SECTOR …
 - `db/migracion_oc_prioridad_20261009.sql` (aplicada; probada en transacción deshecha: sin prioridad y repetida
   rechazan; 2 y 1 se guardan y salen ordenadas). Tests: `test_oc.js`, `test_oc_gatillo.js`,
   `test_oc_minimo_proveedor.js`, `test_oc_prov_alt.js`, `test_oc_prov_alt_fila.js`.
+
+## 4km. Una sola lista de operarios: GP2, Cervantes 3.0 y Virgilio 3.0 (2026-10-09) — v1.262.1
+
+- [usuario, Elías 09/10] «GP2 y 3.0 Cervantes tienen que tomar del mismo lugar» · «y el de Virgilio también» · «no es anon, tiene que
+  ser al enviar con el token que se obtiene de la pantalla».
+- El lugar es `reg_prod_3_0.operario` (legajo verdadero en minúscula — c19 = CHEF SRL — y nombre; la arma un trigger desde la
+  liquidación de Planify, fase 3e de Registro 3.0). La tabla NO tiene SELECT para anon ni authenticated: cada app la lee con una
+  función que exige su token — Cervantes con el pase (bundle de 3.0), Virgilio con el código de la TV
+  (`reg_prod_3_0.reg_prod_3_0_virgilio_operarios`) y el admin de GP2 con el login de Gmail + whitelist (`GP2.operarios_lista`, llama a
+  `_exigir_autorizado`). Excepción a la Regla 0 del dueño, como `v_produccion_todas`.
+- Entrevistas, Tiempos y Monitor (y `problemas_matrices_bundle`, que ahora también exige el login) usan esa lista. Lo cargado antes
+  (Carga Manual, Registro 2.0) tiene el número sin letra: las pantallas juntan `c19` con `19` (`mismaPersona` / `claveLegajo`). [deducido]
+  Vale mientras ningún número exista a la vez con c y sin c en la tabla (al 09/10: ninguno).
+- `GP2.empleado` sigue existiendo (ABM, hora de entrada de respaldo del bundle de 3.0) pero ya no es la lista de operarios de las pantallas.
+- CS = «Cambio de Sede»: tiempo muerto nuevo de 3.0 (v3.1.14 / v30.15), lo graba la sede a la que llega el operario.
+

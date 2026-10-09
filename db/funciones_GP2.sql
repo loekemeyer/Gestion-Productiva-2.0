@@ -6633,13 +6633,31 @@ AS $function$
 $function$
 ;
 
+-- ---------- operarios_lista ----------
+CREATE OR REPLACE FUNCTION "GP2".operarios_lista()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+begin
+  perform "GP2"._exigir_autorizado();
+  return coalesce((select jsonb_agg(jsonb_build_object('legajo', o.legajo, 'nombre', o.nombre) order by o.nombre)
+                     from reg_prod_3_0.operario o
+                    where o.legajo <> '0'), '[]'::jsonb);
+end $function$
+;
+
 -- ---------- problemas_matrices_bundle ----------
 CREATE OR REPLACE FUNCTION "GP2".problemas_matrices_bundle(p_desde date, p_hasta date)
  RETURNS jsonb
- LANGUAGE sql
+ LANGUAGE plpgsql
  STABLE SECURITY DEFINER
  SET search_path TO 'GP2'
 AS $function$
+begin
+  perform "GP2"._exigir_autorizado();   /* fase 3g: sólo con el login de GP2 */
+  return (
 with base as (
   select p.id, btrim(coalesce(p.matriz_raw,'')) as m, p.fecha, p.hora_inicio, p.hora_fin,
          p.legajo, p.nombre_empleado, p.uni, p.segundos_tiempo_muerto,
@@ -6666,7 +6684,7 @@ select jsonb_build_object(
       'fecha', to_char(a.fecha at time zone 'America/Argentina/Buenos_Aires','YYYY-MM-DD'),
       'hora_inicio', a.hora_inicio, 'hora_fin', a.hora_fin,
       'tipo', a.tipo, 'legajo', a.legajo,
-      'empleado', coalesce(a.nombre_empleado, e.nombre),
+      'empleado', coalesce(a.nombre_empleado, o3.nombre, e.nombre),
       'matriz', a.m, 'nombre_matriz', mt.descripcion,
       'segundos', a.segundos_tiempo_muerto,
       'uni_acum', coalesce(a.uni_acum, 0),
@@ -6675,12 +6693,14 @@ select jsonb_build_object(
       ) order by a.fecha desc, a.id desc),'[]'::jsonb)
     from acum a
     left join empleado e on e.legajo = a.legajo
+    left join reg_prod_3_0.operario o3 on o3.legajo = lower(btrim(a.legajo))
+                                       or o3.legajo = 'c' || lower(btrim(a.legajo))   /* fase 3g */
     left join matriz mt on btrim(mt.n_matriz) = a.m
     where a.tipo is not null),
   'empleados', (select coalesce(jsonb_agg(jsonb_build_object('legajo',legajo,'nombre',nombre) order by nombre),'[]'::jsonb)
-    from empleado where activo),
-  'desde', p_desde, 'hasta', p_hasta);
-$function$
+    from reg_prod_3_0.operario where legajo <> '0')   /* fase 3g */,
+  'desde', p_desde, 'hasta', p_hasta));
+end $function$
 ;
 
 -- ---------- produccion_bundle ----------

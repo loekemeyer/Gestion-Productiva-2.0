@@ -87,9 +87,13 @@
   var fechaAR = GP2UI.fechaTsAR;
   function hhmm(t) { return t ? String(t).slice(0, 5) : '—'; }
 
+  /* Operarios: la MISMA lista que Registro Producción 3.0 (reg_prod_3_0.operario, vía GP2.operarios_lista con el login)
+     [Elías, 09/10: «GP2 y 3.0 Cervantes tienen que tomar del mismo lugar»]. Trae el legajo verdadero (c19); la Carga Manual
+     y Registro 2.0 guardan el número (19): mismaPersona() junta los dos. */
+  function mismaPersona(leg) { var l = String(leg || '').trim().toLowerCase(), n = l.replace(/^c/, ''); return n === l ? [l] : [l, n]; }
   async function cargarOperarios() {
-    var r = await sb.from('empleado').select('legajo,nombre,activo').order('nombre');
-    if (r.error) { console.warn('empleado:', r.error); return; }
+    var r = await sb.rpc('operarios_lista');
+    if (r.error) { console.warn('operarios_lista:', r.error); return; }
     var sel = $('fOperario');
     (r.data || []).forEach(function (e) {
       var o = document.createElement('option');
@@ -107,7 +111,7 @@
 
     var r = await sb.from('v_produccion_todas')   /* GP2 + Registro Produccion 3.0 (2026-10-08) */
       .select('id,fecha,matriz_raw,nombre_matriz,uni,hora_inicio,hora_fin,segundos_trabajados,segundos_historico,premio,eliminar')
-      .eq('legajo', leg)
+      .in('legajo', mismaPersona(leg))
       .gt('uni', 0)
       .gte('fecha', $('fDesde').value + 'T00:00:00-03:00')
       .lte('fecha', $('fHasta').value + 'T23:59:59-03:00')

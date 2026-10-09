@@ -75,7 +75,7 @@
   var TM_DESC = {
     PB: 'Paré Baño', BC: 'Busqué Cajón', MOV: 'Movimiento', LIMP: 'Limpieza', Perm: 'Permiso',
     AL: 'Ayuda Logística', PR: 'Paré Carga Rollo', PC: 'Paré Comida', 'MOV P': 'Movimiento Piedra',
-    CM: 'Cambiar Matriz', REM: 'Reparando Matriz', Ausencia: 'Ausencia',
+    CM: 'Cambiar Matriz', REM: 'Reparando Matriz', Ausencia: 'Ausencia', CS: 'Cambio de Sede',
     LT: 'Llegada Tarde', FJ: 'Fin Jornada'
   };
   var ISSUE = { RM: 'Rotura Matriz', PM: 'Paré Matriz', RD: 'Rollo Fleje Doblado' };
@@ -98,11 +98,20 @@
     return 'hace ' + Math.floor(min / 60) + ' h ' + (min % 60) + ' min';
   }
 
+  /* Operarios: la MISMA lista que Registro Producción 3.0 (reg_prod_3_0.operario, vía GP2.operarios_lista con el login)
+     [Elías, 09/10: «GP2 y 3.0 Cervantes tienen que tomar del mismo lugar»]. Trae el legajo verdadero (c19); la Carga Manual
+     y Registro 2.0 guardan el número (19): mismaPersona() junta los dos. */
+  var NUM = {};   /* número sin la letra -> legajo verdadero (19 -> c19) */
   async function cargarEmpleados() {
-    var r = await sb.from('empleado').select('legajo,nombre,activo');
-    if (r.error) { console.warn('empleado:', r.error); return; }
-    (r.data || []).forEach(function (e) { EMP[String(e.legajo)] = e; });
+    var r = await sb.rpc('operarios_lista');
+    if (r.error) { console.warn('operarios_lista:', r.error); return; }
+    (r.data || []).forEach(function (e) {
+      var leg = String(e.legajo).trim();
+      EMP[leg] = { legajo: leg, nombre: e.nombre, activo: true };
+      NUM[leg.replace(/^c/i, '')] = leg;
+    });
   }
+  function claveLegajo(leg) { var l = String(leg || '').trim().toLowerCase(); return EMP[l] ? l : (NUM[l.replace(/^c/, '')] || l); }
 
   function estadoDe(ev) {
     var code = String(ev.matriz_raw || '').trim();
@@ -127,7 +136,7 @@
     var porLegajo = {};
     (r.data || []).forEach(function (p) {
       if (String(p.eliminar || '').toUpperCase() === 'S') return;
-      var leg = String(p.legajo || '').trim();
+      var leg = claveLegajo(p.legajo);
       if (!leg) return;
       if (!porLegajo[leg]) porLegajo[leg] = { legajo: leg, nombre: p.nombre_empleado || '', eventos: 0, uni: 0, ultimo: null };
       var o = porLegajo[leg];

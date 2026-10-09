@@ -44,7 +44,8 @@ const MATRIZ = [
     { n_matriz: n,       descripcion: 'Producto ' + n,       tiempo_historico: 10, tiempo_unidad: 'uni', uni_x_golpe: 1, activa: true },
     { n_matriz: n + 'B', descripcion: 'Otro producto ' + n + 'B', tiempo_historico: 20, tiempo_unidad: 'uni', uni_x_golpe: 1, activa: true }]), []),
 ];
-const EMPLEADO = [{ legajo: '19', nombre: 'Eduardo B', activo: true }, { legajo: '74', nombre: 'Omar Banchur', activo: true }];
+// la lista sale de GP2.operarios_lista (reg_prod_3_0.operario, legajo verdadero): c19 es el 19 de lo cargado antes
+const EMPLEADO = [{ legajo: 'c19', nombre: 'Eduardo B' }, { legajo: '74', nombre: 'Omar Banchur' }];
 
 const D = '2026-10-0';
 const PROD = [
@@ -80,7 +81,7 @@ const STUB = `
                 'GP2.v_produccion_todas': ${JSON.stringify(PROD)}, 'public.db_n8n_espejo': ${JSON.stringify(ENTERO)} };
   function mk(tabla, esquema){
     var q = { f: [] };
-    ['select','gt','neq','gte','lte','eq','order','range'].forEach(function(m){
+    ['select','gt','neq','gte','lte','eq','in','order','range'].forEach(function(m){
       q[m] = function(){ q.f.push([m].concat([].slice.call(arguments))); return q; };
     });
     q.then = function(res, rej){
@@ -106,7 +107,10 @@ const STUB = `
         return { data: null, error: null };
       }
     }; },
-    rpc: async function(n, a){ window.__rpcs.push({ n: n, a: a }); return { data: null, error: null }; }
+    rpc: async function(n, a){
+      if (n === 'operarios_lista') return { data: ${JSON.stringify(EMPLEADO)}, error: null };   /* la lista no cuenta como escritura */
+      window.__rpcs.push({ n: n, a: a }); return { data: null, error: null };
+    }
   }; } };
   window.Chart = function(ctx, cfg){ window.__chart = cfg; this.destroy = function(){}; };
 })();`;
