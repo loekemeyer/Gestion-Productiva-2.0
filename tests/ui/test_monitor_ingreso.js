@@ -145,7 +145,8 @@ async function abrir(browser, modo) {
   const menu = fs.readFileSync(path.join(ROOT_DIR, 'GP2_MODULOS.html'), 'utf8');
   // va como pastilla del header (junto a las dos Tablet): una baldosa más en Herramientas hacía que
   // los 2 grupos dejaran de entrar en 375x600 (644 de 600), y en MENU_OCULTO sólo se vería con ?todos=1
-  ok(/<a class="tablet-link" href="Produccion\/MonitorIngreso\/MonitorIngreso_GP2\.html">🔑 Monitor<\/a>/.test(menu), 'está en el menú: pastilla «🔑 Monitor» del header');
+  // v1.258.0 (sistema de diseño): la pastilla pasó a baldosa de acceso rápido con ícono y bajada aparte
+  ok(/<a class="tablet-link" href="Produccion\/MonitorIngreso\/MonitorIngreso_GP2\.html">(?:(?!<\/a>).)*🔑(?:(?!<\/a>).)*Monitor/.test(menu), 'está en el menú: acceso «🔑 Monitor»');
   const fn = fs.readFileSync(path.join(ROOT_DIR, 'db', 'funciones_GP2.sql'), 'utf8');
   ok(/FUNCTION "GP2"\.monitor_clave_actual\(\)/.test(fn), 'db/funciones_GP2.sql tiene monitor_clave_actual');
   ok(/FUNCTION "GP2"\.monitor_clave_validar\(p_clave text\)/.test(fn), 'db/funciones_GP2.sql tiene monitor_clave_validar');

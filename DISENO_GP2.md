@@ -51,6 +51,7 @@ visibles mientras hago scroll"*]
 - **Campos**: `.field` > `label` + input; `.toolbar` (fila densa); `input.search`; `.err` / `.ok`.
 - **Paneles**: `.panel` > `.panel-head` + `.panel-body`; rejillas `.grid-auto`, `.grid-2`, `.grid-3`.
 - **Datos**: `.kpis` > `.kpi` (+ `.ok/.warn/.err/.info`, `.k`, `.v`, `.d`); `.badge` (+ `.ok/.warn/.err/.info/.dark`); `.cod`, `.proc`, `.sub`, `.pos/.neg/.cero`.
+- **Modal**: `.dlg-bg` > `.dlg` > `.dlg-head` + `.dlg-body` + `.dlg-foot` (en el celular sale como hoja desde abajo).
 - **Avisos**: `.aviso` (ámbar) / `.aviso.info` / `.aviso.ok` / `.aviso.err`; `.status`; `.empty`.
 - **Tablas**: `table.t`, `th.num/td.num`, `.ctr`, `.sep`, `tr.falt`, `tr.sel`, `tfoot`; `table.sticky-head` para una tabla suelta (sin wrap) con encabezado fijo bajo la barra.
 

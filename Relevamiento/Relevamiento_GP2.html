@@ -65,83 +65,70 @@
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <style>
-  /* El contenido no se estira a lo ancho porque si: se centra con un ancho legible.
-     (regla del usuario: no ocupar el 100% sin necesidad, sin huecos vacios) */
-  .wrap{max-width:1080px;margin:0 auto}
+  /* sistema GP2 v2.0 (2026-10-09): look de gp2-modulo.css; acá sólo layout. El ancho legible lo da
+     .page-mid (regla del usuario: no ocupar el 100% sin necesidad, sin huecos vacíos). */
+  /* ---- lo común de Relevamiento / Validación (layout + colores del sistema) ---- */
+  .leyenda{font-size:var(--fs-sm);color:var(--ink-600);margin:0 0 10px;line-height:1.5}
+  .lista,.crono{display:flex;flex-direction:column;gap:var(--s2)}
+  .barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0;
+         padding:10px 12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-1)}
+  .barra .info{font-size:var(--fs-h3);font-weight:700;color:var(--ink-900)}
+  .btn.del{background:var(--surface);color:var(--err-700);border-color:var(--err-200)}
+  .btn.del:hover{background:var(--err-50)}
+  .desc{color:var(--ink-500);font-size:var(--fs-sm)}
+  .dif{font-weight:750;font-variant-numeric:tabular-nums}
+  .dif.mas{color:var(--ok-700)}
+  .dif.menos{color:var(--err-700)}
+  tr.igual td,.table-wrap > table.t > tbody > tr.igual > td:first-child{background:var(--surface-2);color:var(--ink-500)}
+  /* Elegir quien vale: dos botones pegados, no un select (se toca con el dedo). Elegido = tinta 900. */
+  .pick{display:inline-flex;border:1.5px solid var(--line-strong);border-radius:var(--r-md);overflow:hidden;background:var(--surface)}
+  .pick button{min-height:44px;padding:0 14px;font-size:15px;font-weight:650;border:none;background:var(--surface);cursor:pointer;color:var(--ink-700)}
+  .pick button + button{border-left:1px solid var(--line-strong)}
+  .pick button.act{background:var(--ink-900);color:#fff}
+  .pick button:disabled{opacity:.4;cursor:not-allowed}
+  /* tarjeta-renglón (una por sector / por recepción) */
+  .li,.cl{display:flex;align-items:center;gap:10px 16px;flex-wrap:wrap;padding:10px 14px;
+      background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-1)}
+  .li-acts,.cl-acts{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .pill{display:inline-flex;align-items:center;font-size:var(--fs-cap);font-weight:700;padding:3px 10px;border-radius:var(--r-pill);white-space:nowrap;border:1px solid transparent}
 
-  /* ---- Cronograma: una linea por sector, no una tabla ---- */
-  .crono{display:flex;flex-direction:column;gap:10px}
-  .cl{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
-      padding:12px 14px;border:2px solid #d0d7de;border-radius:12px;background:#fff}
-  .cl-tipo{font-size:20px;font-weight:800;min-width:130px}
-  .cl-fecha{display:flex;flex-direction:column;line-height:1.1;min-width:120px}
-  .cl-fecha .d{font-size:20px;font-weight:800}
-  .cl-fecha .lb{font-size:11px;font-weight:700;color:#5a6672;text-transform:uppercase;letter-spacing:.04em}
-  .cl-comp{font-size:15px;color:#475569;min-width:120px}
-  .cl-acts{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
-  /* Cuanto falta: verde lejos, amarillo cerca, naranja ya casi, rojo vencido. */
-  .dias{font-size:15px;font-weight:800;padding:6px 12px;border-radius:20px;white-space:nowrap}
-  .dias.lejos{background:#eef2f6;color:#3a4653}
-  .dias.cerca{background:#fdf1cc;color:#8a6a00}
-  .dias.ya{background:#ffe6cc;color:#c65a00}
-  .dias.vencido{background:#fbe0e0;color:#c00}
+  /* ---- Cronograma: una línea por sector, no una tabla ---- */
+  .cl-tipo{font-size:var(--fs-h3);font-weight:700;color:var(--ink-900);min-width:150px}
+  .cl-fecha{display:flex;flex-direction:column;line-height:1.15;min-width:120px}
+  .cl-fecha .d{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+  .cl-fecha .lb{font-size:11px;font-weight:700;color:var(--ink-500);text-transform:uppercase;letter-spacing:.04em}
+  .cl-comp{font-size:var(--fs-sm);color:var(--ink-600);min-width:120px}
+  /* Cuánto falta: gris lejos, ámbar cerca, naranja ya casi, rojo vencido. */
+  .dias{font-size:var(--fs-sm);font-weight:700;padding:4px 12px;border-radius:var(--r-pill);white-space:nowrap}
+  .dias.lejos{background:var(--ink-100);color:var(--ink-700)}
+  .dias.cerca{background:var(--warn-50);color:var(--warn-700);border:1px solid var(--warn-200)}
+  .dias.ya{background:var(--warn-200);color:var(--warn-700)}
+  .dias.vencido{background:var(--err-50);color:var(--err-700);border:1px solid var(--err-200)}
   /* Terminado: verde y con tilde, para que se vea de un golpe cuál ya está. */
-  .cl.hecho{border-color:#bfe3cd;background:#f2faf5}
-  .tilde{font-size:18px;font-weight:800;color:#0a7a2f;background:#dff3e6;
-         border-radius:20px;padding:8px 16px;white-space:nowrap}
-
-  /* ---- Botones ---- */
-  .b{min-height:48px;padding:12px 20px;border-radius:10px;border:2px solid #d0d7de;
-     background:#fff;font-size:17px;font-weight:800;cursor:pointer;color:#111}
-  .b.pri{background:#111;color:#fff;border-color:#111}
-  .b.ok{background:#0a7a2f;color:#fff;border-color:#0a7a2f}
-  /* Borrar es destructivo: se ve distinto, pero sin gritar (no es la accion principal). */
-  .b.del{border-color:#eacdcd;color:#c00;background:#fff}
-  .b:disabled{opacity:.45;cursor:not-allowed}
-  .b.sm{min-height:44px;padding:9px 14px;font-size:15px}
+  .cl.hecho{border-color:var(--ok-200);background:var(--ok-50)}
+  .tilde{font-size:15px;font-weight:700;color:var(--ok-700);background:var(--surface);border:1px solid var(--ok-200);
+         border-radius:var(--r-pill);padding:0 14px;min-height:36px;display:inline-flex;align-items:center;white-space:nowrap}
 
   /* ---- Carga ---- */
-  .barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0;
-         padding:12px;background:#f6f8fa;border-radius:10px}
-  .barra .info{font-size:17px;font-weight:800}
   /* Campos GRANDES: quien ve mal tiene que poder cargar sin equivocarse (regla de la casa). */
-  .in-num{width:104px;height:50px;border:2px solid #b4bcc4;border-radius:8px;
-          text-align:right;font-size:20px;font-weight:700;padding:0 10px}
-  .in-num:focus{outline:none;border-color:#111}
-  td.tot{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
-  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .in-num{width:104px;min-height:50px;text-align:right;font-size:20px;font-weight:700;padding:0 10px}
+  td.tot{font-size:18px;font-weight:750;font-variant-numeric:tabular-nums}
   /* NO es un error: esta pieza no se cuenta por envase. Por eso no va en rojo. */
-  .solo-sueltas{font-size:14px;color:#5a6672;font-style:italic}
-  tr.cargado td{background:#f2faf5}
-  /* Bloque por envase (Remache: Bolsas / Cajones). El titulo se distingue del encabezado. */
-  table.t tr.grupo th{font-size:17px;text-transform:none;background:#e3e9f0;color:#111;padding:12px 8px}
-  .cod{font-weight:800;font-size:17px}
-  .desc{color:#5a6672;font-size:14px}
-
-  /* ---- Comparacion ---- */
-  .dif{font-weight:800;font-variant-numeric:tabular-nums}
-  .dif.mas{color:#0a7a2f}
-  .dif.menos{color:#c00}
-  tr.igual td{background:#f6f8fa;color:#5a6672}
-  /* Elegir quien gana: dos botones, no un select (se toca con el dedo) */
-  .pick{display:inline-flex;border:2px solid #d0d7de;border-radius:9px;overflow:hidden}
-  .pick button{min-height:44px;padding:0 14px;font-size:15px;font-weight:800;
-               border:none;background:#fff;cursor:pointer;color:#3a4653}
-  .pick button.act{background:#0b3b73;color:#fff}
-  .pick button:disabled{opacity:.4;cursor:not-allowed}
-  .leyenda{font-size:15px;color:#475569;margin:8px 0}
-  .hidden{display:none!important}
+  .solo-sueltas{font-size:var(--fs-sm);color:var(--ink-500);font-style:italic}
+  tr.cargado td,.table-wrap > table.t > tbody > tr.cargado > td:first-child{background:var(--ok-50)}
+  /* Bloque por envase (Remache: Bolsas / Cajones). El título se distingue del encabezado. */
+  table.t tr.grupo th{font-size:var(--fs-h3);text-transform:none;letter-spacing:0;background:var(--ink-150);color:var(--ink-900);padding:10px}
+  table.t tr.sub th{font-size:var(--fs-cap)}
 
   @media(max-width:430px){
     .cl-acts{margin-left:0;width:100%}
     .cl-tipo,.cl-fecha,.cl-comp{min-width:0}
-    .barra .b{flex:1;min-width:140px}
+    .barra .btn{flex:1;min-width:140px}
   }
 </style>
 </head>
 <body>
 
-<div class="wrap">
 <div class="card">
   <div class="header">
     <h1>📋 Relevamiento</h1>
@@ -159,7 +146,7 @@
   })();
   </script>
 
-  <div class="steps">
+  <div class="steps page-mid">
 
     <!-- ============ PASO 1: CRONOGRAMA ============ -->
     <div id="panCrono">
@@ -171,7 +158,7 @@
     <!-- ============ PASO 2: CARGA ============ -->
     <div id="panCarga" class="hidden">
       <div class="barra">
-        <button type="button" class="b sm" id="btnVolver">← Volver</button>
+        <button type="button" class="btn btn-secondary" id="btnVolver">← Volver</button>
         <span class="info" id="cargaTitulo"></span>
         <span class="info" id="cargaProg"></span>
       </div>
@@ -183,14 +170,13 @@
         </table>
       </div>
       <div class="barra">
-        <button type="button" class="b" id="btnGuardar">Guardar</button>
-        <button type="button" class="b pri" id="btnCompletar">Completar conteo →</button>
+        <button type="button" class="btn btn-secondary" id="btnGuardar">Guardar</button>
+        <button type="button" class="btn btn-primary" id="btnCompletar">Completar conteo →</button>
       </div>
     </div>
 
     <div id="status" class="status">Cargando…</div>
   </div>
-</div>
 </div>
 
 <script>
@@ -245,7 +231,7 @@ function pintarCrono(){
        Mientras se cuenta no se ofrece tirar todo por la borda; se decide desde la lista.
        La comparacion no esta aca: vive en Validacion de Stock, que lo maneja el operador
        del sistema, no el operario. */
-    var btnDel = rel ? ('<button type="button" class="b sm del" data-del="'+rel.id+
+    var btnDel = rel ? ('<button type="button" class="btn btn-secondary del" data-del="'+rel.id+
                         '" title="Borrar el conteo y volver a empezar">Eliminar</button>') : '';
     if(estado === 'aplicado'){
       hecho = true;
@@ -257,10 +243,10 @@ function pintarCrono(){
     } else if(estado === 'en_curso' && rel.contados > 0){
       // Solo se ofrece seguir si HAY algo cargado. Un conteo abierto y vacio se descarta
       // al salir (ver salirDeCarga), asi que este caso no aparece por haber entrado a mirar.
-      acts = '<button type="button" class="b sm pri" data-abrir="'+c.sector_id+'" data-crono="'+c.crono_id+'">'+
+      acts = '<button type="button" class="btn btn-primary" data-abrir="'+c.sector_id+'" data-crono="'+c.crono_id+'">'+
              'Seguir cargando ('+rel.contados+'/'+rel.items+')</button>' + btnDel;
     } else {
-      acts = '<button type="button" class="b sm pri" data-abrir="'+c.sector_id+'" data-crono="'+c.crono_id+'">Contar</button>';
+      acts = '<button type="button" class="btn btn-primary" data-abrir="'+c.sector_id+'" data-crono="'+c.crono_id+'">Contar</button>';
     }
     return '<div class="cl'+(hecho?' hecho':'')+'">'+
       '<span class="cl-tipo">'+esc(c.tipo)+'</span>'+

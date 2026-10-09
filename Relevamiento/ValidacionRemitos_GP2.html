@@ -48,79 +48,77 @@
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <style>
-  .wrap{max-width:1080px;margin:0 auto}
+  /* sistema GP2 v2.0 (2026-10-09): look de gp2-modulo.css; acá sólo layout. */
+  /* ---- lo común de Relevamiento / Validación (layout + colores del sistema) ---- */
+  .leyenda{font-size:var(--fs-sm);color:var(--ink-600);margin:0 0 10px;line-height:1.5}
+  .lista,.crono{display:flex;flex-direction:column;gap:var(--s2)}
+  .barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0;
+         padding:10px 12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-1)}
+  .barra .info{font-size:var(--fs-h3);font-weight:700;color:var(--ink-900)}
+  .btn.del{background:var(--surface);color:var(--err-700);border-color:var(--err-200)}
+  .btn.del:hover{background:var(--err-50)}
+  .desc{color:var(--ink-500);font-size:var(--fs-sm)}
+  .dif{font-weight:750;font-variant-numeric:tabular-nums}
+  .dif.mas{color:var(--ok-700)}
+  .dif.menos{color:var(--err-700)}
+  tr.igual td,.table-wrap > table.t > tbody > tr.igual > td:first-child{background:var(--surface-2);color:var(--ink-500)}
+  /* Elegir quien vale: dos botones pegados, no un select (se toca con el dedo). Elegido = tinta 900. */
+  .pick{display:inline-flex;border:1.5px solid var(--line-strong);border-radius:var(--r-md);overflow:hidden;background:var(--surface)}
+  .pick button{min-height:44px;padding:0 14px;font-size:15px;font-weight:650;border:none;background:var(--surface);cursor:pointer;color:var(--ink-700)}
+  .pick button + button{border-left:1px solid var(--line-strong)}
+  .pick button.act{background:var(--ink-900);color:#fff}
+  .pick button:disabled{opacity:.4;cursor:not-allowed}
+  /* tarjeta-renglón (una por sector / por recepción) */
+  .li,.cl{display:flex;align-items:center;gap:10px 16px;flex-wrap:wrap;padding:10px 14px;
+      background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-1)}
+  .li-acts,.cl-acts{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .pill{display:inline-flex;align-items:center;font-size:var(--fs-cap);font-weight:700;padding:3px 10px;border-radius:var(--r-pill);white-space:nowrap;border:1px solid transparent}
 
-  /* Los dos módulos de Validación de Stock: la misma barra en las dos pantallas */
-  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
-  .tabs a{min-height:44px;display:inline-flex;align-items:center;padding:0 16px;border-radius:10px;
-          border:2px solid #d0d7de;font-size:16px;font-weight:800;color:#3a4653;text-decoration:none;background:#fff}
-  .tabs a.act{background:#0b3b73;border-color:#0b3b73;color:#fff}
+  /* Los dos módulos de Validación de Stock: la misma barra de pestañas (.tabs del sistema) */
+  .tabs > a{display:inline-flex;align-items:center;text-decoration:none}
+  .tabs > a.act{color:var(--ink-900);border-bottom-color:var(--brand-600)}
 
-  .leyenda{font-size:15px;color:#475569;margin:8px 0}
-  .contexto{font-size:15px;color:#475569;margin:6px 0 10px}
-  .filtros{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 10px}
-  .filtros button{min-height:44px;padding:0 14px;border-radius:20px;border:2px solid #d0d7de;
-                  background:#fff;font-size:15px;font-weight:800;cursor:pointer;color:#3a4653}
-  .filtros button.act{background:#111;border-color:#111;color:#fff}
+  .contexto{font-size:var(--fs-sm);color:var(--ink-600);margin:0 0 10px}
+  /* filtros por tipo de contraparte: chips (elegido = tinta 900) */
+  .filtros{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}
+  .filtros button{min-height:44px;padding:0 14px;border-radius:var(--r-md);border:1.5px solid var(--line-strong);
+                  background:var(--surface);font-size:15px;font-weight:650;cursor:pointer;color:var(--ink-800)}
+  .filtros button:hover{border-color:var(--ink-500)}
+  .filtros button.act{background:var(--ink-900);border-color:var(--ink-900);color:#fff}
 
-  .lista{display:flex;flex-direction:column;gap:10px}
-  .li{display:flex;align-items:center;gap:10px 16px;flex-wrap:wrap;
-      padding:12px 14px;border:2px solid #d0d7de;border-radius:12px;background:#fff}
-  .li.fuera{border-color:#eacdcd;background:#fff7f7}
-  .li.dentro{border-color:#e6cf9a;background:#fffbf0}
+  .li.fuera{border-color:var(--err-200);background:var(--err-50)}
+  .li.dentro{border-color:var(--warn-200);background:var(--warn-50)}
   .li-parte{min-width:170px}
-  .cod{font-weight:800;font-size:18px}
-  .desc{color:#5a6672;font-size:14px}
-  .li-quien{font-size:15px;color:#475569;min-width:150px}
+  .li-parte .cod{font-size:17px}
+  .li-quien{font-size:var(--fs-sm);color:var(--ink-600);min-width:150px}
+  .li-quien b{color:var(--ink-900)}
   /* los números ceden ancho (se parten en dos líneas) antes que los botones bajen a otra fila (v1.3.0) */
   .li-num{display:flex;gap:4px 14px;flex-wrap:wrap;font-variant-numeric:tabular-nums;flex:1 1 220px}
-  .li-num span{font-size:16px}
-  .li-num b{font-size:18px}
-  .dif{font-weight:800;font-size:18px;font-variant-numeric:tabular-nums}
-  .dif.mas{color:#0a7a2f}
-  .dif.menos{color:#c00}
-  .vir{font-size:15px;color:#0b3b73}   /* lo que se mando a Virgilio: no es faltante */
-  .li-acts{margin-left:auto;display:flex;gap:8px;align-items:center}
-  /* Elegir cuál queda: dos botones, no un select (se toca con el dedo) */
-  .pick{display:inline-flex;border:2px solid #d0d7de;border-radius:9px;overflow:hidden}
-  .pick button{min-height:44px;padding:0 14px;font-size:15px;font-weight:800;
-               border:none;background:#fff;cursor:pointer;color:#3a4653}
-  .pick button.act{background:#0b3b73;color:#fff}
-  .pick button:disabled{opacity:.45;cursor:not-allowed}
-
-  .b{min-height:48px;padding:12px 20px;border-radius:10px;border:2px solid #d0d7de;
-     background:#fff;font-size:17px;font-weight:800;cursor:pointer;color:#111}
-  .b.ok{background:#0a7a2f;color:#fff;border-color:#0a7a2f}
-  .b:disabled{opacity:.45;cursor:not-allowed}
-  .b.una{padding:0 16px}   /* el Validar de cada fila: misma altura que Control/Remito (48 con borde) */
-  .barra{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0;
-         padding:12px;background:#f6f8fa;border-radius:10px}
-  .barra .info{font-size:17px;font-weight:800}
-  .sec-tit{font-size:16px;font-weight:800;color:#3a4653;margin:18px 0 6px}
-  td.num{text-align:right;font-variant-numeric:tabular-nums}
-  .pill{font-size:14px;font-weight:800;padding:4px 10px;border-radius:20px;white-space:nowrap}
-  .pill.remito{background:#fbe0e0;color:#a00}
-  .pill.control{background:#dff3e6;color:#0a7a2f}
-  .hidden{display:none!important}
+  .li-num b{font-size:17px;color:var(--ink-900)}
+  .li-num .dif{font-size:17px}
+  .vir{font-size:var(--fs-sm);color:var(--brand-700)}   /* lo que se mandó a Virgilio: no es faltante */
+  .li-acts{flex-wrap:nowrap}
+  .btn.una{padding:0 16px}   /* el Validar de cada fila: misma altura que Control/Remito */
+  .pill.remito{background:var(--err-50);color:var(--err-700);border-color:var(--err-200)}
+  .pill.control{background:var(--ok-50);color:var(--ok-700);border-color:var(--ok-200)}
 
   @media(max-width:430px){
     .li-acts{margin-left:0;width:100%}
-    .li-acts .b.una{flex:1}
+    .li-acts .btn.una{flex:1}
     .li-parte,.li-quien{min-width:0;width:100%}
-    .barra .b{flex:1;min-width:140px}
+    .barra .btn{flex:1;min-width:140px}
   }
 </style>
 </head>
 <body>
 
-<div class="wrap">
 <div class="card">
   <div class="header">
     <h1>✅ Validación de Stock</h1>
     <div class="hbtns"><a class="back" href="../GP2_MODULOS.html">Atrás</a></div>
   </div>
 
-  <div class="steps">
+  <div class="steps page-mid">
     <nav class="tabs">
       <a href="Validacion_Stock.html">Conteo vs Sistema</a>
       <a href="ValidacionRemitos_GP2.html" class="act">Remito vs Control</a>
@@ -138,11 +136,11 @@
 
     <div class="barra" id="barra">
       <span class="info" id="resumen"></span>
-      <button type="button" class="b ok" id="btnValidar">Validar</button>
+      <button type="button" class="btn btn-success push" id="btnValidar">Validar</button>
     </div>
 
     <div id="wrapHechos" class="hidden">
-      <div class="sec-tit">Ya validadas (últimos 30 días)</div>
+      <h2 class="sec-title">Ya validadas <span class="meta">últimos 30 días</span></h2>
       <div class="table-wrap">
         <table class="t">
           <thead><tr>
@@ -156,7 +154,6 @@
 
     <div id="status" class="status">Cargando…</div>
   </div>
-</div>
 </div>
 
 <script>
@@ -253,7 +250,7 @@ function pintar(){
         '<button type="button" data-k="'+esc(k)+'" data-v="control"'+(el==='control'?' class="act"':'')+off+'>Control</button>'+
         '<button type="button" data-k="'+esc(k)+'" data-v="remito"'+(el==='remito'?' class="act"':'')+off+'>Remito</button>'+
       '</span>'+
-      '<button type="button" class="b ok una" data-una="'+esc(k)+'"'+off+'>'+(EN_CURSO[k]?'Validando…':'Validar')+'</button>'+
+      '<button type="button" class="btn btn-success una" data-una="'+esc(k)+'"'+off+'>'+(EN_CURSO[k]?'Validando…':'Validar')+'</button>'+
       '</span>'+
     '</div>';
   }).join('') : '<div class="empty">No hay diferencias entre remito y control para validar.</div>';
