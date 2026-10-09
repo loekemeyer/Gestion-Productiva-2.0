@@ -56,6 +56,13 @@ window.supabase = { createClient: function(){ return {
   // Sector Materia Prima Plastica -> proveedor Indarnyl: 225 + 150 = 375 kg, faltan 25 para los 400.
   await page.click('#rubros .chip:has-text("Materia Prima")');
   await page.click('#provs .chip:has-text("Indarnyl")');
+  // v1.51.0: Pedir llega vacio; el sugerido entra con "Usar sugeridos" y cada renglon lleva su prioridad.
+  const prioridades = async () => {
+    const n = await page.$$eval('.prio-in', xs => xs.length);
+    for (let i = 0; i < n; i++) await page.fill('.prio-in >> nth=' + i, String(i + 1));
+  };
+  await page.$eval('#btnSug', b => b.click());
+  await prioridades();
   const aviso = await page.textContent('#reglaCarton');
   ok(/Indarnyl/.test(aviso) && /400/.test(aviso), 'avisa el minimo de Indarnyl: ' + aviso.replace(/\s+/g,' ').slice(0,90));
   ok(/faltan\s*25/.test(aviso.replace(/\./g,'')), 'dice cuantos kg faltan: ' + aviso.replace(/\s+/g,' ').slice(0,90));
@@ -71,6 +78,8 @@ window.supabase = { createClient: function(){ return {
 
   // Beta pide 25 y el sugerido es 50: nunca molesta.
   await page.click('#provs .chip:has-text("Beta")');
+  await page.$eval('#btnSug', b => b.click());
+  await prioridades();
   ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')), 'un proveedor cuyo piso ya se cumple no avisa nada');
   ok(!(await page.$eval('#btnCrear', x => x.disabled)), 'y deja crear la OC');
 

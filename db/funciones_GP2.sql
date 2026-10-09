@@ -3240,6 +3240,18 @@ begin
   -- minimo por codigo, pedido minimo de la familia, pliegos de a 100 y comodin sacacorchos.
   -- Vivian SOLO en OC_GP2.html y esta funcion tiene EXECUTE para anon: aceptaba cualquier
   -- cantidad. Se valida ANTES de insertar la OC, asi no queda una cabecera huerfana.
+  -- PRIORIDAD (2026-10-09): cada renglon con cantidad lleva su prioridad, entera > 0 y sin repetir.
+  if exists (select 1 from jsonb_array_elements(coalesce(p->'items','[]'::jsonb)) e
+              where coalesce((e->>'cantidad')::numeric,0) > 0
+                and coalesce(nullif(e->>'prioridad','')::numeric,0) <= 0) then
+    raise exception 'Cada renglon de la OC necesita su prioridad (1, 2, 3...)';
+  end if;
+  if exists (select 1 from jsonb_array_elements(coalesce(p->'items','[]'::jsonb)) e
+              where coalesce((e->>'cantidad')::numeric,0) > 0
+              group by (e->>'prioridad')::numeric having count(*) > 1) then
+    raise exception 'Hay prioridades repetidas en la OC: cada renglon lleva un numero distinto';
+  end if;
+
   v_err_carton := "GP2"._oc_validar_carton(coalesce(p->'items','[]'::jsonb));
   if array_length(v_err_carton, 1) > 0 then
     raise exception 'El pedido de carton no cumple las reglas: %', array_to_string(v_err_carton, ' ');
@@ -3272,7 +3284,7 @@ begin
       -- precio elegido (si el item trae precio y no dice moneda, se asume la de
       -- la lista, y si tampoco hay lista, USD). La lista es la del proveedor ASIGNADO al
       -- componente si tiene precio suyo; si no, la mas nueva (2026-09-10).
-      insert into orden_compra_item (oc_id, componente_id, cantidad, unidad, precio_uni, moneda)
+      insert into orden_compra_item (oc_id, componente_id, cantidad, unidad, precio_uni, moneda, prioridad)
       select v_oc, (it->>'comp_id')::bigint, v_cant, v_u,
              coalesce(nullif(it->>'precio','')::numeric, pv.precio),
              case
@@ -3281,7 +3293,8 @@ begin
                       then 'USD' else 'ARS' end
                when pv.precio is null then null
                when upper(coalesce(pv.moneda,'USD')) like '%US%' then 'USD' else 'ARS' end
-             end
+             end,
+             nullif(it->>'prioridad','')::numeric::int
       from (select 1) x
       left join lateral (
         select case when pp.precio_por_kg then pp.precio * cc.kg_x_uni else pp.precio end precio, pp.moneda
@@ -3335,10 +3348,11 @@ begin
             nullif(p->>'usuario',''), v_fent)
     returning id into v_oc_mp;
 
-    insert into orden_compra_item (oc_id, componente_id, cantidad, unidad, precio_uni, moneda)
+    insert into orden_compra_item (oc_id, componente_id, cantidad, unidad, precio_uni, moneda, prioridad)
     select v_oc_mp, v_mp_id, v_kg_mp, 'kg', pv.precio,
            case when pv.precio is null then null
-                when upper(coalesce(pv.moneda,'USD')) like '%US%' then 'USD' else 'ARS' end
+                when upper(coalesce(pv.moneda,'USD')) like '%US%' then 'USD' else 'ARS' end,
+           1
     from (select 1) x
     left join lateral (
       select case when pp.precio_por_kg then pp.precio * cc.kg_x_uni else pp.precio end precio, pp.moneda
@@ -6138,8 +6152,9 @@ select jsonb_build_object(
                  'unidad',oi.unidad,'recibido',oi.recibido,
                  'precio_uni',oi.precio_uni,'moneda',oi.moneda,
                  'sector_id',c2.sector_id,'codigo_isis_ch',c2.codigo_isis_ch,
-                 'subtotal',case when oi.precio_uni is null then null else round(oi.cantidad*oi.precio_uni,2) end
-               ) order by c2.codigo),'[]'::jsonb)
+                 'subtotal',case when oi.precio_uni is null then null else round(oi.cantidad*oi.precio_uni,2) end,
+                 'prioridad',oi.prioridad
+               ) order by oi.prioridad nulls last, c2.codigo),'[]'::jsonb)
                from orden_compra_item oi join componente c2 on c2.id=oi.componente_id
               where oi.oc_id=o.id)
     ) order by o.numero desc),'[]'::jsonb) from orden_compra o),

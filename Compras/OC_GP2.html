@@ -1,6 +1,17 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.51.0 (2026-10-09) — PEDIR VACIO, PRIORIDAD OBLIGATORIA Y OCUPACION DEL SECTOR [Thomas: "en la columna pedir
+     no quiero que me aparezca ya puesto el numero a pedir. Lo quiero escribir yo" / "una columna de PRIORIDAD...
+     si en la columna pedir complete 3 campos tengo que poner cual es prioridad 1, cual 2 y cual 3" / "una columna a
+     la derecha de maximo que sea OCUPACION SECTOR... si hay 10 de stock y el maximo es 100: 10%"].
+     (1) Se retira el autollenado de v1.19.0 ("que me aparezca el sugerido directamente en pedir"): render() ya no
+     llama a cargarSugeridos(); toda fila llega vacia. "Usar sugeridos" (oculto desde v1.37.0) sigue existiendo.
+     (2) Prioridad por renglon pedido: 1..N exactos sobre TODO lo cargado (N = renglones con cantidad), sin repetir;
+     sin eso Crear OC queda deshabilitado. Con varias OC a la vez (sin proveedor elegido) la numeracion es una sola
+     y cada OC se lleva la suya. Se guarda en orden_compra_item.prioridad (crear_oc la exige,
+     db/migracion_oc_prioridad_20261009.sql) y sale en Ordenes, la hoja impresa y el WhatsApp, ordenada por ella.
+     (3) Ocupacion sector = stock / maximo, en %; sin maximo (o maximo 0) o sin stock, "—". -->
 <!-- v1.50.0 (2026-10-01) — DESGLOSE DEL MAXIMO: SIN VENTA, CON COLUMNA MAXIMO, Y LOS KG DEL FLEJE QUE CIERRAN [usuario:
      "Venta y consume aparece con los mismos valores. Tendria que ser consume, kg/mes y la tercera columna nueva que
      sea maximo (multiplica kg/mes con la cantidad de meses por sector segun el maximo)... llevandolo a cada caso
@@ -579,8 +590,12 @@
   #panGen table.t thead th, #panOcs table.t thead th{position:sticky;top:0;z-index:5}
   table.t.t-insumos th,table.t.t-insumos td{padding:6px 8px}
   .t-insumos td small{white-space:normal}
-  /* Pedir es el campo principal de la pantalla: llega con el sugerido puesto. */
+  /* Pedir es el campo principal de la pantalla: desde v1.51.0 llega VACIO y lo escribe el comprador. */
   .pedir-in{width:120px;min-height:44px;padding:0 8px;font-size:20px;font-weight:700;text-align:right}
+  /* v1.51.0: prioridad del renglon pedido (1..N); en rojo si falta, se repite o se pasa de N */
+  .prio-in{width:64px;min-height:44px;padding:0 6px;font-size:20px;font-weight:700;text-align:center}
+  .prio-in.err{border-color:var(--err-600);background:var(--err-50)}
+  td.ocup{white-space:nowrap;font-weight:700}
   #panGen .table-wrap > table.t > tbody > tr.con-pedido > td{background:var(--ok-50)}
   .paq-eq{font-size:var(--fs-cap);color:var(--brand-700);display:block}
   #panGen .table-wrap > table.t > tbody > tr.fam-hdr > td{background:var(--ink-100);color:var(--brand-700);font-weight:700;
@@ -660,6 +675,7 @@
     .t-insumos th:nth-child(2),.t-insumos td:nth-child(2){display:none}
     .prov-mini{display:inline}
     .pedir-in{width:84px;font-size:19px;padding:0 5px}
+    .prio-in{width:52px;font-size:19px;padding:0 4px}
     .rep-tag{white-space:normal}
     .filtro{flex-direction:column;align-items:flex-start;gap:6px;padding:8px}
     .filtro-lb{min-width:0;min-height:32px;padding:0 10px}
@@ -716,8 +732,8 @@
         <table class="t t-insumos">
           <thead><tr>
             <th>Insumo</th><th>Proveedor</th>
-            <th class="num">Stock<br>actual</th><th class="num">Máximo</th>
-            <th class="num">Pedir</th><th>Uni<br>Medida</th>
+            <th class="num">Stock<br>actual</th><th class="num">Máximo</th><th class="num">Ocupación<br>sector</th>
+            <th class="num">Pedir</th><th>Uni<br>Medida</th><th class="num">Prioridad</th>
           </tr></thead>
           <tbody id="tbody"></tbody>
         </table>
@@ -769,21 +785,9 @@ function vStock(i){ return i.stock!=null ? Number(i.stock) : (i.online!=null?Num
 function vConsumo(i){ return i.consumo_uni_mes!=null ? Number(i.consumo_uni_mes) : (i.consumo!=null?Number(i.consumo):null); }
 function vMaximo(i){ return i.maximo!=null ? Number(i.maximo) : null; }
 function vPend(i){ return Number(i.pendiente_oc)||0; }
-/* EL GATILLO DE REPOSICION ES EL MAXIMO [usuario 2026-09-14, textual: "lo de minimo
-   borralo. la orden de compra tiene que disparar segun el maximo. es algo que habiamos
-   hecho mal" / "todo lo que usaba el minimo ahora que use el maximo. es la misma logica"].
-   La v1.21.0 habia metido un punto de pedido aparte (inventario.minimo): el minimo
-   disparaba y el maximo dimensionaba. Esa columna se borro de la base el 14-09 y con ella
-   el estado intermedio. Ahora hay una sola pregunta y un solo numero:
-     'pedir'       stock < maximo  -> falta para llegar al techo, se carga solo.
-     'sin-gatillo' no hay maximo o no hay stock -> se carga solo igual. Es a proposito:
-                   ante la duda, que NO se esconda algo que hace falta.
-   Ya no existe el estado 'viaje': lo que esta abajo del maximo se pide. */
-function estadoRepo(i){
-  var st=vStock(i), mx=vMaximo(i);
-  if(st==null || mx==null) return 'sin-gatillo';
-  return st<mx ? 'pedir' : 'lleno';
-}
+/* El gatillo de reposicion (estadoRepo, v1.26.0: abajo del maximo se cargaba solo) se borro en v1.51.0 junto con
+   cargarSugeridos(): Pedir ya no se llena solo. El maximo sigue mandando en el sugerido de "Usar sugeridos" y en el
+   stock en rojo. */
 // La OC guarda la fecha en orden_compra.fecha_entrega_estimada y asi la emite oc_bundle;
 // el payload que se MANDA a crear_oc la llama fecha_entrega. Se leen las dos: la fecha ya se
 // perdio una vez por esta diferencia de nombre (ver changelog v1.18.0) y no se pierde de nuevo.
@@ -795,6 +799,9 @@ var PEDIDO={}; // kPed(i,prov) -> cantidad: comp_id el principal, 'comp_id@Prove
    solo en "Pedir", sin esta marca cada render volveria a llenar lo que el acaba de
    borrar. Se limpia con "Usar sugeridos". */
 var SIN_PEDIDO={}; // misma clave que PEDIDO -> true
+/* v1.51.0: PRIORIDAD de cada renglon pedido (1 = lo primero que tiene que entregar). Misma clave que PEDIDO.
+   Es obligatoria: lo pedido tiene que llevar 1..N sin huecos ni repetidos (validarPrioridad). */
+var PRIO={};
 /* Precio y Subtotal SALIERON DE LA TABLA en v1.18.0 [usuario 2026-09-04: "precio se va
    y subtotal tambien"]. La pantalla de pedir quedo en lo fisico (que hay, cuanto entra,
    cuanto pido) y la plata se mira en la barra de abajo y en la OC ya creada.
@@ -1154,32 +1161,9 @@ function valorSugerido(i){
   return i.sugerido;
 }
 
-/* El sugerido se carga SOLO en "Pedir" [usuario 2026-09-04: "que me aparezca el
-   sugerido directamente en pedir"]. Ya no hay columna Sugerido para tocar: la fila
-   llega con la cantidad puesta y el que quiera cambiarla la pisa, y el que no quiera
-   pedir ese insumo VACIA el campo (queda en SIN_PEDIDO y no se vuelve a llenar).
-   Solo se llenan las filas VISIBLES: lo de otro rubro/proveedor no se toca. */
-function cargarSugeridos(){
-  var toco=false;
-  filtradas().forEach(function(i){
-    var k=kFila(i);
-    // v1.49.0: el sugerido se carga SOLO en el principal. El alternativo (Recicor) arranca vacio y se
-    // pide a mano: si se llenaran los dos, la caja saldria pedida dos veces (maximo - stock a cada uno).
-    if(k!==i.comp_id) return;
-    if(PEDIDO[k]!=null || SIN_PEDIDO[k]) return;
-    // El gatillo (v1.26.0): lo que ya llego al maximo NO se carga solo.
-    if(estadoRepo(i)==='lleno') return;
-    // Y lo que YA se pidio y viene en camino tampoco: se avisa en la fila y decide el
-    // usuario. Es AVISO, no resta -- la resta se saco en v1.19.x porque rompia la cuenta
-    // a la vista [usuario 2026-09-04: "por ahora borralo"].
-    if(vPend(i)>0) return;
-    var v=valorSugerido(i);
-    if(v>0){ PEDIDO[k]=v; toco=true; }
-  });
-  // El carton se pide por familia: si entro un sugerido nuevo, se redondea al
-  // multiplo para que la OC no nazca invalida (misma logica que "Usar sugeridos").
-  if(toco) ajustarPedidoCarton();
-}
+/* v1.51.0: "Pedir" llega VACIO, lo escribe el comprador [Thomas 2026-10-09: "en la columna pedir no quiero que
+   me aparezca ya puesto el numero a pedir. Lo quiero escribir yo"]. Se borro cargarSugeridos(), que desde la
+   v1.19.0 llenaba cada fila visible con el sugerido en cada render. valorSugerido() queda para "Usar sugeridos". */
 
 /* Debajo de Pedir queda SOLO el aviso de lo que ya viene en camino: es lo unico que explica
    por que una fila abajo del maximo llega vacia. Los cartelitos "sugerido N · max − stock" y
@@ -1300,11 +1284,18 @@ function conTitulosDeFamilia(fs){
   return out;
 }
 
+/* v1.51.0: OCUPACION DEL SECTOR = cuanto del maximo esta lleno [Thomas 2026-10-09: "si hay 10 de stock y el
+   maximo es 100: 10%"]. Stock y maximo vienen en la misma unidad del bundle (la misma comparacion que pinta el
+   stock en rojo). Sin maximo, con maximo 0 o sin stock no hay cuenta: "—". */
+function ocupacion(st, mx){
+  if(st==null || mx==null || !(Number(mx)>0)) return '—';
+  return fmt(st/Number(mx)*100, 0)+' %';
+}
+
 function render(){
-  cargarSugeridos();
   var fs=filtradas();
   $('tbody').innerHTML=conTitulosDeFamilia(fs).map(function(fila){
-    if(fila.hdr) return '<tr class="fam-hdr'+(fila.corto?' corto':'')+'"><td colspan="6">'+esc(fila.hdr)+'</td></tr>';
+    if(fila.hdr) return '<tr class="fam-hdr'+(fila.corto?' corto':'')+'"><td colspan="8">'+esc(fila.hdr)+'</td></tr>';
     var i=fila.it;
     // v1.49.0: cada fila es un insumo A UN PROVEEDOR. rep = la fila repetida del alternativo (sin proveedor
     // elegido): tiene su campo Pedir pero no repite el desglose del maximo ni los avisos, que son del insumo.
@@ -1342,9 +1333,13 @@ function render(){
       // [usuario 2026-09-16: "no quiero que me especifique de donde sale el maximo"].
       // Sigue disponible en el desglose que se abre al tocar el Maximo.
       '<td class="num'+(mx!=null&&!rep?' max-cell" data-max="'+i.comp_id+'" title="Ver de qué se compone':'')+'">'+(mx==null?'—':fmt(mx))+'</td>'+
+      '<td class="num ocup">'+ocupacion(st, mx)+'</td>'+
       '<td class="num"><input class="pedir-in" data-in="'+i.comp_id+'" data-prov="'+esc(p)+'" inputmode="decimal" value="'+(ped?valCampo(ped*um.k):'')+'" placeholder="'+esc(um.lbl)+'">'+
         (rep ? '' : notaMinUni(i, ped, esChar, uxpChar, um)+paqEq+notaRepo(i))+'</td>'+
       '<td class="um-cell">'+esc(um.lbl)+'</td>'+
+      // La prioridad se pide solo en lo que lleva cantidad: sin pedido no hay renglon que ordenar.
+      '<td class="num">'+(ped>0?('<input class="prio-in" data-k="'+esc(String(kp))+'" inputmode="numeric" aria-label="Prioridad" value="'+
+        (PRIO[kp]!=null?PRIO[kp]:'')+'">'):'')+'</td>'+
     '</tr>';
   }).join('');
   // Toda la zona de armar la OC (buscador, leyenda, tabla y barras) aparece recien
@@ -1370,8 +1365,16 @@ function render(){
       // v1.49.0: la clave es insumo + proveedor de la fila (la de Recicor no pisa la de Corrugadora).
       var kp=itv?kPed(itv, pv):id;
       if(v>0){ PEDIDO[kp]=v; delete SIN_PEDIDO[kp]; }
-      else { delete PEDIDO[kp]; SIN_PEDIDO[kp]=true; }
+      else { delete PEDIDO[kp]; delete PRIO[kp]; SIN_PEDIDO[kp]=true; }
       render(); barra();
+    });
+  });
+  // Prioridad: se guarda al tipear y solo se repinta la barra (no la tabla), asi el foco no salta.
+  document.querySelectorAll('.prio-in').forEach(function(inp){
+    inp.addEventListener('input',function(){
+      var n=GP2N.entero(inp.value);
+      if(n>0) PRIO[inp.dataset.k]=n; else delete PRIO[inp.dataset.k];
+      barra();
     });
   });
   // v1.49.0: la fila repetida del alternativo ya NO elige el proveedor al tocarla (v1.48.0): tiene su
@@ -1470,7 +1473,8 @@ function itemsPedidos(){
       // Charcas: el PEDIDO viene ya en paquetes; unidad='paq' para la RPC
       // (crear_oc se encarga de la OC gemela a Altrak).
       var u = esCharcasIt(i) ? 'paq' : i.unidad;
-      out.push({comp_id:i.comp_id, cantidad:c, unidad:u,
+      var kp=kPed(i, f.prov);
+      out.push({comp_id:i.comp_id, cantidad:c, unidad:u, prioridad:(PRIO[kp]!=null?PRIO[kp]:null), k:kp,
                 precio:precioDe(i, f.prov), moneda:monedaDe(i, f.prov), it:i, prov:f.prov});
     });
   });
@@ -1693,10 +1697,32 @@ function validarMinimoProveedor(items){
    dato pedido_minimo_uni sigue viajando en oc_bundle por si se lo vuelve a usar; lo que se fue
    es el aviso y su boton. */
 
+/* v1.51.0: PRIORIDAD OBLIGATORIA. Con N renglones pedidos, las prioridades tienen que ser exactamente 1..N
+   (una por renglon, ninguna repetida, ninguna mas alta que N). Marca en rojo los campos que no cierran y
+   devuelve los errores para la barra; mientras haya alguno, Crear OC queda deshabilitado. */
+function validarPrioridad(items){
+  var n=items.length, cuenta={}, malas={}, errs=[];
+  if(!n) return errs;
+  var falta=0, fuera=[];
+  items.forEach(function(x){
+    var p=x.prioridad;
+    if(!(p>0)){ falta++; malas[x.k]=true; return; }
+    if(p>n){ fuera.push(p); malas[x.k]=true; }
+    cuenta[p]=(cuenta[p]||[]).concat([x.k]);
+  });
+  var rep=Object.keys(cuenta).filter(function(p){ return cuenta[p].length>1; });
+  rep.forEach(function(p){ cuenta[p].forEach(function(k){ malas[k]=true; }); });
+  if(falta) errs.push('Falta la prioridad en '+falta+(falta===1?' renglón':' renglones')+' pedido'+(falta===1?'':'s')+'.');
+  if(rep.length) errs.push('Prioridad repetida: '+rep.join(', ')+'.');
+  if(fuera.length) errs.push('Con '+n+(n===1?' renglón':' renglones')+' la prioridad va de 1 a '+n+' (sobra: '+fuera.join(', ')+').');
+  document.querySelectorAll('.prio-in').forEach(function(inp){ inp.classList.toggle('err', !!malas[inp.dataset.k]); });
+  return errs;
+}
+
 function barra(){
   var items=itemsPedidos();
   var errsCart=validarCarton(items);
-  var errs=errsCart.concat(validarMinimoProveedor(items));
+  var errs=errsCart.concat(validarMinimoProveedor(items), validarPrioridad(items));
   var rc=$('reglaCarton');
   if(errs.length){
     rc.classList.remove('hidden'); rc.classList.add('mal');
@@ -1747,7 +1773,7 @@ $('btnSug').addEventListener('click',function(){
 // sugerido no se vuelva a cargar solo apenas se repinta.
 $('btnLimpiar').addEventListener('click',function(){
   filtradas().forEach(function(i){ SIN_PEDIDO[kFila(i)]=true; });
-  PEDIDO={}; PRECIO={}; MONEDA={}; render();
+  PEDIDO={}; PRIO={}; PRECIO={}; MONEDA={}; render();
 });
 $('fechaEnt').addEventListener('change',function(){
   fechaTocada=!!$('fechaEnt').value; fechaTocadaProv=provSel;
@@ -1781,14 +1807,14 @@ $('btnCrear').addEventListener('click', async function(){
         // precio/moneda viajan SIEMPRE: si no se toco nada son los de la lista, y si
         // se pisaron, crear_oc guarda estos y no los de precio_proveedor.
         items: xs.map(function(x){ return {comp_id:x.comp_id, cantidad:x.cantidad, unidad:x.unidad,
-                                           precio:x.precio, moneda:x.moneda}; })
+                                           precio:x.precio, moneda:x.moneda, prioridad:x.prioridad}; })
       } });
       if(r.error) throw r.error;
       hechas.push({prov:prov, data:r.data, fe:fe});
       // Lo ya creado sale de PEDIDO en el acto: si la OC siguiente falla, reintentar no lo duplica.
-      xs.forEach(function(x){ delete PEDIDO[kPed(x.it, x.prov)]; });
+      xs.forEach(function(x){ delete PEDIDO[x.k]; delete PRIO[x.k]; });
     }
-    PEDIDO={}; PRECIO={}; MONEDA={}; SIN_PEDIDO={}; $('nota').value='';
+    PEDIDO={}; PRIO={}; PRECIO={}; MONEDA={}; SIN_PEDIDO={}; $('nota').value='';
     fechaTocada=false; fechaTocadaProv=null;
   }catch(e){ err=e; }
   try{
@@ -1826,6 +1852,9 @@ $('btnCrear').addEventListener('click', async function(){
   finally{ $('btnCrear').disabled=false; barra(); }
 });
 
+// v1.51.0: las OC anteriores al 09/10 no tienen prioridad; la columna sale solo si la OC la trae.
+function conPrio(o){ return (o.items||[]).some(function(it){ return it.prioridad!=null; }); }
+
 function pintarOcs(){
   /* La OC ANULADA no se muestra mas [usuario 2026-09-04: "si anula una orden de compra,
      no quiero que me siga apareciendo en ordenes"]. Se esconde de la PANTALLA nada mas:
@@ -1850,12 +1879,12 @@ function pintarOcs(){
       '<div class="oc-acts">'+acts+'</div></div>'+
       (o.nota?('<div class="hint oc-nota">'+esc(o.nota)+'</div>'):'')+
       '<div class="table-wrap free oc-items"><table class="t"><thead><tr>'+
-      '<th>Insumo</th><th class="num">Pedido</th><th class="num">Precio</th><th class="num">Subtotal</th><th class="num">Recibido</th></tr></thead><tbody>'+
+      (conPrio(o)?'<th class="num">Prior.</th>':'')+'<th>Insumo</th><th class="num">Pedido</th><th class="num">Precio</th><th class="num">Subtotal</th><th class="num">Recibido</th></tr></thead><tbody>'+
       (o.items||[]).map(function(it){
         var rc=Number(it.recibido)||0, pe=Number(it.cantidad)||0;
         var sem=(o.estado==='enviada'||o.estado==='recibida')?
           (rc<=0?' class="rc-no"':(rc>=pe?' class="rc-ok"':' class="rc-par"')):'';
-        return '<tr'+sem+'><td><b class="cod">'+esc(it.codigo)+'</b> <small class="muted">'+esc(it.descripcion||'')+'</small></td>'+
+        return '<tr'+sem+'>'+(conPrio(o)?'<td class="num"><b>'+(it.prioridad!=null?it.prioridad:'—')+'</b></td>':'')+'<td><b class="cod">'+esc(it.codigo)+'</b> <small class="muted">'+esc(it.descripcion||'')+'</small></td>'+
           '<td class="num">'+fmt(it.cantidad)+' '+esc(it.unidad)+'</td>'+
           '<td class="num">'+(it.precio_uni==null?'—':((it.moneda==='ARS'?'$ ':'US$ ')+fmt(it.precio_uni,2)))+'</td>'+
           '<td class="num">'+(it.subtotal==null?'—':((it.moneda==='ARS'?'$ ':'US$ ')+fmt(it.subtotal,2)))+'</td>'+
@@ -1920,7 +1949,7 @@ function textoWhatsappOC(o){
   L.push('');
   L.push('Detalle del pedido:');
   (o.items||[]).forEach(function(it){
-    var linea='• '+it.codigo+(it.descripcion?(' - '+it.descripcion):'')+': '+fmt(it.cantidad)+' '+(it.unidad||'');
+    var linea=(it.prioridad!=null?(it.prioridad+') '):'• ')+it.codigo+(it.descripcion?(' - '+it.descripcion):'')+': '+fmt(it.cantidad)+' '+(it.unidad||'');
     if(it.precio_uni!=null) linea+=' — '+(it.moneda==='ARS'?'$ ':'US$ ')+fmt(it.precio_uni,2)+'/u';
     L.push(linea);
   });
@@ -2048,9 +2077,10 @@ function imprimirOC(ocId){
     '.firma{flex:1;border-top:1px solid #111;padding-top:6px;font-size:11px;color:#555;text-align:center}'+
     '.pie{margin-top:26px;border-top:1px solid #ddd;padding-top:8px;color:#888;font-size:11px;display:flex;justify-content:space-between;gap:10px}'+
     '@media print{body{padding:0}tbody tr{page-break-inside:avoid}thead{display:table-header-group}}';
+  var cp=conPrio(o);
   var filas=(o.items||[]).map(function(it){
     var mon=it.moneda==='ARS'?'$ ':'US$ ';
-    return '<tr><td class="cod">'+esc(it.codigo)+'</td><td>'+esc(it.descripcion||'')+'</td>'+
+    return '<tr>'+(cp?'<td class="num">'+(it.prioridad!=null?it.prioridad:'—')+'</td>':'')+'<td class="cod">'+esc(it.codigo)+'</td><td>'+esc(it.descripcion||'')+'</td>'+
       '<td class="num">'+fmt(it.cantidad)+' '+esc(it.unidad)+'</td>'+
       '<td class="num">'+(it.precio_uni==null?'—':mon+fmt(it.precio_uni,2))+'</td>'+
       '<td class="num">'+(it.subtotal==null?'—':mon+fmt(it.subtotal,2))+'</td></tr>';
@@ -2070,9 +2100,9 @@ function imprimirOC(ocId){
       '<div class="dato entrega"><div class="lb">Fecha de entrega estimada</div>'+
         '<div class="vl">'+(entrega||'____ / ____ / ________')+'</div></div>'+
     '</div>'+
-    '<table><thead><tr><th>Código</th><th>Descripción</th><th class="num">Cantidad</th>'+
+    '<table><thead><tr>'+(cp?'<th class="num">Prioridad</th>':'')+'<th>Código</th><th>Descripción</th><th class="num">Cantidad</th>'+
     '<th class="num">Precio unit.</th><th class="num">Subtotal</th></tr></thead><tbody>'+
-    (filas||'<tr><td colspan="5">Sin ítems.</td></tr>')+
+    (filas||'<tr><td colspan="'+(cp?6:5)+'">Sin ítems.</td></tr>')+
     '</tbody></table>'+
     (totLinea?('<div class="tot">Total: '+totLinea+'<small>Precios sin IVA</small></div>'):'')+
     (o.nota?('<div class="nota"><b>Nota:</b> '+esc(o.nota)+'</div>'):'')+

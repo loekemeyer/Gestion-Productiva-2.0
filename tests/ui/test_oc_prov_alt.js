@@ -102,6 +102,12 @@ window.supabase = { createClient: function(){ return {
   ok(/1 ítem sin precio de Recicor/.test(tot), 'avisa el ítem que Recicor no cotizó (salió: ' + tot + ')');
 
   // ── 5) la OC baja al proveedor elegido y con su precio ───────────────
+  // v1.51.0: cada renglon pedido lleva su prioridad antes de crear.
+  const prioridades = async () => {
+    const n = await page.$$eval('.prio-in', xs => xs.length);
+    for (let i = 0; i < n; i++) await page.fill('.prio-in >> nth=' + i, String(i + 1));
+  };
+  await prioridades();
   await page.click('#btnCrear');
   await page.waitForTimeout(300);
   const call = await page.evaluate(() => (window.__calls || []).filter(c => c.name === 'crear_oc').pop());

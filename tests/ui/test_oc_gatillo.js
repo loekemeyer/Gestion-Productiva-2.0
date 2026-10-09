@@ -67,12 +67,10 @@ window.supabase = { createClient: function(){ return {
   await page.click('#rubros .chip:has-text("Fleje")');
   ok(await page.$$eval('#tbody tr', x => x.length) === 5, 'las 5 filas del fixture');
 
-  // EL GATILLO: se carga solo todo lo que esta abajo del maximo.
-  ok(await val(1) === '950', 'abajo del maximo: se carga solo, hasta el maximo (950)');
-  ok(await val(2) === '500', 'abajo por poco: TAMBIEN se carga solo (ya no hay estado intermedio)');
-  ok(await val(3) === '', 'lo que ya viene en camino: NO se carga solo');
-  ok(await val(4) === '1000', 'sin maximo: fail-safe, se carga solo');
-  ok(await val(5) === '', 'lleno (stock >= maximo): NO se carga solo');
+  // v1.51.0: NADA SE CARGA SOLO [Thomas 2026-10-09: "en la columna pedir no quiero que me aparezca ya puesto el
+  // numero a pedir. Lo quiero escribir yo"]. Retira el gatillo de v1.26.0 (abajo del maximo se cargaba solo).
+  ok([await val(1), await val(2), await val(3), await val(4), await val(5)].every(v => v === ''),
+     'ninguna fila llega con cantidad: ni abajo del maximo, ni sin maximo, ni en camino, ni llena');
 
   // Y la fila DICE por que.
   // Los cartelitos "hay que pedir" / "no hace falta" se sacaron en v1.35.0 [Thomas

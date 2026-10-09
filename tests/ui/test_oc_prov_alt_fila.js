@@ -50,16 +50,26 @@ const STUB = `window.supabase = { createClient: function(){ return {
   // (2) Recicor con campo Pedir, vacio
   const inRec = await page.$$eval('tr.fila-alt input.pedir-in', xs => xs.map(x => x.value));
   ok(inRec.length === 2 && inRec.every(v => v === ''), 'las filas de Recicor tienen Pedir y arrancan vacias: ' + JSON.stringify(inRec));
-  const vCorr = () => page.$eval('tr[data-id="456"][data-prov="Corrugadora del Plata"] input', x => x.value);
-  ok((await vCorr()) === '12738', 'Corrugadora trae el sugerido (' + (await vCorr()) + ')');
-  await page.fill('tr[data-id="456"][data-prov="Recicor"] input', '4000');
-  await page.press('tr[data-id="456"][data-prov="Recicor"] input', 'Tab');
-  ok((await page.$eval('tr[data-id="456"][data-prov="Recicor"] input', x => x.value)) === '4000', 'lo escrito en Recicor queda');
+  const vCorr = () => page.$eval('tr[data-id="456"][data-prov="Corrugadora del Plata"] input.pedir-in', x => x.value);
+  // v1.51.0: Pedir llega vacio; "Usar sugeridos" lo carga SOLO en el principal.
+  ok((await vCorr()) === '', 'Corrugadora tambien arranca vacia (v1.51.0)');
+  await page.$eval('#btnSug', b => b.click());
+  ok((await vCorr()) === '12738', '"Usar sugeridos" carga el principal (' + (await vCorr()) + ')');
+  ok((await page.$$eval('tr.fila-alt input.pedir-in', xs => xs.map(x => x.value))).every(v => v === ''), 'y el alternativo sigue vacio');
+  await page.fill('tr[data-id="456"][data-prov="Recicor"] input.pedir-in', '4000');
+  await page.press('tr[data-id="456"][data-prov="Recicor"] input.pedir-in', 'Tab');
+  ok((await page.$eval('tr[data-id="456"][data-prov="Recicor"] input.pedir-in', x => x.value)) === '4000', 'lo escrito en Recicor queda');
   ok((await vCorr()) === '12738', 'escribir en Recicor no pisa a Corrugadora');
   ok((await page.$$('#provs .chip.active')).length === 0, 'tocar la fila de Recicor ya no elige el proveedor');
   ok(/Crear 2 OC/.test(await page.textContent('#btnCrear')), 'el boton avisa que salen 2 OC');
 
-  // (3) una OC por proveedor, cada una con su precio
+  // (3) una OC por proveedor, cada una con su precio. v1.51.0: la prioridad es UNA numeracion sobre todo lo
+  // pedido (1..4) y cada OC se lleva la suya.
+  const prioridades = async () => {
+    const n = await page.$$eval('.prio-in', xs => xs.length);
+    for (let i = 0; i < n; i++) await page.fill('.prio-in >> nth=' + i, String(i + 1));
+  };
+  await prioridades();
   await page.click('#btnCrear');
   await page.waitForFunction(() => (window.__calls || []).filter(c => c.name === 'crear_oc').length === 2);
   const ocs = await page.evaluate(() => window.__calls.filter(c => c.name === 'crear_oc').map(c => c.args.p));
@@ -68,6 +78,8 @@ const STUB = `window.supabase = { createClient: function(){ return {
   ok(!!rec && rec.items.length === 1 && rec.items[0].comp_id === 456 && rec.items[0].cantidad === 4000 && rec.items[0].precio === 199,
      'OC a Recicor: la A1 × 4.000 a $ 199: ' + JSON.stringify(rec && rec.items));
   ok(ocs.every(p => p.proveedor), 'ninguna OC sale con proveedor vacio');
+  const prios = ocs.flatMap(p => p.items.map(x => x.prioridad)).sort();
+  ok(prios.join(',') === '1,2,3,4', 'las prioridades 1..4 se reparten entre las 2 OC: ' + prios.join(','));
 
   // Con Recicor elegido: solo lo suyo, una sola OC
   await page.goto(ROOT + '/Compras/OC_GP2.html');

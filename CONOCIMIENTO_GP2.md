@@ -4442,6 +4442,8 @@ pantalla. **Deuda saldada, no queda nada oculto.**
 
 ### Se van Consumo/mes y Sugerido: el sugerido nace en "Pedir" `[usuario 2026-09-04]`
 
+> ⚠ **RETIRADO el 2026-10-09 (§4kl):** Pedir ya NO llega con el sugerido; lo escribe el comprador.
+
 Textual: "que me aparezca insumo proveedor, stock actual máximo... que me aparezca el
 sugerido directamente en pedir" + la aclaración de alcance, en el mismo momento: **"en
 resumen, tendrías que eliminar consumo mes. Y sugerido... y que me aclare que es el
@@ -16377,3 +16379,27 @@ tengas miedo de cambiarlo"*]
 - **Tablet de operarios**: se rediseñó en el origen, Registro Producción 3.0 v3.1.11 [Elías: «Habilito lo de tablet de operarios»],
   y se copió acá con su script (hoy es la copia de v3.1.13).
 - (Al principio se numeró 4kh; se renumeró a 4kk porque main ya tenía otra 4kh, la del reset de stock.)
+
+## 4kl. Órdenes de Compra: Pedir vacío, prioridad obligatoria y ocupación del sector (2026-10-09) — OC v1.51.0, v1.262.0
+
+[usuario, Thomas: *"en la columna pedir no quiero que me aparezca ya puesto el número a pedir. Lo quiero escribir
+yo"* · *"quiero que me aparezca una columna de PRIORIDAD. Todos los componentes que escribí en la columna de Pedir
+quiero que me obligue a ponerle una prioridad … si completé 3 campos tengo que poner cuál es prioridad 1, cuál 2 y
+cuál 3"* · *"una columna a la derecha de máximo que sea OCUPACIÓN SECTOR … si hay 10 de stock y el máximo es 100:
+10%"*]
+
+- **Pedir llega vacío.** Retira el autollenado del 2026-09-04 ("que me aparezca el sugerido directamente en pedir")
+  y el gatillo de v1.26.0 (lo de abajo del máximo se cargaba solo). El sugerido (`máximo − stock`) sigue calculándose
+  y entra sólo con "Usar sugeridos", que está oculto desde v1.37.0.
+- **Prioridad**: cada renglón con cantidad lleva una, y entre todos tienen que ser exactamente **1..N** (N =
+  renglones pedidos), sin repetir ni pasarse. Sin eso no se crea la OC. Con varias OC a la vez (sin proveedor
+  elegido) la numeración es **una sola** y cada OC se lleva la suya `[deducido, sin confirmar: el pedido no decía
+  si la prioridad es por OC o por la tanda]`.
+- **Se guarda**: `GP2.orden_compra_item.prioridad` (única dentro de la OC; null en las OC anteriores). `crear_oc` la
+  exige (entera > 0, sin repetir); la OC gemela (Altrak/Aperam) va con prioridad 1. `oc_bundle` la devuelve y ordena
+  los renglones por ella; se ve en Órdenes, en la hoja impresa y en el WhatsApp (`1) código …`).
+- **Ocupación sector** = stock / máximo en %, en la misma unidad del bundle (la misma comparación que pinta el stock
+  en rojo). Sin máximo, máximo 0 o sin stock: «—».
+- `db/migracion_oc_prioridad_20261009.sql` (aplicada; probada en transacción deshecha: sin prioridad y repetida
+  rechazan; 2 y 1 se guardan y salen ordenadas). Tests: `test_oc.js`, `test_oc_gatillo.js`,
+  `test_oc_minimo_proveedor.js`, `test_oc_prov_alt.js`, `test_oc_prov_alt_fila.js`.

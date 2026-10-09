@@ -701,14 +701,17 @@ create table "GP2".orden_compra_item (
   recibido numeric not null default 0,
   precio_uni numeric,
   moneda text,
+  prioridad integer,
   constraint orden_compra_item_pkey PRIMARY KEY (id),
   constraint orden_compra_item_componente_id_fkey FOREIGN KEY (componente_id) REFERENCES "GP2".componente(id),
   constraint orden_compra_item_oc_id_fkey FOREIGN KEY (oc_id) REFERENCES "GP2".orden_compra(id) ON DELETE CASCADE,
   constraint orden_compra_item_cantidad_check CHECK ((cantidad > (0)::numeric)),
   constraint orden_compra_item_moneda_chk CHECK ((moneda = ANY (ARRAY['ARS'::text, 'USD'::text]))),
-  constraint orden_compra_item_unidad_chk CHECK ((unidad = ANY (ARRAY['kg'::text, 'uni'::text])))
+  constraint orden_compra_item_unidad_chk CHECK ((unidad = ANY (ARRAY['kg'::text, 'uni'::text]))),
+  constraint orden_compra_item_prioridad_chk CHECK (((prioridad IS NULL) OR (prioridad > 0)))
 );
 comment on table "GP2".orden_compra_item is 'Renglones de la OC: componente, cantidad pedida, unidad, recibido (lo va llenando la recepcion), precio.';
+comment on column "GP2".orden_compra_item.prioridad is 'Orden de entrega pedido al proveedor (1 = primero). Obligatoria desde 2026-10-09 (crear_oc); null en las OC anteriores.';
 comment on column "GP2".orden_compra_item.unidad is 'kg o uni (CHECK). Charcas se pide en paquetes (charcas_kg_x_paquete kg) y crear_oc lo guarda en kg.';
 
 -- ---------- parametro ----------
@@ -1539,6 +1542,7 @@ CREATE INDEX movimiento_tipo_comp_idx ON "GP2".movimiento USING btree (tipo_mov,
 CREATE INDEX oc_item_recepcion_item_idx ON "GP2".oc_item_recepcion USING btree (oc_item_id);
 CREATE INDEX oc_item_recepcion_mov_idx ON "GP2".oc_item_recepcion USING btree (movimiento_id);
 CREATE UNIQUE INDEX orden_compra_item_oc_comp_uq ON "GP2".orden_compra_item USING btree (oc_id, componente_id);
+CREATE UNIQUE INDEX orden_compra_item_oc_prioridad_uq ON "GP2".orden_compra_item USING btree (oc_id, prioridad) WHERE (prioridad IS NOT NULL);
 CREATE UNIQUE INDEX planilla_snapshot_vigente_uq ON "GP2".planilla_snapshot USING btree (vigente) WHERE vigente;
 CREATE INDEX preaviso_abierto_idx ON "GP2".preaviso USING btree (estado, fecha_promesa);
 CREATE INDEX produccion_legajo_fecha_idx ON "GP2".produccion USING btree (legajo, fecha);

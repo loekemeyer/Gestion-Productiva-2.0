@@ -204,6 +204,13 @@ window.supabase = { createClient: function(){ return {
   await page.waitForFunction(() => document.getElementById('status').textContent === '');
 
   const ok = (c, msg) => { console.log((c ? 'OK  ' : 'FAIL') + ' ' + msg); if (!c) process.exitCode = 1; };
+  // v1.51.0: Pedir llega vacio; el sugerido se carga solo con "Usar sugeridos" (oculto desde v1.37.0)
+  // y cada renglon pedido lleva su prioridad 1..N antes de poder crear la OC.
+  const usarSugeridos = () => page.$eval('#btnSug', b => b.click());
+  const prioridades = async () => {
+    const n = await page.$$eval('.prio-in', xs => xs.length);
+    for (let i = 0; i < n; i++) await page.fill('.prio-in >> nth=' + i, String(i + 1));
+  };
 
   // chips de SECTOR (asi se llama en pantalla desde v1.19.0; el campo de la base
   // sigue siendo 'rubro')
@@ -248,7 +255,7 @@ window.supabase = { createClient: function(){ return {
   const heads = await page.evaluate(() => [].map.call(
     document.getElementById('tbody').closest('table').querySelectorAll('thead th'),
     x => x.textContent.replace(/\s+/g, '').trim()));
-  ok(heads.join('|') === 'Insumo|Proveedor|Stockactual|Máximo|Pedir|UniMedida',
+  ok(heads.join('|') === 'Insumo|Proveedor|Stockactual|Máximo|Ocupaciónsector|Pedir|UniMedida|Prioridad',
      'columnas: ' + heads.join(' · '));
   // La plata no se muestra por fila: se mira en la barra y en la OC ya creada.
   ok(!(await page.textContent('#tbody')).includes('US$'), 'no hay precios ni subtotales en la tabla');
@@ -266,10 +273,37 @@ window.supabase = { createClient: function(){ return {
   const provChips = await page.$$eval('#provs .chip', xs => xs.map(x => x.textContent));
   ok(provChips.join(',') === 'Basconia,Hermac', 'chips proveedor: ' + provChips.join(','));
 
-  // EL SUGERIDO YA VIENE EN "PEDIR" [usuario 2026-09-04]. A1 = 424,9 x 6 - 100 = 2449
-  // (lo redondea el servidor): la fila llega con el numero puesto, sin tocar nada.
-  ok(await page.$eval('.pedir-in[data-in="1"]', x => x.value) === '2449', 'el sugerido llega cargado en Pedir (2449)');
+  // v1.51.0: PEDIR LLEGA VACIO [Thomas 2026-10-09: "en la columna pedir no quiero que me aparezca ya puesto el
+  // numero a pedir. Lo quiero escribir yo"]. Retira el "el sugerido llega cargado en Pedir" de v1.19.0.
+  ok(await page.$eval('.pedir-in[data-in="1"]', x => x.value) === '' &&
+     await page.$eval('.pedir-in[data-in="2"]', x => x.value) === '', 'Pedir llega vacio, sin el sugerido puesto');
+  ok((await page.$$('.prio-in')).length === 0, 'sin cantidad no hay campo de prioridad');
+  ok(!!(await page.$eval('#btnCrear', b => b.disabled)), 'sin nada pedido, Crear OC deshabilitado');
+  // v1.51.0: OCUPACION SECTOR = stock / maximo [Thomas: "si hay 10 de stock y el maximo es 100: 10%"].
+  // A1: 100 / 2.549 = 3,9 % -> 4 %; B1: 0 / 300 = 0 %.
+  ok((await page.textContent('tr[data-id="1"] td.ocup')).trim() === '4 %' &&
+     (await page.textContent('tr[data-id="2"] td.ocup')).trim() === '0 %', 'ocupacion del sector en % del maximo');
+  ok(await page.evaluate(() => [ocupacion(10, 100), ocupacion(null, 100), ocupacion(5, null), ocupacion(5, 0), ocupacion(150, 100)].join('|'))
+     === '10 %|—|—|—|150 %', 'ocupacion: 10 de 100 = 10 %; sin stock o sin maximo, "—"');
+  // A1 = 424,9 x 6 - 100 = 2449 (lo redondea el servidor), via "Usar sugeridos".
+  await usarSugeridos();
+  ok(await page.$eval('.pedir-in[data-in="1"]', x => x.value) === '2449', '"Usar sugeridos" carga el sugerido (2449)');
   ok(await page.$eval('.pedir-in[data-in="2"]', x => x.value) === '300', 'y el del otro fleje tambien (300)');
+  // PRIORIDAD OBLIGATORIA: 2 renglones pedidos -> 1 y 2, sin repetir.
+  ok((await page.$$('.prio-in')).length === 2, 'cada renglon pedido trae su campo de prioridad');
+  ok(!!(await page.$eval('#btnCrear', b => b.disabled)) && /Falta la prioridad en 2 renglones/.test(await page.textContent('#reglaCarton')),
+     'sin prioridad no se puede crear la OC');
+  await page.fill('.prio-in >> nth=0', '1');
+  await page.fill('.prio-in >> nth=1', '1');
+  ok(!!(await page.$eval('#btnCrear', b => b.disabled)) && /Prioridad repetida: 1/.test(await page.textContent('#reglaCarton')),
+     'prioridad repetida frena');
+  await page.fill('.prio-in >> nth=1', '3');
+  ok(!!(await page.$eval('#btnCrear', b => b.disabled)) && /va de 1 a 2/.test(await page.textContent('#reglaCarton')),
+     'con 2 renglones, un 3 no va');
+  ok(await page.$eval('.prio-in >> nth=1', x => x.classList.contains('err')) && !(await page.$eval('.prio-in >> nth=0', x => x.classList.contains('err'))),
+     'solo el campo que no cierra queda en rojo');
+  await page.fill('.prio-in >> nth=1', '2');
+  ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')), '1 y 2: sin errores');
   const filaA1 = await page.textContent('tr[data-id="1"]');
   // Los carteles debajo de Pedir ("sugerido N · máx − stock") se sacaron en v1.35.0
   // [Thomas 2026-09-28: "elimina todos esos textos"]: el numero ya esta en el campo.
@@ -290,9 +324,12 @@ window.supabase = { createClient: function(){ return {
   await page.dispatchEvent('.pedir-in[data-in="2"]', 'change');
   ok(await page.$eval('.pedir-in[data-in="2"]', x => x.value) === '', 'vaciado se queda vacio (no se recarga solo)');
   ok((await page.textContent('#tot')).trim().startsWith('1 ítems'), 'y sale de la cuenta de la barra');
+  ok(!(await page.$eval('#btnCrear', b => b.disabled)), 'vaciar B1 se lleva su prioridad: queda A1 con 1 y vale');
   // "Usar sugeridos" lo repone
   await page.$eval('#btnSug', b => b.click())  /* oculto desde v1.37.0 */;
   ok(await page.$eval('.pedir-in[data-in="2"]', x => x.value) === '300', '"Usar sugeridos" repone lo vaciado');
+  ok(await page.$eval('.prio-in[data-k="1"]', x => x.value) === '1' && await page.$eval('.prio-in[data-k="2"]', x => x.value) === '',
+     'la prioridad de A1 sigue y la de B1 (vaciada) se borro');
 
   // EL PRECIO SE FUE DE LA TABLA [usuario 2026-09-04: "precio se va y subtotal tambien"],
   // pero NO del circuito: sigue valorizando la barra (y mas abajo, el payload de crear_oc).
@@ -303,6 +340,7 @@ window.supabase = { createClient: function(){ return {
   await page.click('#provs .chip:has-text("Basconia")');
   ok(await page.$$eval('#tbody tr', x => x.length) === 1, 'filtro proveedor: 1 fila');
   await page.$eval('#nota', x => { x.value = 'nota test'; });  /* oculto desde v1.37.0 */
+  ok(!(await page.$eval('#btnCrear', b => b.disabled)), 'Basconia: 1 renglon con prioridad 1, lista para crear');
   await page.click('#btnCrear');
   await page.waitForFunction(() => (window.__calls || []).some(c => c.name === 'crear_oc'));
   const call = await page.evaluate(() => window.__calls.filter(c => c.name === 'crear_oc')[0].args.p);
@@ -312,6 +350,7 @@ window.supabase = { createClient: function(){ return {
   // El precio ya no se pisa en pantalla, pero SIGUE viajando (el de la lista): sin esto
   // la OC se guardaria sin plata y la hoja al proveedor saldria en blanco.
   ok(call.items[0].precio === 1 && call.items[0].moneda === 'USD', 'el precio de lista viaja igual: ' + JSON.stringify(call.items[0]));
+  ok(call.items[0].prioridad === 1, 'la prioridad viaja a crear_oc: ' + JSON.stringify(call.items[0]));
 
   // tras crear pasa a tab Ordenes
   ok(!(await page.$eval('#panOcs', x => x.classList.contains('hidden'))), 'muestra tab Ordenes tras crear');
@@ -338,6 +377,7 @@ window.supabase = { createClient: function(){ return {
   await page.click('#rubros .chip:has-text("Plastico")');
   await page.click('#provs .chip:has-text("Resortes Charcas")');
   ok(await page.$$eval('#tbody tr[data-id]', x => x.length) === 1, 'Charcas: 1 fila (EP10)');
+  await usarSugeridos();
   // v1.43.0: la pieza con familia de pedido va bajo el titulo de su familia, con el minimo de la
   // FAMILIA y lo pedido entre todas sus piezas; la fila no repite el minimo.
   const famP = await page.$$eval('#tbody tr.fam-hdr td', xs => xs.map(x => x.textContent.trim()));
@@ -350,6 +390,7 @@ window.supabase = { createClient: function(){ return {
   // para sus flejes (sector 5).
   ok(await page.$eval('.pedir-in[data-in="13"]', x => x.value) === '2500', 'EP10 de Charcas se pide en unidades (2500)');
   ok((await page.textContent('tr[data-id="13"] td.um-cell')).trim() === 'uni', 'Uni Medida de EP10: uni');
+  await prioridades();
   await page.click('#btnCrear');
   await page.waitForFunction(() => (window.__calls || []).filter(c => c.name === 'crear_oc').length === 2);
   const callCh = await page.evaluate(() => window.__calls.filter(c => c.name === 'crear_oc')[1].args.p);
@@ -378,15 +419,16 @@ window.supabase = { createClient: function(){ return {
   // las tres cambian de numero y esto se prende.
   await page.click('#provs .chip:has-text("Inyectores SA")');
   ok(await page.$$eval('#tbody tr[data-id]', x => x.length) === 3, 'Inyectores SA: 3 filas');
+  await usarSugeridos();
   // 1. El techo fisico manda aunque el consumo sea ridiculo al lado: 9.400, no 54.
   ok(await page.$eval('.pedir-in[data-in="14"]', x => x.value) === '9400',
      'el maximo fisico manda sobre el consumo (9.400 y no los 54 de consumo x meses)');
   // 2. Y tambien cuando el techo queda CORTO contra el consumo: se pide lo que entra.
   ok(await page.$eval('.pedir-in[data-in="15"]', x => x.value) === '726',
      'con el techo por debajo del consumo se pide el techo (726 y no 5.228)');
-  // 3. El gatillo (v1.26.0): lo que esta abajo del maximo se carga solo, sin punto de pedido.
+  // 3. Abajo del maximo el sugerido es lo que falta para el techo.
   ok(await page.$eval('.pedir-in[data-in="16"]', x => x.value) === '2625',
-     'abajo del maximo se carga solo lo que falta para el techo (2.625)');
+     'abajo del maximo el sugerido es lo que falta para el techo (2.625)');
   ok(await page.$eval('tr[data-id="16"] td.bajo-min', x => !!x),
      'y el stock en rojo dice por que (el cartel "hay que pedir" se saco en v1.35.0)');
   // El origen del maximo (incluido Master Bach "MB 4%") ya NO se muestra en la fila
@@ -400,10 +442,12 @@ window.supabase = { createClient: function(){ return {
   await page.click('#tabGen');
   await page.click('#rubroTodos');
   await page.click('#rubros .chip:has-text("Carton")');
-  // Los cartones tambien llegan con el sugerido puesto y YA redondeado a su familia:
-  // asi era antes con "Usar sugeridos" y asi tiene que estar sin tocar nada.
+  // v1.51.0: los cartones llegan vacios; "Usar sugeridos" los deja redondeados a su familia.
+  ok(await page.$$eval('#tbody .pedir-in', xs => xs.every(x => x.value === '')), 'los cartones llegan vacios');
+  await usarSugeridos();
+  await prioridades();
   ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')),
-     'el carton llega valido de fabrica (el sugerido entra redondeado a la familia)');
+     'con "Usar sugeridos" el carton queda valido (redondeado a la familia)');
   // Para probar las reglas a mano se parte de la tabla vacia.
   await page.$eval('#btnLimpiar', b => b.click())  /* oculto desde v1.37.0 */;
   ok(await page.$eval('.pedir-in[data-in="3"]', x => x.value) === '', '"Limpiar" deja los campos vacios y no los recarga');
@@ -411,6 +455,7 @@ window.supabase = { createClient: function(){ return {
   await page.fill('.pedir-in[data-in="3"]', '6');
   await page.$eval('.pedir-in[data-in="3"]', x => x.dispatchEvent(new Event('change')));
   // v1.41.0: el multiplo de familia YA NO avisa ni frena [Thomas 2026-09-28: "Que esto no aparezca"].
+  await prioridades();
   let regla;
   ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')),
      'total no multiplo de 12000 NO muestra cartel (v1.41.0)');
@@ -431,6 +476,7 @@ window.supabase = { createClient: function(){ return {
   await page.$eval('.pedir-in[data-in="3"]', x => x.dispatchEvent(new Event('change')));
   await page.fill('.pedir-in[data-in="4"]', '4');
   await page.$eval('.pedir-in[data-in="4"]', x => x.dispatchEvent(new Event('change')));
+  await prioridades();
   ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')), '12000 valido (11000+1000)');
   ok(!(await page.$eval('#btnCrear', b => b.disabled)), 'btnCrear habilitado con carton valido');
   // equivalencia en paquetes visible
@@ -446,6 +492,7 @@ window.supabase = { createClient: function(){ return {
   // error pidiendole 2.000, y una familia con muchos codigos no cerraba nunca.
   await page.fill('.pedir-in[data-in="3"]', '92');
   await page.$eval('.pedir-in[data-in="3"]', x => x.dispatchEvent(new Event('change')));
+  await prioridades();
   ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')),
      'el minimo por codigo NO escala: 23.000 + 1.000 es valido');
   // Y abajo del minimo si avisa. Se usa el HUEVO, que es el unico donde el minimo
@@ -455,6 +502,7 @@ window.supabase = { createClient: function(){ return {
   await page.$eval('.pedir-in[data-in="9"]', x => x.dispatchEvent(new Event('change')));
   await page.fill('.pedir-in[data-in="10"]', '4');
   await page.$eval('.pedir-in[data-in="10"]', x => x.dispatchEvent(new Event('change')));
+  await prioridades();
   ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')),
      'abajo del minimo tampoco hay cartel (v1.41.0); se ve en la fila');
   ok((await page.$eval('tr[data-id="10"] .min-uni', x => x.classList.contains('corto'))),
@@ -490,6 +538,7 @@ window.supabase = { createClient: function(){ return {
   // LA BOLSA: pide 3.000 por consumo pero el proveedor no toma menos de 20.000.
   const bolsa = await val(12);
   ok(bolsa === 20000, 'la bolsa sube al pedido mínimo de 20.000 (pidió 3.000, va ' + bolsa + ')');
+  await prioridades();
   ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')), 'y no queda ningun error de regla');
   ok(!(await page.$eval('#btnCrear', b => b.disabled)), 'la OC de cartones queda lista para crear');
 
@@ -497,6 +546,7 @@ window.supabase = { createClient: function(){ return {
   // lo que el comprador escribe es su decision, y la tirada se lee en la fila.
   await page.fill('.pedir-in[data-in="3"]', '6');
   await page.$eval('.pedir-in[data-in="3"]', x => x.dispatchEvent(new Event('change')));
+  await prioridades();
   ok(await page.$eval('#reglaCarton', x => x.classList.contains('hidden')), 'a mano se puede romper la regla sin cartel');
   ok(!(await page.$('#btnAjustarCart')), 'ya no existe el boton "Ajustar al múltiplo"');
   ok(!(await page.$eval('#btnCrear', b => b.disabled)), 'y Crear OC sigue habilitado');
@@ -530,6 +580,14 @@ window.supabase = { createClient: function(){ return {
   ok(mc.p_oc_id === 9 && mc.p_estado === 'enviada', 'WhatsApp marca la OC enviada');
   const wa = await page.evaluate(() => window.__wa || '');
   ok(/wa\.me\/\?text=/.test(wa), 'abre wa.me con texto');
+  // v1.51.0: las OC con prioridad la muestran (Ordenes, WhatsApp, hoja impresa); las viejas no.
+  const conP = await page.evaluate(() => {
+    const o = { id: 99, numero: 9, proveedor: 'X', estado: 'borrador', creado_en: '2026-10-09T10:00:00Z',
+      items: [ { codigo: 'Z2', cantidad: 5, unidad: 'uni', prioridad: 1 }, { codigo: 'Z1', cantidad: 3, unidad: 'uni', prioridad: 2 } ] };
+    return [conPrio(o), conPrio({ items: [{ codigo: 'A' }] }), textoWhatsappOC(o)];
+  });
+  ok(conP[0] === true && conP[1] === false, 'la columna de prioridad sale solo en OC que la tienen');
+  ok(/1\) Z2: 5 uni\n2\) Z1: 3 uni/.test(conP[2]), 'WhatsApp numera por prioridad: ' + conP[2].split('\n').filter(l => /\)/.test(l)).join(' / '));
   ok(/Orden%20de%20Compra/.test(wa), 'el texto de WhatsApp lleva la OC');
 
   // ── UNIDAD DEL REMITO (v1.38.0): misma decision que Recepcion de Insumos ─────────────
