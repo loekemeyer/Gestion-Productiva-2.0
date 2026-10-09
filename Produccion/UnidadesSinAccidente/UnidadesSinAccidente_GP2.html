@@ -15,27 +15,16 @@
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
 <style>
-  .filtros{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin:10px 0}
-  .filtros .f{display:flex;flex-direction:column;gap:4px}
-  .filtros label{font-size:15px;font-weight:800;color:#555}
-  .filtros input,.filtros select{padding:10px;min-height:44px;border:2px solid #d0d7de;border-radius:8px;font-size:18px}
-  .filtros .chk{flex-direction:row;align-items:center;gap:8px;font-size:17px;font-weight:700;color:#555}
-  .filtros .chk input{width:22px;height:22px;min-height:0}
-  .kpis{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0}
-  .kpi{flex:1;min-width:150px;background:#fff;border:2px solid #d0d7de;border-radius:12px;padding:12px 16px}
-  .kpi .l{font-size:12px;font-weight:800;color:#666;text-transform:uppercase}
-  .kpi .v{font-size:28px;font-weight:900}
-  .kpi.ok{border-left:6px solid #1a7f37}
-  .kpi.mal{border-left:6px solid #b42318}
-  td.num{text-align:right;font-variant-numeric:tabular-nums}
-  td.uni{font-size:20px;font-weight:900}
-  .badge{display:inline-block;font-weight:800;font-size:12px;padding:3px 10px;border-radius:999px;color:#fff}
-  .badge.rm{background:#b42318}
-  .badge.pm{background:#d97706}
-  .badge.ingreso{background:#6b3fc4}
-  .badge.sin{background:#57606a}
-  .sub{display:block;font-size:12px;font-weight:400;color:#666}
-  .nota{background:#f6f8fa;border:2px solid #d0d7de;border-radius:10px;padding:10px 14px;font-size:15px;color:#444;margin:10px 0}
+  /* Solo layout propio: campos, KPIs, badges, avisos y tabla son gp2-modulo.css. */
+  .toolbar{align-items:flex-end}
+  #mat{width:110px}
+  .chk{display:inline-flex;align-items:center;gap:8px;min-height:var(--touch);font-weight:600;color:var(--ink-700);cursor:pointer}
+  .t td{white-space:nowrap}
+  td.uni{font-size:18px;font-weight:800;color:var(--ink-900)}
+  td .sub{display:inline;margin-left:8px}
+  .badge.rm{background:var(--err-50);color:var(--err-700);border-color:var(--err-200)}
+  .badge.pm{background:var(--warn-50);color:var(--warn-700);border-color:var(--warn-200)}
+  .badge.ingreso{background:var(--brand-50);color:var(--brand-700);border-color:var(--brand-200)}
 </style>
 </head>
 <body>
@@ -44,30 +33,30 @@
   <div class="header">
     <h1>Unidades sin accidente</h1>
     <div class="hbtns">
-      <button class="hlink" id="btnCSV" type="button">⬇ Exportar CSV</button>
+      <button id="btnCSV" type="button">⬇ Exportar CSV</button>
       <a class="back" href="../../GP2_MODULOS.html">Atrás</a>
     </div>
   </div>
 
   <div class="steps">
-    <div class="nota">
+    <div class="aviso info nota">
       Igual que el cartel de <b>días sin accidentes</b>, pero en unidades: cuántas piezas lleva
       fabricadas cada matriz <b>desde su último accidente</b>. Cortan la racha una <b>rotura (RM)</b>,
       un <b>pare de matriz (PM)</b> del registro de producción, y el <b>ingreso a matricería</b> que
       cargan Pregelj o Cornejo en Planify. La misma tabla la muestra la TV del taller.
     </div>
 
-    <div class="filtros">
-      <div class="f"><label>Matriz</label><input type="text" id="mat" inputmode="numeric" data-miles="no" placeholder="N°" style="width:90px"></div>
-      <div class="f"><label>Descripción</label><input type="text" id="desc" placeholder="ej: arandela"></div>
-      <div class="f chk"><input type="checkbox" id="soloAcc"><label for="soloAcc">Sólo las que ya tuvieron un accidente</label></div>
+    <div class="toolbar">
+      <div class="field"><label for="mat">Matriz</label><input type="text" id="mat" inputmode="numeric" data-miles="no" placeholder="N°"></div>
+      <div class="field"><label for="desc">Descripción</label><input type="search" class="search" id="desc" placeholder="ej: arandela"></div>
+      <label class="chk"><input type="checkbox" id="soloAcc"> Sólo las que ya tuvieron un accidente</label>
     </div>
 
     <div class="kpis">
-      <div class="kpi"><div class="l">Matrices</div><div class="v" id="kMat">0</div></div>
-      <div class="kpi ok"><div class="l">Unidades sin accidente</div><div class="v" id="kUni">0</div></div>
-      <div class="kpi mal"><div class="l">Accidentes históricos</div><div class="v" id="kAcc">0</div></div>
-      <div class="kpi ok"><div class="l">En su mejor racha</div><div class="v" id="kRec">0</div></div>
+      <div class="kpi"><div class="k">Matrices</div><div class="v" id="kMat">0</div></div>
+      <div class="kpi ok"><div class="k">Unidades sin accidente</div><div class="v" id="kUni">0</div></div>
+      <div class="kpi err"><div class="k">Accidentes históricos</div><div class="v" id="kAcc">0</div></div>
+      <div class="kpi ok"><div class="k">En su mejor racha</div><div class="v" id="kRec">0</div></div>
     </div>
 
     <div class="table-wrap"><table class="t">
@@ -130,7 +119,7 @@ function render(){
         '<span class="sub">' + GP2UI.fechaTsAR(x.ultimo_accidente) + (x.ultimo_detalle ? ' · ' + esc(x.ultimo_detalle) : '') + '</span>'
       : '<span class="badge sin">Nunca</span>';
     return '<tr>' +
-      '<td><b>' + esc(x.matriz) + '</b></td>' +
+      '<td class="cod">' + esc(x.matriz) + '</td>' +
       '<td>' + esc(x.descripcion || '') + '</td>' +
       '<td class="num uni">' + fmt(x.unidades) + (x.es_record ? ' 🏆' : '') + '</td>' +
       '<td class="num">' + (x.golpes == null ? '—' : fmt(x.golpes)) + '</td>' +

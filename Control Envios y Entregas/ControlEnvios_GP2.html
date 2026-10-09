@@ -172,7 +172,7 @@ function render(){
   var totCols={}, totGral=0;
   $('tbody').innerHTML=p.rows.map(function(r){
     totGral+=r.total;
-    return '<tr><td><b>'+esc(r.codigo)+'</b><br><small style="color:#777">'+esc(r.descripcion||'')+'</small></td>'+
+    return '<tr><td><b class="cod">'+esc(r.codigo)+'</b><small class="sub">'+esc(r.descripcion||'')+'</small></td>'+
       '<td>'+esc(r.contraparte)+'</td><td>'+r.unidad+'</td>'+
       p.cols.map(function(d){
         var v=r.celdas[d];

@@ -15,24 +15,26 @@
 <link rel="icon" type="image/png" href="GP2_favicon.png">
 <link rel="apple-touch-icon" href="GP2_favicon.png">
 <style>
-  .card{max-width:560px}
-  .paso{margin:18px 0 8px;font-size:15px;font-weight:900;letter-spacing:.5px;color:#555;text-transform:uppercase}
-  .campo{margin:10px 0}
-  .campo label{display:block;font-size:17px;font-weight:800;margin-bottom:5px;color:#333}
-  .campo input, .campo select{width:100%;min-height:48px;padding:9px 10px;font-size:20px;
-    border:2px solid #d0d7de;border-radius:8px;background:#fff;color:#111}
-  .campo input:focus, .campo select:focus{outline:none;border-color:#111}
+  /* sistema GP2 v2.0 (2026-10-09): look de gp2-modulo.css; acá sólo layout.
+     Los dos pasos van lado a lado en la PC y uno abajo del otro en el celular. */
+  .pasos{align-items:start}
+  .paso-h .meta{font-weight:500;color:var(--ink-500);font-size:var(--fs-sm);margin-left:6px}
+  .campo{margin:0 0 12px}
+  .campo label{display:block;font-size:var(--fs-sm);font-weight:600;margin-bottom:4px;color:var(--ink-600)}
+  .campo input, .campo select{width:100%;min-height:52px;font-size:20px}
   .dosCol{display:flex;gap:10px}
   .dosCol .campo{flex:1;min-width:0}
-  .hint{font-size:15px;color:#666;margin-top:4px}
-  .res{background:#1a1a1a;color:#fff;border-radius:12px;padding:14px 16px;margin:12px 0}
-  .res .fila{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:5px 0}
-  .res .k{font-size:16px;color:#b9b9b9;font-weight:700}
-  .res .v{font-size:21px;font-weight:900;font-variant-numeric:tabular-nums}
-  .res .grande{font-size:30px;color:#34d399}
-  .res .uni{font-size:30px;color:#60a5fa}
-  .alerta{background:#fff4f4;border:2px solid #f3c2c2;color:#b42318;border-radius:10px;
-    padding:10px 12px;font-weight:800;font-size:17px;margin:10px 0}
+  .hint{font-size:var(--fs-sm);color:var(--ink-500);margin-top:4px}
+  /* resultado: tablero oscuro con el número protagonista */
+  .res{background:var(--ink-900);color:#fff;border-radius:var(--r-lg);padding:12px 16px;margin:12px 0 0}
+  .res .fila{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:4px 0}
+  .res .k{font-size:var(--fs-sm);color:var(--ink-400);font-weight:600;white-space:nowrap}
+  .res .v{text-align:right}
+  .res .v{font-size:20px;font-weight:750;font-variant-numeric:tabular-nums}
+  .res .grande{font-size:var(--fs-hero);color:var(--ok-200)}
+  .res .uni{font-size:var(--fs-hero);color:var(--brand-200)}
+  .alerta{margin:12px 0 0}
+  @media (max-width:900px){ .pasos{grid-template-columns:1fr} }
 </style>
 </head>
 <body>
@@ -41,14 +43,16 @@
   <div class="header">
     <h1>Calcular Cajones</h1>
     <div class="hbtns">
-      <a class="back" href="calculadora.html">← Volver</a>
+      <a class="back" href="calculadora.html">Volver</a>
     </div>
   </div>
 
-  <div class="steps">
+  <div class="steps page-mid">
+   <div class="grid-2 pasos">
 
-    <div class="paso">1 · Peso neto</div>
-
+    <div class="panel">
+    <div class="panel-head paso-h">1 · Peso neto</div>
+    <div class="panel-body">
     <div class="campo">
       <label for="fBruto">Peso bruto de la balanza (kg)</label>
       <input type="text" id="fBruto" inputmode="decimal" placeholder="0,00" autocomplete="off">
@@ -72,10 +76,13 @@
       <div class="fila"><span class="k">Neto</span><span class="v grande" id="rNeto">—</span></div>
     </div>
 
-    <div class="alerta hidden" id="alerta"></div>
+    <div class="aviso err alerta hidden" id="alerta"></div>
+    </div>
+    </div>
 
-    <div class="paso">2 · Unidades <span style="font-weight:700;text-transform:none;color:#888">(opcional)</span></div>
-
+    <div class="panel">
+    <div class="panel-head paso-h">2 · Unidades <span class="meta">(opcional)</span></div>
+    <div class="panel-body">
     <div class="campo">
       <label for="fSector">Sector</label>
       <select id="fSector"><option value="">— Elegir —</option></select>
@@ -92,6 +99,10 @@
       <div class="fila"><span class="k">Unidades</span><span class="v uni" id="rUni">—</span></div>
       <div class="fila hidden" id="filaCajones"><span class="k">Equivale a</span><span class="v" id="rCajones">—</span></div>
     </div>
+    </div>
+    </div>
+
+   </div>
 
     <div id="status" class="status">Cargando…</div>
   </div>

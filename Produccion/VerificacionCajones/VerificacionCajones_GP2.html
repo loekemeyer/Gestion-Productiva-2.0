@@ -21,36 +21,39 @@
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
 <style>
-  .dia{display:flex;gap:10px 18px;flex-wrap:wrap;align-items:center;background:#f6f8fa;border:2px solid #d0d7de;border-radius:12px;padding:12px 16px;margin:10px 0;font-size:18px}
-  .dia .k{font-size:12px;font-weight:800;color:#666;text-transform:uppercase;display:block}
-  .dia .v{font-size:22px;font-weight:900;font-variant-numeric:tabular-nums}
+  /* Solo layout propio: barra, campos, botones, tabla y avisos son gp2-modulo.css. */
+  .toolbar{align-items:flex-end}
+  .dia{display:flex;gap:10px 24px;flex-wrap:wrap;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-1);padding:12px 16px;margin:var(--s2) 0 var(--s3);font-size:var(--fs-base)}
+  .dia .k,.datos .k{display:block;font-size:var(--fs-cap);font-weight:700;color:var(--ink-500);text-transform:uppercase;letter-spacing:.04em}
+  .dia .v{font-size:22px;font-weight:800;color:var(--ink-900);font-variant-numeric:tabular-nums}
   .dia .grow{flex:1}
-  .btn-go{background:#b45309;color:#fff;font-size:22px;min-height:56px;padding:0 26px}
-  .caj{border:2px solid #d0d7de;border-radius:12px;padding:12px 16px;margin:12px 0;background:#fff}
-  .caj.ok{border-color:#1a7f37}
-  .caj.no{border-color:#b42318}
-  .caj h2{font-size:21px;font-weight:900;margin-bottom:6px}
+  .btn-go{background:var(--warn-700);border-color:var(--warn-700);color:#fff;font-size:20px;min-height:56px;padding:0 26px}
+  .btn-go:hover{background:var(--warn-600)}
+  /* las tarjetas de los cajones llenan el ancho: 2-3 por fila en escritorio, 1 en la tablet chica */
+  #cajones{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,560px),1fr));gap:var(--s3);align-items:start}
+  .caj{border:1px solid var(--line);border-left:5px solid var(--line-strong);border-radius:var(--r-lg);padding:12px 16px;background:var(--surface);box-shadow:var(--sh-1)}
+  .caj.ok{border-left-color:var(--ok-600)}
+  .caj.no{border-left-color:var(--err-600)}
+  .caj h2{font-size:var(--fs-h2);font-weight:700;color:var(--ink-900);margin-bottom:6px}
   .datos{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px 18px;margin:6px 0 10px}
-  .datos div{font-size:17px}
-  .datos .k{display:block;font-size:12px;font-weight:800;color:#666;text-transform:uppercase}
-  .datos .esp{font-size:22px;font-weight:900}
-  .form{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;border-top:1px dashed #d0d7de;padding-top:10px}
+  .datos div{font-size:var(--fs-base)}
+  .datos .esp{font-size:22px;font-weight:800;color:var(--ink-900)}
+  .form{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;border-top:1px dashed var(--line-strong);padding-top:10px}
   .form .f{display:flex;flex-direction:column;gap:4px}
-  .form label{font-size:15px;font-weight:800;color:#555}
-  .form select,.form input,.form textarea{min-height:48px;border:2px solid #d0d7de;border-radius:8px;font-size:20px;padding:6px 10px}
+  .form label{font-size:var(--fs-sm);font-weight:600;color:var(--ink-600)}
+  .form select,.form input,.form textarea{min-height:48px;font-size:20px}
   .form input.peso{width:150px;text-align:right;font-variant-numeric:tabular-nums}
   .form textarea{min-width:260px;flex:1;font-size:18px}
-  .vivo{font-size:18px;font-weight:800;min-height:24px}
-  .res{font-size:17px;line-height:1.6}
+  .vivo{font-size:var(--fs-base);font-weight:700;min-height:24px}
+  .res{font-size:var(--fs-base);line-height:1.6}
   .res b{font-variant-numeric:tabular-nums}
-  .form .chk-plan{flex-basis:100%;display:flex;align-items:center;gap:10px;font-size:18px;font-weight:600;color:#222;background:#f6f8fa;border:2px solid #d0d7de;border-radius:10px;padding:10px 14px;cursor:pointer}
-  .chk-plan input{width:26px;height:26px;min-height:0;flex:none;accent-color:#1a7f37}
-  .tag-env{display:inline-block;margin-left:8px;font-size:13px;font-weight:800;color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:999px;padding:2px 10px;vertical-align:middle}
-  .link{background:none;border:none;color:#b42318;font-weight:800;font-size:17px;cursor:pointer;text-decoration:underline;min-height:44px}
+  .form .chk-plan{flex-basis:100%;display:flex;align-items:center;gap:10px;font-size:var(--fs-base);font-weight:600;color:var(--ink-800);background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-md);padding:10px 14px;cursor:pointer}
+  .chk-plan input{width:26px;height:26px;min-height:0;flex:none;accent-color:var(--ok-700)}
+  .tag-env{display:inline-flex;margin-left:8px;font-size:var(--fs-cap);font-weight:700;color:var(--warn-700);background:var(--warn-50);border:1px solid var(--warn-200);border-radius:var(--r-pill);padding:2px 10px;vertical-align:middle}
+  .link{background:none;border:none;color:var(--err-700);font-weight:700;font-size:var(--fs-base);cursor:pointer;text-decoration:underline;min-height:var(--touch)}
   table.t.fit{width:auto}
   .table-wrap.fit{display:inline-block;max-width:100%}
   tr.click{cursor:pointer}
-  tr.click:hover td{background:#f6f8fa}
 </style>
 </head>
 <body>
@@ -72,17 +75,16 @@
   </script>
 
   <div class="steps">
-    <div class="row">
-      <label class="lbl" for="fecha">Día</label>
-      <input type="date" id="fecha">
-      <span class="sub" id="auto"></span>
+    <div class="toolbar">
+      <div class="field"><label for="fecha">Día</label><input type="date" id="fecha"></div>
+      <span class="sub" id="auto" style="align-self:center"></span>
     </div>
 
     <div id="dia" class="dia"></div>
     <div id="cajones"></div>
     <div id="status" class="status"></div>
 
-    <h3 style="margin:18px 0 6px;font-size:18px">Últimos días</h3>
+    <h2 class="sec-title">Últimos días</h2>
     <div class="table-wrap fit"><table class="t fit">
       <thead><tr>
         <th>Día</th><th class="num">Cajones</th><th class="num">Empezó</th><th class="num">Terminó</th><th class="num">Tardó</th>
@@ -240,7 +242,7 @@ function tarjeta(c, i){
       '<div class="f" style="flex:1"><label for="nota' + c.id + '">¿Qué pasó? ¿Dónde lo buscaste?</label>' +
       '<textarea id="nota' + c.id + '" rows="2">' + esc(c.nota || '') + '</textarea></div>' +
       '<button class="btn btn-primary" type="button" data-noenc="' + c.id + '">Guardar: no lo encontré</button>' +
-      '<button class="link" type="button" data-peso="' + c.id + '" style="color:#111">' + (env ? 'Volver a contar las cajas' : 'Volver a cargar peso') + '</button></div>';
+      '<button class="link" type="button" data-peso="' + c.id + '" style="color:var(--ink-900)">' + (env ? 'Volver a contar las cajas' : 'Volver a cargar peso') + '</button></div>';
   } else if (env){
     h += '<div class="form">' + chkPlanilla(c) +
       '<div class="f"><label for="cj' + c.id + '">Cajas que contaste</label><input class="peso" id="cj' + c.id + '" inputmode="numeric" autocomplete="off"' +

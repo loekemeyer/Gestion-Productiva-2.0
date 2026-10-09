@@ -62,7 +62,8 @@
   --ok-700:#15803d;  --ok-600:#16a34a;  --ok-200:#bbf7d0;  --ok-50:#f0fdf4;
   --warn-700:#b45309;--warn-600:#d97706;--warn-200:#fde68a;--warn-50:#fffbeb;
   --err-700:#b91c1c; --err-600:#dc2626; --err-200:#fecaca; --err-50:#fef2f2;
-  --falt-50:#fff7ed;  /* fila con faltante / bajo mínimo */
+  --falt-50:#fff7ed;
+  --warn-ink:#6b4100; --ok-ink:#14532d; --err-ink:#7f1d1d; --info-ink:var(--brand-800);  /* texto sobre fondo de aviso */  /* fila con faltante / bajo mínimo */
 
   /* superficies */
   --bg:#eef1f5;        /* lienzo de la app */
@@ -170,6 +171,7 @@ body > .card{max-width:none;margin:0;background:transparent;border:0;border-radi
   margin:var(--s4) 0 var(--s2);padding:10px 0;
   background:var(--bg);font-size:var(--fs-h2);font-weight:700;color:var(--ink-900);
 }
+.steps > .sec-title:first-child,.page > .sec-title:first-child{margin-top:0;padding-top:2px}
 .sec-title .meta{font-size:var(--fs-sm);font-weight:500;color:var(--ink-500)}
 .sec-title .push{margin-left:auto}
 
@@ -282,7 +284,7 @@ input.ok,.is-ok{border-color:var(--ok-600)!important}
 .tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:0 0 var(--s3);overflow-x:auto;scrollbar-width:none}
 .tabs > *{min-height:var(--touch);padding:0 16px;border:0;border-bottom:3px solid transparent;background:none;
   font-size:var(--fs-base);font-weight:600;color:var(--ink-500);cursor:pointer;white-space:nowrap}
-.tabs > .active,.tabs > [aria-selected="true"]{color:var(--ink-900);border-bottom-color:var(--brand-600)}
+.tabs > .active,.tabs > [aria-selected="true"]{color:var(--ink-900);border-bottom-color:var(--brand-600);background:none}
 
 /* ── 8. Tablas ─────────────────────────────────────────────────────────────
    Densas y legibles: celda 15px, encabezado 12px en mayúsculas, números a la
@@ -321,13 +323,14 @@ tr.off > td,tr.muted > td{color:var(--ink-400)}
 .table-wrap > table > thead > tr:first-child > th:first-child{border-top-left-radius:var(--r-lg)}
 .table-wrap > table > thead > tr:first-child > th:last-child{border-top-right-radius:var(--r-lg)}
 /* primera columna fija (código / nombre) cuando la tabla es más ancha que la pantalla */
-.table-wrap > table.t > tbody > tr > td:first-child,
-.table-wrap > table.t > tfoot > tr > td:first-child{position:sticky;left:0;z-index:2;background:var(--surface)}
+/* todo con :where(): especificidad 0, así un estado de fila de la pantalla (tr.con-pedido td, tr.total td…)
+   pinta también la primera columna sin tener que pisarla */
+:where(.table-wrap > table.t > tbody > tr > td:first-child, .table-wrap > table.t > tfoot > tr > td:first-child){position:sticky;left:0;z-index:2;background:var(--surface)}
 .table-wrap > table.t > thead > tr > th:first-child{left:0;z-index:6}
-.table-wrap > table.t > tbody > tr:hover > td:first-child{background:var(--brand-50)}
-.table-wrap > table.t > tbody > tr.falt > td:first-child,.table-wrap > table.t > tbody > tr.bajo > td:first-child{background:var(--falt-50)}
-.table-wrap > table.t > tfoot > tr > td:first-child{background:var(--ink-50)}
+:where(.table-wrap > table.t > tbody > tr:hover > td:first-child){background:var(--brand-50)}
+:where(.table-wrap > table.t > tfoot > tr > td:first-child){background:var(--ink-50)}
 .table-wrap > table.t.no-stick td:first-child,.table-wrap > table.t.no-stick th:first-child{position:static}
+tr.falt > td,tr.bajo > td{background:var(--falt-50)}
 .table-wrap.free{max-height:none}   /* tabla corta que no necesita ventana propia */
 
 table.t{background:var(--surface)}
@@ -344,6 +347,8 @@ td .sub{display:block;margin-top:1px}
   border-bottom:1px solid var(--line);font-weight:700;cursor:pointer;
 }
 .grp > .gh:hover{background:var(--ink-100)}
+.grp > .gh.static{cursor:default}
+.grp > .gh.static:hover{background:var(--surface-2)}
 .gh .nm,.sh .nm,.tall-head .nm{color:var(--ink-900);font-weight:700}
 .tall-head .cod{color:var(--ink-500)}
 details > summary{cursor:pointer;min-height:var(--touch);display:flex;align-items:center;gap:8px;font-weight:650;list-style:none}
@@ -375,17 +380,17 @@ details[open] > summary::before{transform:rotate(90deg)}
 .aviso,.autoinfo,.alert{
   margin:var(--s3) 0;padding:10px 14px;border-radius:var(--r-md);
   border:1px solid var(--warn-200);border-left:4px solid var(--warn-600);
-  background:var(--warn-50);color:#6b4100;font-size:14.5px;line-height:1.45;
+  background:var(--warn-50);color:var(--warn-ink);font-size:14.5px;line-height:1.45;
 }
 .aviso b{color:#4a2d00}
 .aviso code{background:#fef3c7}
 .aviso.info,.autoinfo,.alert.info{border-color:var(--brand-200);border-left-color:var(--brand-500);background:var(--brand-50);color:var(--brand-800)}
 .aviso.info b,.autoinfo b{color:var(--brand-800)}
-.aviso.ok,.alert.ok{border-color:var(--ok-200);border-left-color:var(--ok-600);background:var(--ok-50);color:#14532d}
-.aviso.err,.alert.err{border-color:var(--err-200);border-left-color:var(--err-600);background:var(--err-50);color:#7f1d1d}
+.aviso.ok,.alert.ok{border-color:var(--ok-200);border-left-color:var(--ok-600);background:var(--ok-50);color:var(--ok-ink)}
+.aviso.err,.alert.err{border-color:var(--err-200);border-left-color:var(--err-600);background:var(--err-50);color:var(--err-ink)}
 
 .status{margin:var(--s2) 0;font-size:var(--fs-sm);color:var(--ink-500);min-height:10px}
-.status.err,.msg.err,.err-text{color:var(--err-700);font-weight:600}
+.status.err,.status.bad,.msg.err,.err-text{color:var(--err-700);font-weight:600}
 .status.ok,.msg.ok{color:var(--ok-700);font-weight:600}
 .msg.warn{color:var(--warn-700);font-weight:600}
 .empty{color:var(--ink-500);padding:28px 16px;text-align:center;font-size:var(--fs-base)}

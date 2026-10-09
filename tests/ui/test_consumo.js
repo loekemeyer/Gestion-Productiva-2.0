@@ -132,7 +132,9 @@ window.supabase = { createClient: function(){ return {
   ok(/SECTOR/i.test(todos.thead), 'Todos: la tabla dice de que sector es cada componente');
   ok(todos.cods.join(',') === 'E3B,E10B,T3B,IE11,2405',
      'Todos: ordenado por sector y, adentro, por codigo alfanumerico natural — ' + todos.cods.join(','));
-  ok(todos.fuente >= 16, 'letra de tabla >= 16px (' + todos.fuente + ')');
+  // sistema de diseño 2026-10-09: la celda de tabla de TODO GP2 es --fs-td = 15px (antes esta pantalla
+  // la subía a 16 sólo en el celular). Se sigue cuidando que no se achique por debajo del sistema.
+  ok(todos.fuente >= 15, 'letra de tabla >= 15px, la celda del sistema (' + todos.fuente + ')');
 
   // ── "Cajones / mes" NO existe mas (23/09) ─────────────────────────────
   ok(!/CAJON/i.test(todos.thead), 'no hay columna "Cajones / mes" — ' + todos.thead.replace(/\s+/g, ' '));
