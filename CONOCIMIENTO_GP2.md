@@ -16109,7 +16109,22 @@ Producción 3.0 (`cervantes-gp2/`) y vale igual para la tablet de GP2:
   Mientras Alberto no produzca, no afecta.
 - **249** — [dato] En Empleados es una fila «RRHH» creada el 17/06 (sede V, mail rrhhloeke@gmail.com, tipo «operario»), que GP2 copió a
   `"GP2".empleado` como operario activo. En Planify el 249 es **Tomás Beviglia**. Nunca cargó producción (0 en 2.0, 3.0 y GP2).
-  [deducido] es la cuenta de ingreso de RRHH, no un operario. Sin decidir: si se la da de baja como operario en GP2.
+  ~~[deducido] es la cuenta de ingreso de RRHH~~ **CORRECCIÓN 09/10** [usuario Elías]: *"el 249 RRHH no es RRHH, es Tomás Beviglia"*,
+  *"no es operario de planta"* (Planify: administrativo, Diseño, 09:00–15:00).
+
+### 4kb-bis. Lo que se hizo el 09/10 [usuario Elías: «si» a cada `update`]
+
+- `"GP2".empleado` 249: `nombre = 'Tomas Beviglia', activo = false` (Empleados NO se tocó: su fila «RRHH» sigue activa, de ella depende el
+  ingreso por el mail rrhhloeke@gmail.com).
+- `public."Empleados"` 282 Oscar Bordon: `Activo = 'NO'` (ya estaba de baja en Planify y GP2; Empleados era el único que decía SI).
+- `"GP2".empleado`: de baja 261 Jennifer Muñoz, 122 Adrián Villalba, 280 Jonathan Echeverría, 270 Matías Insaurralde, 262 Merlina Acosta,
+  260 Tomás Valdés, 252 Ariel Cabrera (de baja en Planify desde antes; última producción entre 29/04 y 31/08).
+- [usuario Elías 09/10] La columna `Sede` de `public."Empleados"` **no** dice la empresa. La empresa está sólo en
+  `planify.empleados_liquidacion.empresa` (`c` = CHEF SRL, sin letra = Loekemeyer SRL, 50x = Agencia; ya dicho en 4gq) y en
+  `fichada.empleados.empresa` («Chef» / «Loekemeyer», con el número sin letra).
+- ⚠ [dato 09/10] **Registro Producción 3.0 (Cervantes, `cervantes-gp2/`) NO usa lo decidido en 4gq/4gr**: la lista de operarios y los
+  permisos salen de `"GP2".empleado` + `public."Empleados"` (función `reg_prod_3_0_bundle`), no de `planify.employees` + `GP2.operario`
+  (`operario_por_legajo`, 19 filas). No frena legajos de baja.
 
 ## 4kc. Despiece x Artículo: BOM12 + BOM8 convergen en Martin Cornejo (GRJ6/GRJ5) — el armado de TALLERISTA con insumos también es convergencia (2026-10-08) — v1.255.0
 
