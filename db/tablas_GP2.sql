@@ -412,10 +412,12 @@ create table "GP2".familia_pedido (
   sector_id bigint,
   pedido_minimo_uni numeric,
   nota text,
+  matriz_tercero boolean not null default false,
   constraint familia_pedido_pkey PRIMARY KEY (nombre),
   constraint familia_pedido_sector_id_fkey FOREIGN KEY (sector_id) REFERENCES "GP2".sector(id)
 );
 comment on table "GP2".familia_pedido is 'Familia de PEDIDO de las partes plasticas: las piezas que salen de la misma matriz del inyector. El minimo del proveedor es POR FAMILIA, no por pieza [Thomas 2026-09-29: "el minimo va por familia, no por parte. Entre todos los pirolos tengo que llegar a 36000"]. De la planilla Pedido Plasticos VACIO, columna Descripcion Matriz. La OC agrupa por esta familia (como los cartones por formato) y muestra el minimo con el total pedido de la familia; no frena.';
+comment on column "GP2".familia_pedido.matriz_tercero is 'La matriz es del inyector (un tercero), no nuestra: no se puede llevar a otro inyector. Sale de Cambiar Inyector y cambiar_inyector_familia la rechaza. Thomas 2026-10-09: Base Afila, Cierra Bolsa, Cuchillo Untar Blanco.';
 
 -- ---------- fleje_detalle ----------
 create table "GP2".fleje_detalle (

@@ -133,8 +133,8 @@ Módulo de Herramientas (2026-10-09, CONOCIMIENTO §4ki). Quién tiene la matriz
 
 | RPC | Parámetros | Devuelve |
 |---|---|---|
-| `cambiar_inyector_bundle()` | — | `{ iny[{id,n}], fam[{ n, min, prov, partes[{id,cod,d,prov}], oc[{numero,prov,pend}] }] }`. `iny` = proveedores activos con ubicación `inyector`. `fam` = familias de `familia_pedido` con piezas que se compran (sin "Otros"). `prov` = el inyector de todas sus piezas, **`null` = repartidas**. `oc` = O.C. abiertas (borrador/enviada) con pendiente de esa familia |
-| `cambiar_inyector_familia(p_familia, p_proveedor)` | familia + nombre del inyector | `{ ok, familia, antes[], proveedor, n, partes[] }`. Escribe `componente.proveedor` de las piezas de la familia (no discontinuadas, que se compran). Exige sesión habilitada (anon sin EXECUTE) |
+| `cambiar_inyector_bundle()` | — | `{ iny[{id,n}], fam[{ n, min, prov, partes[{id,cod,d,prov}], oc[{numero,prov,pend}] }] }`. `iny` = proveedores activos con ubicación `inyector`. `fam` = familias de `familia_pedido` con piezas que se compran (sin "Otros" ni las de `matriz_tercero`). `prov` = el inyector de todas sus piezas, **`null` = repartidas**. `oc` = O.C. abiertas (borrador/enviada) con pendiente de esa familia |
+| `cambiar_inyector_familia(p_familia, p_proveedor)` | familia + nombre del inyector | `{ ok, familia, antes[], proveedor, n, partes[] }`. Escribe `componente.proveedor` de las piezas de la familia (no discontinuadas, que se compran). Rechaza las familias con `matriz_tercero`. Exige sesión habilitada (anon sin EXECUTE) |
 
 ## produccion_bundle(p_matriz, p_anio) — Produccion/rendimiento_GP2.js (solo lectura)
 

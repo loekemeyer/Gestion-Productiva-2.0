@@ -1465,7 +1465,8 @@ AS $function$
                           from oc where oc.familia_pedido = f.nombre)
             ) order by f.nombre), '[]'::jsonb)
               from familia_pedido f
-             where exists (select 1 from pz where pz.familia_pedido = f.nombre))
+             where not f.matriz_tercero
+               and exists (select 1 from pz where pz.familia_pedido = f.nombre))
   );
 $function$
 ;
@@ -1486,6 +1487,9 @@ begin
 
   if v_fam is null or not exists (select 1 from familia_pedido where nombre = v_fam) then
     raise exception 'La familia "%" no existe.', coalesce(v_fam, '');
+  end if;
+  if exists (select 1 from familia_pedido where nombre = v_fam and matriz_tercero) then
+    raise exception 'La matriz de % es de un tercero: no se cambia de inyector.', v_fam;
   end if;
   if v_prov is null then
     raise exception 'Elegí el inyector que se lleva la matriz de %.', v_fam;

@@ -16279,9 +16279,16 @@ la idea es que pueda cambiar quién posee la matriz de la familia. Que me deje c
 - **La pantalla vieja "Inyectores · Quién hace cada parte" (`Compras/Inyectores_GP2.html`) sigue OCULTA** a propósito: es pieza
   por pieza, tiene todos los rubros y el panel de material; ésta es la que pidió Thomas, por familia. Si alguien cambia una
   pieza suelta desde la vieja, la familia queda "repartida" y la nueva lo avisa (borde ámbar) hasta que se elija uno.
-- **Lo que NO mueve el cambio** `[deducido]`: las O.C. ya abiertas siguen con el inyector viejo (se avisa antes de confirmar:
-  al 09/10, O.C. N° 3 de JL Matriceria con Cierra Bolsa y Cuchillo Untar pendientes) y la resina que el inyector viejo tiene en
+- **Lo que NO mueve el cambio** `[deducido]`: las O.C. ya abiertas siguen con el inyector viejo (se avisa antes de confirmar;
+  la O.C. N° 3 de JL Matriceria del 09/10 es de Cierra Bolsa y Cuchillo Untar Blanco, que son de tercero y ya no figuran) y la resina que el inyector viejo tiene en
   su poder queda en su ubicación (Control Partes Inyectores). Las próximas O.C. de la familia salen para el nuevo.
+- **Matrices de TERCEROS: no se cambian** `[usuario Thomas, 09/10: «Hay tres matrices que son de terceros que no tendrían
+  que aparecer en este módulo porque no se pueden cambiar (las matrices no son nuestras)» — «La de base afila, cierra bolsa y
+  cuchillo untar molde 3ero»]`. Columna nueva `familia_pedido.matriz_tercero` = true en **Base Afila** (PEP4, Pettofrezza),
+  **Cierra Bolsa** (PC4, JL Matriceria) y **Cuchillo Untar Blanco** (PEP9, JL Matriceria; se llamaba «Cuchillo Untar
+  Molde 3ros» y se renombró el mismo día `[Thomas: «renombra a Cuchillo Untar Blanco»]`). Salen de Cambiar Inyector
+  (quedan 26 familias) y `cambiar_inyector_familia` las rechaza. En la O.C. siguen igual (mínimo por familia). Una matriz
+  nueva de tercero se marca con esa columna. `db/migracion_cambiar_inyector_tercero_20261009.sql`.
 - Al 09/10 las 29 familias tenían un solo inyector cada una (0 repartidas). Ojo: algunas `familia_pedido.nota` nombran a
   Kollplast (Bujes, Insertos) pero las piezas están en Pat Bet Plast — la nota es texto viejo de la planilla, manda `proveedor`.
 - Base: `db/migracion_cambiar_inyector_20261009.sql` (`cambiar_inyector_bundle` anon+auth, `cambiar_inyector_familia` sólo
