@@ -16259,3 +16259,23 @@ se cuenta cada sector" (los crudos `CV*` en kilos): **no** van en kilos, van en 
 - **La 512 sigue activa y sin pasos**: en Entero es real (8 registros, 888 u, último 28/09) — qué artículo cierra no está en GP2.
   Los 4 registros de prueba del 06/10 (legajo 1 «Pruebas», ids 7513-7516) quedaron en la 512.
 
+
+## 4kh. Rediseño integral: UN sistema de diseño para todo GP2 (2026-10-09) — v1.258.0
+
+[usuario, Thomas: *"quiero que analices todo el programa de GP2 de punta a punta y hagas un rediseño
+integral … que deje de sentirse como un conjunto de módulos diseñados por separado … interfaz grande, densa
+y optimizada … que los títulos y encabezados importantes permanezcan visibles mientras hago scroll … no
+tengas miedo de cambiarlo"*]
+
+- **Lo que había** [dato, capturas de las 62 pantallas]: 4 barras distintas (negra de `gp2-modulo.css`,
+  logo + DOBLE "Atrás" en Producción/Informes, barra azul, tema oscuro en Despiece), anchos de 560 a 1.400px,
+  Arial / Inter / system-ui / monospace mezcladas, encabezados de tabla de 10px y `gp2-claro.css` pisando
+  colores con `!important`. Ninguna barra ni encabezado de tabla quedaba fijo al scrollear.
+- **Decisión**: `gp2-modulo.css` pasa a ser EL sistema (v2.0); `gp2-claro.css` se borra. Reglas, tokens y
+  markup en `DISENO_GP2.md`; guía viva `GP2_DS.html`. Fuente Inter servida desde `fonts/` (anda sin red).
+- **Señales únicas**: tinta 900 rellena = elegido; azul GP2 (el del logo, `#163e98`) = acción que avanza;
+  verde/ámbar/rojo = bien/alerta/error. Barra fija `‹ Atrás · GP2 · Título · acciones` en todas.
+- **Menú**: misma barra; accesos rápidos (Tablet Logística, Tablet Operarios, Monitor) como baldosas grandes;
+  KPIs de hoy/mes como `.kpi`; grupos con baldosas en 2 columnas; link "Ver todos los módulos" (= `?todos=1`).
+  En el celular se conserva todo lo pedido antes (los 2 grupos entran en una pantalla, pastillas abajo).
+- Queda afuera a propósito: `Operarios_GP2.html` (copia de Registro Producción 3.0; se cambia allá).

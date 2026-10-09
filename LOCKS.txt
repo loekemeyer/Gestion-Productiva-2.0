@@ -1,5 +1,5 @@
 [LOCKS]
-(ninguno)
+LockX | gp2-modulo.css, gp2-claro.css, gp2-ui.js, GP2_MODULOS.html, fonts/, GP2_DS.html y el <head>/encabezado de TODAS las pantallas GP2 | thomas (claude-remote) | 2026-10-09 | Rediseño integral: sistema de diseño único (tipografía, color, botones, tablas, encabezados sticky)
 
 [WAIT QUEUE]
 (vacío)

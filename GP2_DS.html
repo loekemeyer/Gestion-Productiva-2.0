@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GP2 · Sistema de diseño</title>
+<link rel="icon" type="image/png" href="GP2_favicon.png?v=1.2.0">
+<link rel="stylesheet" href="gp2-modulo.css?v=20261009ds">
+<style>
+/* Solo el layout de ESTA guía. Todo lo que se ve como componente sale de gp2-modulo.css. */
+.ds-nav{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 var(--s4)}
+.ds-nav a{font-size:var(--fs-sm);font-weight:600;color:var(--ink-600);text-decoration:none;padding:6px 10px;border-radius:var(--r-pill);background:var(--surface);border:1px solid var(--line)}
+.ds-nav a:hover{border-color:var(--ink-400);color:var(--ink-900)}
+.sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:var(--s2)}
+.sw div{border-radius:var(--r-md);border:1px solid var(--line);overflow:hidden;background:var(--surface);font-size:var(--fs-sm)}
+.sw i{display:block;height:44px}
+.sw span{display:block;padding:6px 10px;color:var(--ink-600)}
+.sw b{display:block;color:var(--ink-900);font-weight:650}
+.type-row{display:grid;grid-template-columns:160px 1fr;gap:12px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line-soft)}
+.type-row code{background:none;padding:0;color:var(--ink-500);font-size:12.5px}
+.demo{display:flex;gap:var(--s2);flex-wrap:wrap;align-items:center}
+.rules{columns:2 380px;column-gap:32px;font-size:15px;color:var(--ink-700)}
+.rules li{margin:0 0 8px 18px;break-inside:avoid}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <h1>Sistema de diseño <small>v2.0 · un solo producto</small></h1>
+    <div class="hbtns">
+      <a href="#" class="primary">Acción principal</a>
+      <a href="#">Exportar CSV</a>
+      <a class="back" href="GP2_MODULOS.html">Menú</a>
+    </div>
+  </div>
+
+  <div class="steps">
+    <nav class="ds-nav">
+      <a href="#principios">Principios</a><a href="#color">Color</a><a href="#tipo">Tipografía</a>
+      <a href="#botones">Botones</a><a href="#campos">Campos</a><a href="#chips">Chips</a>
+      <a href="#kpis">KPIs</a><a href="#tabla">Tabla</a><a href="#avisos">Avisos</a><a href="#grupos">Grupos</a>
+    </nav>
+
+    <div class="grid-auto">
+      <section class="panel" id="principios">
+        <div class="panel-head">Principios</div>
+        <div class="panel-body">
+          <ul class="rules">
+            <li><b>Una barra fija</b> arriba en todas las pantallas: Atrás · GP2 · título · acciones. Nunca se pierde dónde estás.</li>
+            <li><b>Densidad útil</b>: el contenido usa todo el ancho (tope 1.760 px), celdas de 15 px, filas de ~40 px.</li>
+            <li><b>Una señal por estado</b>: elegido = relleno tinta; acción que avanza = azul GP2; bien/alerta/error = verde/ámbar/rojo.</li>
+            <li><b>Encabezados que no se van</b>: las tablas dentro de <code>.table-wrap</code> fijan encabezado y primera columna.</li>
+            <li><b>Campos ≥ 18 px</b> y todo lo tocable ≥ 44 px (reglas de la casa, no se negocian).</li>
+            <li><b>Una sola familia</b>: Inter (servida desde el repo, anda sin red). Números tabulares en toda tabla.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="panel" id="color">
+        <div class="panel-head">Color</div>
+        <div class="panel-body">
+          <div class="sw">
+            <div><i style="background:var(--ink-900)"></i><span><b>Tinta 900</b>barra · elegido</span></div>
+            <div><i style="background:var(--brand-600)"></i><span><b>Azul GP2</b>acción principal</span></div>
+            <div><i style="background:var(--brand-50);border-bottom:1px solid var(--line)"></i><span><b>Azul 50</b>hover de fila</span></div>
+            <div><i style="background:var(--ok-700)"></i><span><b>Éxito</b>saldo +, confirmado</span></div>
+            <div><i style="background:var(--warn-600)"></i><span><b>Alerta</b>aviso, bajo mínimo</span></div>
+            <div><i style="background:var(--err-700)"></i><span><b>Error</b>negativo, faltante</span></div>
+            <div><i style="background:var(--bg)"></i><span><b>Lienzo</b>fondo de la app</span></div>
+            <div><i style="background:var(--surface)"></i><span><b>Superficie</b>paneles, tablas</span></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <h2 class="sec-title" id="tipo">Tipografía <span class="meta">Inter · escala fija, 7 tamaños</span></h2>
+    <div class="panel"><div class="panel-body">
+      <div class="type-row"><code>--fs-h1 · 20/700</code><h1>Título de pantalla (en la barra)</h1></div>
+      <div class="type-row"><code>--fs-h2 · 18/700</code><h2>Título de sección</h2></div>
+      <div class="type-row"><code>--fs-h3 · 16/650</code><h3>Título de bloque o panel</h3></div>
+      <div class="type-row"><code>--fs-base · 16/400</code><div>Texto normal: el que explica, el de los botones y los chips.</div></div>
+      <div class="type-row"><code>--fs-td · 15/400</code><div>Celda de tabla — <span class="cod">GRJ31</span> Cuchilla pelapapa <span class="num">1.250,50</span></div></div>
+      <div class="type-row"><code>--fs-sm · 13,5/400</code><div class="sub">Ayuda, metadatos, notas al pie.</div></div>
+      <div class="type-row"><code>--fs-cap · 12/700</code><div class="kpi" style="border:0;box-shadow:none;padding:0;background:none"><div class="k">Rótulo de KPI · encabezado de tabla</div></div></div>
+    </div></div>
+
+    <h2 class="sec-title" id="botones">Botones</h2>
+    <div class="panel"><div class="panel-body demo">
+      <button class="btn btn-primary">Guardar envío</button>
+      <button class="btn btn-secondary">Cancelar</button>
+      <button class="btn">Neutro</button>
+      <button class="btn btn-ghost">Ghost</button>
+      <button class="btn btn-success">✓ Validar</button>
+      <button class="btn btn-danger">Anular</button>
+      <button class="btn btn-primary" disabled>Deshabilitado</button>
+      <button class="btn btn-primary btn-lg">Grande (tablet)</button>
+    </div></div>
+
+    <h2 class="sec-title" id="campos">Campos y filtros</h2>
+    <div class="panel"><div class="panel-body">
+      <div class="toolbar">
+        <div class="field"><label>Desde</label><input type="date" value="2026-10-01"></div>
+        <div class="field"><label>Hasta</label><input type="date" value="2026-10-09"></div>
+        <div class="field"><label>Operario</label><select><option>Todos</option><option>Pérez</option></select></div>
+        <div class="field"><label>Cantidad</label><input inputmode="numeric" value="1.500" style="width:120px"></div>
+        <div class="field"><label>Con error</label><input class="err" value="abc" style="width:120px"></div>
+        <div class="field" style="flex:1 1 260px"><label>Buscar</label><input class="search" placeholder="Código o descripción…"></div>
+        <label class="demo" style="gap:8px;font-weight:600"><input type="checkbox" checked> Sólo con stock</label>
+        <button class="btn btn-primary push">Cargar</button>
+      </div>
+    </div></div>
+
+    <h2 class="sec-title" id="chips">Chips, segmentos y pestañas</h2>
+    <div class="panel"><div class="panel-body">
+      <div class="chips">
+        <button class="prov-btn active">Guazzaroni<span class="meta">Niquelado</span></button>
+        <button class="prov-btn">Pedernera<span class="meta">Cromado</span></button>
+        <button class="prov-btn">FAAT<span class="meta">Templado</span></button>
+        <button class="chip">Flejes <span class="n">42</span></button>
+        <button class="chip active">Cartones <span class="n">110</span></button>
+      </div>
+      <div class="toolbar">
+        <div class="seg"><button class="seg-btn active">Todos</button><button class="seg-btn">Con stock</button><button class="seg-btn">Sin stock</button><button class="seg-btn">Bajo el máximo</button></div>
+      </div>
+      <div class="tabs"><button class="active">Cervantes</button><button>Virgilio</button><button>Terceros</button></div>
+    </div></div>
+
+    <h2 class="sec-title" id="kpis">KPIs y badges</h2>
+    <div class="kpis">
+      <div class="kpi"><div class="k">Operarios</div><div class="v">24</div><div class="d">hoy</div></div>
+      <div class="kpi ok"><div class="k">Produciendo</div><div class="v">18</div></div>
+      <div class="kpi warn"><div class="k">Tiempo muerto</div><div class="v">4</div></div>
+      <div class="kpi err"><div class="k">Problema matriz</div><div class="v">2</div></div>
+      <div class="kpi info"><div class="k">Unidades del día</div><div class="v">48.320</div></div>
+    </div>
+    <div class="demo"><span class="badge">neutro</span><span class="badge ok">al día</span><span class="badge warn">pendiente</span><span class="badge err">faltante</span><span class="badge info">GP2</span><span class="badge dark">borrador</span></div>
+
+    <h2 class="sec-title" id="tabla">Tabla <span class="meta">encabezado y primera columna fijos · números tabulares</span></h2>
+    <div class="table-wrap" style="max-height:340px">
+      <table class="t">
+        <thead><tr><th>Código</th><th>Descripción</th><th>Sector</th><th class="num">Stock uni</th><th class="num">Kg</th><th class="num">Máximo</th><th class="num sep">Saldo</th><th class="ctr">Estado</th></tr></thead>
+        <tbody id="demoRows"></tbody>
+        <tfoot><tr><td>Total</td><td></td><td></td><td class="num">61.140</td><td class="num">812,40</td><td class="num">90.000</td><td class="num sep neg">−1.240</td><td></td></tr></tfoot>
+      </table>
+    </div>
+
+    <h2 class="sec-title" id="avisos">Avisos y estados</h2>
+    <div class="grid-2">
+      <div>
+        <div class="aviso"><b>Esto no mueve stock:</b> es la promesa del proveedor; el stock entra con la recepción.</div>
+        <div class="aviso info">Tocá una fila para ver de qué artículos sale el consumo.</div>
+      </div>
+      <div>
+        <div class="aviso ok">Envío guardado · código <b>4821</b>.</div>
+        <div class="aviso err">No se pudo leer el catálogo. Reintentá en unos segundos.</div>
+      </div>
+    </div>
+    <div class="panel"><div class="empty">Sin movimientos para estos filtros.</div></div>
+
+    <h2 class="sec-title" id="grupos">Grupos (acordeón con encabezado fijo)</h2>
+    <div class="grp">
+      <div class="gh"><span class="nm">Sector Crudo</span><span class="badge ok">12 con stock</span><span class="push sub">48 componentes</span></div>
+      <div style="padding:12px 16px" class="sub">…contenido del grupo…</div>
+    </div>
+  </div>
+</div>
+<script>
+// filas de ejemplo para mostrar el scroll con encabezado fijo
+(function(){
+  var R=[["A10","Cpo Una","Crudo","1.200","60,00","2.000","−800","bajo"],["GRJ31","Garage Pelapapa","Garage","4.500","128,40","6.000","0","ok"],["F90","Fleje 90 · 0,6 mm","Flejes","0","312,50","400","−87,5","falt"],
+         ["V9SE","Remache Uña s/envasar","Remache","105.820","60,00","90.000","15.820","ok"],["CART110","Cartón 110 LOKE","Cartones","1.728","0,00","1.776","−48","bajo"],["W4","Arandela Base","Remache","5.970","25,00","8.000","0","ok"],
+         ["B5","Parte be","Procesado","320","16,00","500","−180","bajo"],["T1","Terminado uno","Terminado","80","0,00","120","0","ok"],["LLF7B","Llave fleje 7B","Procesado","2.400","96,00","2.400","0","ok"],["E10B","Eje 10 bronce","Crudo","50","2,50","300","−250","falt"]];
+  var h="",i,k; for(k=0;k<3;k++) for(i=0;i<R.length;i++){var r=R[i],c=r[6].charAt(0)==="−"?"neg":(r[6]==="0"?"cero":"pos");
+    var b=r[7]==="ok"?'<span class="badge ok">ok</span>':(r[7]==="falt"?'<span class="badge err">faltante</span>':'<span class="badge warn">bajo</span>');
+    h+='<tr class="'+(r[7]==="falt"?"falt":"")+'"><td class="cod">'+r[0]+'</td><td>'+r[1]+'</td><td class="proc">'+r[2]+'</td><td class="num">'+r[3]+'</td><td class="num">'+r[4]+'</td><td class="num">'+r[5]+'</td><td class="num sep '+c+'">'+r[6]+'</td><td class="ctr">'+b+'</td></tr>';}
+  document.getElementById("demoRows").innerHTML=h;
+})();
+</script>
+</body>
+</html>

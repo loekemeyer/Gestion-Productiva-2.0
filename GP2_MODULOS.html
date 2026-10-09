@@ -23,162 +23,157 @@
 <!-- PWA: con esto Chrome ofrece instalar GP2 y la abre en ventana propia,
      sin barra de direcciones. El SW lo registra pwa.js al final del body. -->
 <link rel="manifest" href="manifest.json?v=20260930a">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#0f172a">
+<link rel="stylesheet" href="gp2-modulo.css?v=20261009ds">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#ffffff;color:#1e293b;font-family:-apple-system,Segoe UI,Roboto,Helvetica,sans-serif;min-height:100vh}
-
-/* ── header ── */
-.header{background:#ffffff;border-bottom:1px solid #e2e8f0;padding:20px 0 16px;text-align:center}
-.header img{width:90%;max-width:400px;height:auto;border-radius:8px}
-.header-sub{color:#64748b;font-size:14px;margin-top:10px;letter-spacing:.3px}
-.header-sub b{color:#163e98}
+/* ── Menú GP2 · v2.0 (2026-10-09, sistema de diseño) ─────────────────────────
+   La portada usa la MISMA barra que todas las pantallas (gp2-modulo.css) y el
+   resto se arma con los tokens del sistema. Desktop: accesos rápidos grandes
+   arriba + los grupos como paneles anchos con baldosas. Celular: se conserva
+   todo lo que el usuario pidió (2 grupos abiertos que entran en UNA pantalla,
+   baldosas en 2 columnas, pastillas de tablet fijas abajo) — test_menu_una_pantalla. */
+body{min-height:100vh}
+.header h1 small{color:var(--ink-400)}
+.header-sub{display:flex;align-items:center;gap:10px;color:var(--ink-400);font-size:var(--fs-sm)}
+.header-sub b{color:#fff;font-weight:650}
+.header-sub #sesion a{color:#fecaca;background:transparent;border-color:rgba(254,202,202,.25)}
+.header-sub #sesion a:hover{background:rgba(254,202,202,.1)}
 
 /* ── layout ── */
-.wrap{max-width:1200px;margin:0 auto;padding:20px 16px 80px}
-/* columnas de ancho acotado y centradas: con 2 grupos no queda una tercera columna vacia
-   (v1.196.0, menu reducido) y con ?todos=1 siguen entrando 3 por fila */
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,370px));justify-content:center;align-items:start;gap:16px}
+.wrap{max-width:1320px;margin:0 auto;padding:var(--s5) var(--gutter) var(--s8)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));align-items:start;gap:var(--s4)}
 
-/* ── cards ── */
-.card{background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;transition:border-color .2s;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-.card:hover{border-color:#bcccdc}
+/* ── accesos rápidos (tablets + monitor): lo que se abre de pie, en el galpón ── */
+.tablet-links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s3);margin:0 0 var(--s4)}
+a.tablet-link{display:flex;align-items:center;gap:12px;min-height:64px;padding:12px 18px;border-radius:var(--r-lg);
+  background:var(--ink-900);color:#fff;text-decoration:none;font-weight:700;font-size:17px;
+  box-shadow:var(--sh-1);border:1px solid var(--ink-950);transition:background .12s,transform .06s}
+a.tablet-link:hover{background:var(--ink-800)}
+a.tablet-link:active{transform:translateY(1px)}
+a.tablet-link .tl-i{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;
+  background:var(--brand-600);font-size:19px;flex:none}
+a.tablet-link .tl-s{display:block;font-size:var(--fs-sm);font-weight:500;color:var(--ink-400)}
+
+/* ── KPIs de hoy / mes (inicio_bundle) ── */
+#kpiResumen{margin:0 0 var(--s4)}
+#kpiResumen:empty{display:none}
+
+/* ── grupos ── */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh-1)}
 .card.all-locked{opacity:.6;filter:saturate(.4)}
 .card.all-locked .card-body{pointer-events:none}
-.card.all-locked .card-head{background:#f1f5f9}
-
-.card-head{padding:14px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #e2e8f0;cursor:pointer;user-select:none;transition:background .15s}
-.card-head:hover{background:#f8fafc}
-/* menu normal (v1.201.0): los grupos quedan abiertos y no se cierran */
+.card-head{padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);
+  background:var(--surface-2);cursor:pointer;user-select:none}
+.card-head:hover{background:var(--ink-100)}
 body.fijo .card-head{cursor:default}
-body.fijo .card-head:hover{background:transparent}
-.card-head .icon{font-size:24px;line-height:1;flex-shrink:0}
-.card-head .title{font-size:20px;font-weight:700;letter-spacing:.01em;color:#1e293b;flex:1}
-.card-head .badge{background:#dcfce7;color:#15803d;font-size:12px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:.5px}
-.card-head .chevron{color:#475569;font-size:18px;transition:transform .2s;font-weight:700}
+body.fijo .card-head:hover{background:var(--surface-2)}
+.card-head .icon{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;
+  background:var(--ink-900);color:#fff;font-size:16px;line-height:1;flex-shrink:0}
+.card-head .title{font-size:var(--fs-h2);font-weight:700;color:var(--ink-900);flex:1;letter-spacing:-.005em}
+.card-head .badge{background:var(--ink-100);color:var(--ink-600);border:1px solid var(--line)}
+.card-head .chevron{color:var(--ink-500);font-size:18px;transition:transform .2s;font-weight:700}
 .card.collapsed .chevron{transform:rotate(-90deg)}
 .card.collapsed .card-body{display:none}
 
-.card-body{padding:8px 10px 12px}
-.btns{display:flex;flex-direction:column;gap:5px}
+.card-body{padding:12px}
+/* desktop: baldosas en 2 columnas dentro de cada grupo (densidad sin perder tamaño) */
+.btns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+a.op{position:relative;display:flex;align-items:center;gap:10px;min-height:56px;padding:10px 14px;border-radius:var(--r-md);
+  text-decoration:none;font-size:16px;font-weight:600;color:var(--ink-800);background:var(--surface);
+  border:1.5px solid var(--line);transition:border-color .12s,background .12s,box-shadow .12s}
+a.op:hover{border-color:var(--brand-500);background:var(--brand-50);box-shadow:var(--sh-1)}
+a.op:active{transform:translateY(1px)}
+a.op .arrow{color:var(--ink-400);font-size:20px;margin-left:auto;font-weight:500;transition:color .12s,transform .12s}
+a.op:hover .arrow{color:var(--brand-600);transform:translateX(2px)}
+a.op .dot{display:none}                 /* hoy todo es GP2: el punto sólo marca lo que abre la app vieja */
+a.op.vieja .dot{display:block;width:8px;height:8px;border-radius:50%;background:var(--warn-600);flex-shrink:0}
 
-/* ── botones activos ── */
-a.op{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;text-decoration:none;font-size:16px;font-weight:500;color:#1e293b;background:#f8fafc;border:1px solid #e2e8f0;transition:all .15s}
-a.op:hover{background:#eef4fb;border-color:#cddbea;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.08)}
-a.op:active{transform:translateY(0)}
-a.op .arrow{color:#163e98;font-size:18px;margin-left:auto;font-weight:700;transition:color .15s}
-a.op:hover .arrow{color:#1d4ed8}
-a.op .dot{width:7px;height:7px;border-radius:50%;background:#e7f8ed;flex-shrink:0}
+/* tres niveles de importancia dentro de un grupo (usuario, Insumos) */
+a.op.principal{grid-column:1 / -1;background:var(--brand-50);border-color:var(--brand-200);font-weight:700;font-size:17px}
+a.op.secundario{color:var(--ink-500);font-weight:500;font-size:15px;background:var(--surface-2)}
+a.op.vieja{background:var(--warn-50);border-color:var(--warn-200);color:#7c2d12}
+a.op.vieja .dot{background:var(--warn-600)}
+a.op.vieja .tag{margin-left:auto}
+a.op.vieja .arrow{margin-left:8px}
+span.op.lock{display:flex;align-items:center;gap:10px;min-height:56px;padding:10px 14px;border-radius:var(--r-md);font-size:15px;
+  color:var(--ink-400);border:1.5px dashed var(--line);background:var(--surface-2);cursor:default}
+span.op.lock .lk{font-size:13px;margin-left:auto;opacity:.7}
+.btns > :last-child:nth-child(odd):not(.principal){grid-column:1 / -1}
 
-/* ── tres niveles de importancia dentro de un grupo ──
-   Los pidio el usuario para Insumos: comprar y recibir es lo de todos los
-   dias, el stock de cada rubro va despues, y la config de quien fabrica
-   ultima. Se marcan en el MENU y sirven para cualquier grupo. */
-a.op.principal{background:#eff6ff;border-color:#cddbea;font-weight:700;font-size:17px;padding:14px}
-a.op.principal .dot{width:9px;height:9px}
-a.op.secundario{background:#fbfcfd;border-color:#eef2f6;color:#64748b;font-size:15px;padding:9px 14px}
-a.op.secundario .dot{background:#cbd5e1;width:6px;height:6px}
-a.op.secundario .arrow{color:#475569}
-
-/* ── boton que todavia abre la app anterior (schema public) ── */
-a.op.vieja{background:#fffbeb;border-color:#ead9cd;color:#7c2d12}
-a.op.vieja .dot{background:#f8efe7}
-a.op.vieja .tag{margin-left:auto;font-size:11px;font-weight:700;opacity:.8;white-space:nowrap}
-a.op.vieja .arrow{margin-left:8px;color:#b45309}
-
-/* ── botones locked ── */
-span.op.lock{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:8px;font-size:16px;color:#475569;border:1px solid #eef2f6;background:#f8fafc;cursor:default}
-span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
-
-
-/* ── celular: los 13 grupos TIENEN que entrar en una sola pantalla ──
-   Con una columna no entran sin achicar las filas hasta volverlas ilegibles.
-   Con DOS columnas entran en 7 filas y encima cada grupo queda mas grande:
-   icono arriba, titulo abajo en 2 lineas si hace falta, y el numero de
-   modulos activos en la esquina. Toda la tarjeta es el area tocable. */
+/* ── celular: los grupos TIENEN que entrar en una sola pantalla ──
+   (requisito del usuario, 2026-08-29; lo mide test_menu_una_pantalla). */
 @media (max-width:640px){
-  .header{padding:6px 0 5px}
-  .header img{width:52%;max-width:190px}
-  .header-sub{font-size:12px;margin-top:3px}
+  .header{min-height:48px}
+  .header h1{font-size:16px}
+  .header h1 small{display:none}
+  .header-sub{font-size:12px;gap:6px}
+  .header-sub #sesion a{min-height:34px;padding:0 8px;font-size:12.5px}
   .wrap{padding:8px 8px 12px}
-  .foot{display:none}                      /* texto que no es un modulo: fuera */
+  .foot{display:none}
+  #kpiResumen{display:none}               /* en el celular no entra: los grupos primero */
   .grid{grid-template-columns:1fr 1fr;gap:8px}
   .card{border-radius:12px;position:relative}
   .card-head{flex-direction:column;align-items:flex-start;justify-content:center;
              gap:3px;padding:10px 11px;min-height:82px;border-bottom:0}
-  .card-head .icon{font-size:21px}
+  .card-head .icon{width:28px;height:28px;font-size:14px}
   .card-head .title{font-size:15px;line-height:1.15;flex:none}
-  .card-head .badge{position:absolute;top:9px;right:9px;font-size:12px;padding:2px 8px}
-  .card.collapsed .chevron{display:none}    /* cerrado no aporta y roba una linea */
-  /* si la cantidad de grupos es impar, el ultimo ocupa el ancho entero para que
-     no quede un hueco raro al final (la clase la pone el JS) */
+  .card-head .badge{position:absolute;top:9px;right:9px}
+  .card.collapsed .chevron{display:none}
   .card.solo{grid-column:1 / -1}
   .card.solo .card-head{min-height:56px;flex-direction:row;align-items:center;gap:9px}
   .card-body{padding:6px 8px 9px}
-  a.op,span.op.lock{font-size:15px;padding:11px 12px}
+  .btns{display:flex;flex-direction:column;gap:5px}
+  a.op,span.op.lock{font-size:15px;padding:11px 12px;min-height:44px}
 
-  /* abierto: vuelve a una columna, para que los botones del grupo sean anchos */
   body.focus .grid,body.fijo .grid{grid-template-columns:1fr}
-  body.focus .card.open .card-head,body.fijo .card.open .card-head{flex-direction:row;align-items:center;gap:10px;
-                                   min-height:0;padding:13px 14px}
+  body.focus .card.open .card-head,body.fijo .card.open .card-head{flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;min-height:0;padding:13px 14px;border-bottom:1px solid var(--line)}
   body.focus .card.open .card-head .title,body.fijo .card.open .card-head .title{font-size:18px}
   body.focus .card.open .card-head .badge,body.fijo .card.open .card-head .badge{position:static}
 
-  /* vista FOCO: con un grupo abierto se ve solo ese grupo, hasta cerrarlo */
   body.focus .header,body.focus .foot{display:none}
   body.focus .wrap{padding:0 0 30px}
   body.focus .card:not(.open){display:none}
   body.focus .card.open{border:0;border-radius:0;box-shadow:none;opacity:1;filter:none}
-  body.focus .card.open .card-head{position:sticky;top:0;z-index:5;background:#fff;border-bottom:1px solid #e2e8f0;padding:14px 14px}
+  body.focus .card.open .card-head{position:sticky;top:0;z-index:5;background:#fff;padding:14px 14px}
   body.focus .card.open .card-body{padding:8px 10px 12px}
-  /* el chevron pasa a ser el boton de cerrar */
   body.focus .card.open .chevron{transform:none;font-size:0}
-  body.focus .card.open .chevron::after{content:"\2715\00a0 Cerrar";font-size:14px;font-weight:700;color:#163e98;white-space:nowrap}
+  body.focus .card.open .chevron::after{content:"\2715\00a0 Cerrar";font-size:14px;font-weight:700;color:var(--brand-600);white-space:nowrap}
 
-  /* ── adentro del grupo: botones GRANDES en grilla, igual que los grupos ──
-     Antes era una lista de filas finitas: se veian chicas, desperdiciaban el
-     ancho y con 14 modulos (Produccion) habia que scrollear. En 2 columnas
-     entran el doble por pantalla y cada boton es una baldosa tocable. */
   :is(body.focus,body.fijo) .card.open .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   :is(body.focus,body.fijo) .card.open a.op,
   :is(body.focus,body.fijo) .card.open span.op.lock{
     flex-direction:column;align-items:center;justify-content:center;text-align:center;
     gap:4px;min-height:76px;padding:12px 10px;font-size:16px;font-weight:600;
     line-height:1.15;border-radius:12px;overflow-wrap:anywhere}
-  :is(body.focus,body.fijo) .card.open a.op .arrow{display:none}   /* en baldosa no aporta */
-  /* el puntito (verde = GP2, ambar = modulo viejo) va a la esquina: si queda en
-     el flujo se come una linea y empuja el nombre fuera del centro */
-  :is(body.focus,body.fijo) .card.open a.op{position:relative}
+  :is(body.focus,body.fijo) .card.open a.op .arrow{display:none}
   :is(body.focus,body.fijo) .card.open a.op .dot{position:absolute;top:8px;left:8px;margin:0}
   :is(body.focus,body.fijo) .card.open span.op.lock .lk{margin:0}
-  /* nivel 1: baldosa a todo el ancho, mas alta y destacada — es lo que se
-     abre todos los dias, tiene que caer bajo el pulgar sin buscar */
   :is(body.focus,body.fijo) .card.open a.op.principal{grid-column:1 / -1;min-height:66px;font-size:18px}
-  /* nivel 3: misma grilla que los rubros pero apagado, para que no compita */
-  :is(body.focus,body.fijo) .card.open a.op.secundario{min-height:56px;font-size:15px}   /* 15 es el piso de legibilidad que fija el test */
-  /* cantidad impar: el ultimo ocupa el ancho entero para que no quede colgado.
-     Los "principal" ya ocupan la fila entera, asi que no cuentan para la
-     paridad: se mira solo entre los que comparten la grilla de 2 columnas. */
+  :is(body.focus,body.fijo) .card.open a.op.secundario{min-height:56px;font-size:15px}   /* 15 = piso del test */
   :is(body.focus,body.fijo) .card.open .btns > :last-child:nth-child(odd){grid-column:1 / -1;min-height:56px}
-  /* menu fijo: los 2 grupos abiertos a la vez tienen que entrar en una pantalla,
-     asi que las baldosas son mas bajas que en la vista foco (sigue >= 44 tocable) */
   body.fijo .card.open .card-head{padding:10px 14px}
   body.fijo .card.open a.op,body.fijo .card.open span.op.lock{min-height:56px;padding:8px 10px}
   body.fijo .card.open .btns > :last-child:nth-child(odd){min-height:48px}
-}
 
-/* celulares de pantalla baja (SE, o el navegador con su barra a la vista):
-   se comprime lo justo para que los 13 sigan entrando de una */
+  /* accesos rápidos: pastillas fijas abajo (no ocupan fila de la grilla) */
+  .tablet-links{position:fixed;right:10px;bottom:10px;z-index:20;margin:0;display:flex;
+    flex-direction:column;align-items:flex-end;gap:8px}
+  a.tablet-link{min-height:44px;padding:0 14px;border-radius:999px;font-size:15px;gap:6px}
+  a.tablet-link .tl-i{width:auto;height:auto;background:none;font-size:16px}
+  a.tablet-link .tl-s{display:none}
+  body.focus .tablet-links{display:none}
+  body.fijo .wrap{padding-bottom:70px}
+  body:not(.fijo) .wrap{padding-bottom:170px}
+  body.fijo .tablet-links{left:0;right:0;bottom:0;flex-direction:row;justify-content:center;
+    flex-wrap:nowrap;gap:8px;padding:8px 10px;background:#fff;border-top:1px solid var(--line)}
+  body.fijo a.tablet-link{flex:1;justify-content:center;font-size:14px;padding:0 8px;white-space:nowrap}
+  body.fijo a.tablet-link .tl-v{display:none}
+}
 @media (max-width:640px) and (max-height:700px){
-  .header img{width:42%;max-width:150px}
   .grid{gap:6px}
   .card-head{min-height:62px;padding:8px 10px}
-  .card-head .icon{font-size:18px}
   .card-head .title{font-size:14px}
   .card.solo .card-head{min-height:46px}
-  /* las baldosas del grupo abierto se achican lo justo para que el grupo mas
-     grande (Produccion, 15 modulos = 8 filas) tambien entre sin scrollear.
-     Cada modulo nuevo que entre a Produccion aprieta esto: el test avisa. */
   :is(body.focus,body.fijo) .card.open .btns{gap:6px}
   :is(body.focus,body.fijo) .card.open a.op,
   :is(body.focus,body.fijo) .card.open span.op.lock{min-height:56px;padding:8px;font-size:15px}
@@ -187,78 +182,39 @@ span.op.lock .lk{font-size:14px;margin-left:auto;opacity:.7}
   body.fijo .card.open .btns{gap:5px}
   body.fijo .card.open .card-head{padding:8px 12px}
   body.fijo .card.open .card-head .title{font-size:16px}
-  /* v1.212.1: 5px (antes 6) porque "Órdenes Compra Insumos" va en 2 lineas y el menu se pasaba 1px de 600 */
   body.fijo .card.open a.op,body.fijo .card.open span.op.lock{min-height:44px;padding:5px 8px}
   body.fijo .card.open .btns > :last-child:nth-child(odd){min-height:44px}
 }
-
-/* ── 📱 Versión Tablet (2026-09-13, v1.146.0) ── una sola pantalla con Enviar / Recibir /
-   Conteo para la tablet del galpón (Tablet/Tablet_GP2.html). En escritorio va en el header,
-   debajo de la versión. En el celular es una pastilla FIJA abajo a la derecha: no ocupa una
-   fila de la grilla (los grupos tienen que seguir entrando en una pantalla) y se oculta en la
-   vista foco, igual que el header y el pie, para no tapar las baldosas del grupo abierto. */
-/* dos botones de tablet, centrados y uno al lado del otro */
-.tablet-links{display:flex;justify-content:center;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
-a.tablet-link{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;
-  padding:0 18px;border-radius:999px;background:#163e98;color:#fff;font-weight:800;
-  font-size:16px;text-decoration:none;box-shadow:0 2px 8px rgba(22,62,152,.25)}
-a.tablet-link:hover{background:#1d4ed8}
-@media (max-width:640px){
-  /* en el celular las dos pastillas van FIJAS abajo a la derecha, apiladas para
-     no pisarse (una sola quedaria tapando a la otra si las dos son fixed) */
-  .tablet-links{position:fixed;right:10px;bottom:10px;z-index:20;margin:0;
-    flex-direction:column;align-items:flex-end;gap:8px}
-  a.tablet-link{font-size:15px;padding:0 14px}
-  /* la vista foco (grupo fullscreen) es SOLO de celular: ahi si se ocultan para no tapar
-     las baldosas. En escritorio no hay vista foco, asi que los botones quedan siempre visibles. */
-  body.focus .tablet-links{display:none}
-  /* menu fijo (v1.201.0): con los 2 grupos abiertos las pastillas apiladas tapaban la ultima
-     baldosa. Pasan a una barra fija abajo, una al lado de la otra ("Versión" se oculta para
-     que entren las dos), y la pagina deja ese alto libre al final. */
-  body.fijo .wrap{padding-bottom:70px}
-  /* vista completa (?todos=1): tres pastillas apiladas miden ~150px y tapaban la ultima cabecera */
-  body:not(.fijo) .wrap{padding-bottom:170px}
-  body.fijo .tablet-links{left:0;right:0;bottom:0;flex-direction:row;justify-content:center;
-    flex-wrap:nowrap;gap:8px;padding:8px 10px;background:#fff;border-top:1px solid #e2e8f0}
-  body.fijo a.tablet-link{flex:1;font-size:14px;padding:0 8px;white-space:nowrap}
-  body.fijo a.tablet-link .tl-v{display:none}
-}
-/* con la pastilla «Monitor» son tres: en pantallas angostas ya no entran con «Tablet » (queda 📱 Logística / 📱 Operarios) */
 @media (max-width:440px){ body.fijo a.tablet-link .tl-t{display:none} }
 
-/* ── datos vivos que venian del dashboard viejo (Inicio/index_GP2.html) ── */
-#kpiResumen{display:block;margin-top:4px;font-size:12px;color:#475569}
-#kpiResumen b{color:#1e293b}
-#kpiResumen:empty{display:none}
-@media (max-width:640px){#kpiResumen{font-size:11px}}
-
-/* ── footer ── */
-.foot{max-width:1200px;margin:0 auto;padding:0 16px;color:#475569;font-size:12px;text-align:center}
+.foot{max-width:1320px;margin:var(--s4) auto 0;padding:0 16px;font-size:var(--fs-sm);text-align:center}
+.foot a{color:var(--ink-500);text-decoration:none;font-weight:600;padding:8px 12px;border-radius:var(--r-md)}
+.foot a:hover{color:var(--ink-900);background:var(--ink-100)}
 </style></head><body>
 
 <div class="header">
-  <img src="GP2_logo.png?v=1.2.0" alt="GP2 · Gestión Productiva — Loekemeyer">
-  <!-- Solo la version. El cartel "Modulos con candado pendientes de migracion" se saco:
-       el candado ya se explica solo y en el celular esa linea robaba una fila de grupos. -->
+  <h1>Gestión Productiva <small>Loekemeyer · Cervantes</small></h1>
+  <!-- Solo la version (y Cerrar sesion). El cartel "Modulos con candado pendientes de migracion"
+       se saco: el candado ya se explica solo y en el celular esa linea robaba una fila de grupos. -->
   <div class="header-sub">Versión <b id="appVersion">2.0</b><!-- con el login apagado
     (GP2_AUTH_ON=false) no hay sesion que cerrar: el link se oculta solo -->
-    <span id="sesion" hidden>&nbsp;·&nbsp; <a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}"
-    style="color:#b42318;text-decoration:none;font-weight:700">⎋ Cerrar sesión</a></span></div>
+    <span id="sesion" hidden><a href="login.html?logout=1" onclick="try{sessionStorage.clear();}catch(e){}">⎋ Cerrar sesión</a></span></div>
   <script src="version.js?v=20261008m"></script>
   <script>if (window.GP2_AUTH_ON !== false) document.getElementById('sesion').hidden = false;</script>
-  <div class="tablet-links">
-    <a class="tablet-link" href="Tablet/Tablet_GP2.html">📱 <span class="tl-v">Versión </span><span class="tl-t">Tablet </span>Logística</a>
-    <a class="tablet-link" href="Produccion/RegistroApp/Operarios_GP2.html">📱 <span class="tl-v">Versión </span><span class="tl-t">Tablet </span>Operarios</a>
-    <a class="tablet-link" href="Produccion/MonitorIngreso/MonitorIngreso_GP2.html">🔑 Monitor</a>
-  </div>
 </div>
 
-<!-- v1.216.0 (2026-09-30): el cartel "VIRGILIO DICE QUE TE LLEGO ESTO" se saco de la portada [usuario:
-     "El cartel amarillo de GP2 quiero que lo elimines de donde esta ahora"]. Lo que Gestion Virgilio
-     manda a Cervantes ahora aparece en Recepcion de Insumos > Importados, en la tarjeta del componente,
-     con Si / No (StockFlejes/RecepcionInsumos_GP2.html v3.66.0). -->
-
-<div class="wrap"><div class="grid" id="grid"></div></div>
+<div class="wrap">
+  <!-- Accesos rápidos: las dos tablets y el monitor (en el celular, pastillas fijas abajo) -->
+  <div class="tablet-links">
+    <a class="tablet-link" href="Tablet/Tablet_GP2.html"><span class="tl-i">📱</span><span><span class="tl-v">Versión </span><span class="tl-t">Tablet </span>Logística<span class="tl-s">Enviar · Recibir · Conteo</span></span></a>
+    <a class="tablet-link" href="Produccion/RegistroApp/Operarios_GP2.html"><span class="tl-i">📱</span><span><span class="tl-v">Versión </span><span class="tl-t">Tablet </span>Operarios<span class="tl-s">Registro de producción</span></span></a>
+    <a class="tablet-link" href="Produccion/MonitorIngreso/MonitorIngreso_GP2.html"><span class="tl-i">🔑</span><span>Monitor<span class="tl-s">Código de ingreso</span></span></a>
+  </div>
+  <div id="kpiResumen" class="kpis"></div>
+  <div class="grid" id="grid"></div>
+  <!-- los grupos ocultos siguen vivos con ?todos=1 (v1.196.0): acá se llega sin tipear la URL -->
+  <div class="foot"><a id="verTodos" href="?todos=1">Ver todos los módulos →</a></div>
+</div>
 <script>
 /* v1.197.0 (2026-10-01) - entra "Control Partes Inyectores" en Stocks, debajo de los otros 3
    controles (Talleristas / P.S. / Prov. A.T.). Mismo molde que Control P.S., pero por inyector
@@ -402,6 +358,7 @@ const MENU_VISIBLE = VER_TODOS ? MENU.concat(MENU_OCULTO) : MENU;
    Herramientas arrancan abiertos, sin chevron ni click que los cierre. Con ?todos=1 sigue el
    acordeon de siempre (13 grupos no entran abiertos). */
 const FIJO = !VER_TODOS;
+if (VER_TODOS) { const vt = document.getElementById("verTodos"); vt.href = "GP2_MODULOS.html"; vt.textContent = "← Menú reducido"; }
 if (FIJO) document.body.classList.add("fijo");
 MENU_VISIBLE.forEach(([icon, titulo, items]) => {
   const allLocked = items.every(i => !i[1]);
@@ -505,9 +462,9 @@ if (MENU_VISIBLE.length % 2 === 1) grid.lastElementChild.classList.add("solo");
     const kpi = document.getElementById("kpiResumen");
     if (kpi) {
       const f = v => Number(v || 0).toLocaleString("es-AR");
-      kpi.innerHTML = "Hoy: <b>" + f(d.uni) + "</b> uni · " + f(d.registros) + " reg · " +
-        f(d.empleados) + " oper &nbsp;|&nbsp; Mes: <b>" + f(m.uni) + "</b> uni · " +
-        f(m.registros) + " reg · " + f(m.empleados) + " oper";
+      const t = (k, v, d) => '<div class="kpi"><div class="k">' + k + '</div><div class="v">' + v + '</div><div class="d">' + d + '</div></div>';
+      kpi.innerHTML = t("Unidades hoy", f(d.uni), f(d.registros) + " registros · " + f(d.empleados) + " operarios") +
+        t("Unidades del mes", f(m.uni), f(m.registros) + " registros · " + f(m.empleados) + " operarios");
     }
   } catch (e) { console.error(e); }
 })();

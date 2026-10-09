@@ -1,120 +1,481 @@
+/* ============================================================================
+   GP2 · SISTEMA DE DISEÑO  (gp2-modulo.css)                     v2.0 · 2026-10-09
+   ----------------------------------------------------------------------------
+   UN solo archivo de estilos para TODO GP2. Reemplaza a la mezcla de antes
+   (este archivo con "header negro + Arial", gp2-claro.css con !important y
+   15 pantallas con estilos propios): ahora cada pantalla toma de acá la
+   tipografía, el color, los botones, los campos, las tablas y el encabezado.
+   Lo que una pantalla agrega en su <style> es LAYOUT propio, no un estilo
+   nuevo de botón o de tabla. Guía viva con todos los componentes:
+   GP2_DS.html (raíz). Reglas y por qué: DISENO_GP2.md.
+
+   Reglas de la casa que este archivo sostiene (no se negocian):
+     · campos de carga ≥ 18px (usuario 2026-08-30) — iOS además no hace zoom;
+     · todo lo tocable ≥ 44px de alto;
+     · la página nunca scrollea horizontal: lo ancho va en .table-wrap.
+
+   Índice
+     0. Fuente           5. Botones            10. KPIs / badges / avisos
+     1. Tokens           6. Campos             11. Celdas editables (envíos)
+     2. Base             7. Chips y segmentos  12. Utilidades
+     3. Shell (barra)    8. Tablas             13. Compatibilidad (clases viejas)
+     4. Paneles          9. Grupos/acordeones  14. Celular · impresión
+   ========================================================================== */
+
+/* ── 0. Fuente ─────────────────────────────────────────────────────────────
+   Inter variable (100–900) servida desde el repo: una sola familia en todo el
+   programa y sin depender de Google Fonts (la tablet del galpón a veces no
+   tiene red). Licencia: fonts/OFL-Inter.txt. */
+@font-face{
+  font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;
+  src:url("fonts/inter-latin-wght-normal.woff2") format("woff2-variations"),
+      url("fonts/inter-latin-wght-normal.woff2") format("woff2");
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+/* ── 1. Tokens ─────────────────────────────────────────────────────────── */
+:root{
+  /* tipografía */
+  --font:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --fs-cap:12px;     /* encabezado de tabla, rótulo de KPI (MAYÚSCULAS) */
+  --fs-sm:13.5px;    /* ayuda, metadatos, notas al pie */
+  --fs-td:15px;      /* celda de tabla */
+  --fs-base:16px;    /* texto normal, botones */
+  --fs-in:18px;      /* campos de carga (piso de la casa) */
+  --fs-h3:16px;      /* título de bloque */
+  --fs-h2:18px;      /* título de sección */
+  --fs-h1:20px;      /* título de la pantalla (barra) */
+  --fs-kpi:26px;     /* número de un KPI */
+  --fs-hero:34px;    /* número protagonista */
+
+  /* tinta (neutros) */
+  --ink-950:#0a1020; --ink-900:#0f172a; --ink-800:#1e293b; --ink-700:#334155;
+  --ink-600:#475569; --ink-500:#64748b; --ink-400:#94a3b8; --ink-300:#cbd5e1;
+  --ink-200:#e2e8f0; --ink-150:#e8edf3; --ink-100:#f1f5f9; --ink-50:#f8fafc;
+
+  /* marca: el azul del logo GP2 */
+  --brand-800:#0f2c6b; --brand-700:#123274; --brand-600:#163e98; --brand-500:#1f55c9;
+  --brand-200:#c7d7f6; --brand-100:#dfe8fb; --brand-50:#f0f4fd;
+
+  /* estados */
+  --ok-700:#15803d;  --ok-600:#16a34a;  --ok-200:#bbf7d0;  --ok-50:#f0fdf4;
+  --warn-700:#b45309;--warn-600:#d97706;--warn-200:#fde68a;--warn-50:#fffbeb;
+  --err-700:#b91c1c; --err-600:#dc2626; --err-200:#fecaca; --err-50:#fef2f2;
+  --falt-50:#fff7ed;  /* fila con faltante / bajo mínimo */
+
+  /* superficies */
+  --bg:#eef1f5;        /* lienzo de la app */
+  --surface:#ffffff;   /* panel */
+  --surface-2:#f8fafc; /* zona sutil dentro de un panel */
+  --line:#e2e8f0; --line-soft:#edf1f5; --line-strong:#cbd5e1;
+
+  /* forma */
+  --r-sm:6px; --r-md:8px; --r-lg:12px; --r-pill:999px;
+  --sh-1:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.04);
+  --sh-2:0 6px 24px rgba(15,23,42,.12);
+  --ring:0 0 0 3px rgba(31,85,201,.28);
+
+  /* espacio (base 4) */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px; --s8:32px;
+
+  /* medidas */
+  --touch:44px;          /* alto mínimo de todo lo tocable */
+  --bar-h:56px;          /* barra superior fija */
+  --page-max:1760px;     /* ancho máximo del contenido (monitores enormes) */
+  --gutter:20px;         /* margen lateral del contenido */
+}
+
+/* ── 2. Base ───────────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box}
+*{margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{
+  font-family:var(--font);font-size:var(--fs-base);line-height:1.45;color:var(--ink-800);
+  background:var(--bg);min-height:100vh;font-feature-settings:"cv11","ss01";
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+}
+button,input,select,textarea{font-family:inherit;color:inherit}
+h1{font-size:var(--fs-h1);font-weight:700;letter-spacing:-.01em;line-height:1.2}
+h2{font-size:var(--fs-h2);font-weight:700;letter-spacing:-.005em;line-height:1.25}
+h3{font-size:var(--fs-h3);font-weight:650;line-height:1.3}
+h4,h5,h6{font-size:var(--fs-base);font-weight:650}
+a{color:var(--brand-600)}
+b,strong{font-weight:650}
+code{font-family:var(--mono);font-size:.88em;background:var(--ink-100);padding:1px 5px;border-radius:4px}
+:focus-visible{outline:none;box-shadow:var(--ring)}
+::selection{background:var(--brand-100)}
+/* números: siempre alineados (las columnas de cantidades no "bailan") */
+:where(td,th,.num,.kpi .v,input[inputmode]){font-variant-numeric:tabular-nums}
+
+/* ── 3. Shell: la barra superior ───────────────────────────────────────────
+   UNA barra para todas las pantallas, fija arriba mientras se scrollea:
+     [‹ Atrás] [GP2] Título de la pantalla ············ [acciones]
+   Markup canónico (lo que ya usaban 40 pantallas):
+     <div class="card">
+       <div class="header"><h1>Título</h1>
+         <div class="hbtns"><a href="…">Acción</a> <a class="back" href="…">Atrás</a></div>
+       </div>
+       <div class="steps"> …contenido… </div>
+     </div>
+   `.back` (o el primer link "Atrás/Volver/Menú") se dibuja a la izquierda. */
+body > .card{max-width:none;margin:0;background:transparent;border:0;border-radius:0;box-shadow:none;overflow:clip}
+.header{
+  position:sticky;top:0;z-index:60;
+  display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;
+  min-height:var(--bar-h);padding:6px var(--gutter);
+  background:var(--ink-900);color:#fff;
+  border-bottom:1px solid var(--ink-950);
+  box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 2px 10px rgba(15,23,42,.18);
+}
+/* la marca: un sello "GP2" que dice "estás en GP2" en cada pantalla */
+.header::before{
+  content:"GP2";order:-1;flex:none;
+  display:inline-flex;align-items:center;justify-content:center;
+  height:28px;padding:0 8px;border-radius:6px;
+  background:var(--brand-600);color:#fff;font-weight:800;font-size:13px;letter-spacing:.06em;
+  box-shadow:inset 0 -2px 0 rgba(0,0,0,.18);
+}
+.header h1{flex:1 1 auto;min-width:0;font-size:var(--fs-h1);font-weight:700;color:#fff;letter-spacing:-.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.header h1 small,.header .h-sub{font-size:var(--fs-sm);font-weight:500;color:var(--ink-400);margin-left:8px}
+.header .hbtns{display:contents}   /* los botones son hijos directos de la barra: se pueden ordenar */
+.header a,.header button,.header .hlink{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  min-height:var(--touch);padding:0 14px;border-radius:var(--r-md);
+  background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.16);
+  font-size:15px;font-weight:600;text-decoration:none;cursor:pointer;white-space:nowrap;
+  transition:background .12s,border-color .12s;
+}
+.header a:hover,.header button:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.3)}
+.header a:active,.header button:active{background:rgba(255,255,255,.22)}
+/* acción principal de la barra (ej. "+ Nuevo", "± Ajuste") */
+.header .primary,.header .btn-primary{background:var(--brand-500);border-color:var(--brand-500)}
+.header .primary:hover,.header .btn-primary:hover{background:#2a62d8}
+/* Atrás: a la izquierda, antes del sello */
+.header .back{order:-2;padding:0 12px 0 8px;background:transparent;border-color:transparent;color:var(--ink-300)}
+.header .back::before{content:"‹";font-size:24px;line-height:1;margin-top:-3px;font-weight:400}
+.header .back:hover{background:rgba(255,255,255,.08);color:#fff}
+.header .status,.header #status{color:var(--ink-300);font-size:var(--fs-sm)}
+
+/* contenido de la pantalla */
+.steps,.page{width:100%;max-width:var(--page-max);margin:0 auto;padding:var(--s4) var(--gutter) var(--s8)}
+.page-narrow{max-width:760px}     /* formularios cortos: no estirar los campos a 1.700px */
+.page-mid{max-width:1180px}
+
+/* título de sección: queda pegado bajo la barra mientras se scrollea su bloque */
+.sec-title{
+  position:sticky;top:var(--bar-h);z-index:30;
+  display:flex;align-items:center;gap:10px;
+  margin:var(--s4) 0 var(--s2);padding:10px 0;
+  background:var(--bg);font-size:var(--fs-h2);font-weight:700;color:var(--ink-900);
+}
+.sec-title .meta{font-size:var(--fs-sm);font-weight:500;color:var(--ink-500)}
+.sec-title .push{margin-left:auto}
+
+/* ── 4. Paneles ────────────────────────────────────────────────────────── */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-1)}
+.panel-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);
+  font-size:var(--fs-h3);font-weight:700;color:var(--ink-900)}
+.panel-head .push{margin-left:auto}
+.panel-body{padding:14px 16px}
+/* rejilla de paneles: aprovecha el ancho (2-3 columnas en escritorio, 1 en celular) */
+.grid-auto{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:var(--s4);align-items:start}
+.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s4)}
+.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s4)}
+
+/* barra de herramientas: filtros + búsqueda + acciones en UNA fila densa */
+.toolbar,.row{display:flex;gap:var(--s2) 10px;flex-wrap:wrap;align-items:center;margin:var(--s2) 0}
+.toolbar .push,.row .push{margin-left:auto}
+/* campo con rótulo arriba (filtros) */
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field > label,.field > .lbl{font-size:var(--fs-sm);font-weight:600;color:var(--ink-600)}
+label.lbl{font-size:var(--fs-sm);font-weight:700;color:var(--ink-600);text-transform:uppercase;letter-spacing:.04em}
+
+/* ── 5. Botones ────────────────────────────────────────────────────────────
+   Un solo lenguaje: .btn + variante. Primario = azul GP2 (la acción que avanza);
+   secundario = blanco con borde; ghost = sin borde; peligro y éxito por color. */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:var(--touch);padding:0 18px;border-radius:var(--r-md);
+  border:1px solid transparent;background:var(--ink-900);color:#fff;
+  font-size:var(--fs-base);font-weight:650;line-height:1.1;text-decoration:none;
+  cursor:pointer;white-space:nowrap;user-select:none;
+  transition:background .12s,border-color .12s,box-shadow .12s,transform .06s;
+}
+.btn:hover{background:var(--ink-700)}
+.btn:active{transform:translateY(1px)}
+.btn-primary,.btn.primary{background:var(--brand-600);color:#fff;border-color:var(--brand-600)}
+.btn-primary:hover,.btn.primary:hover{background:var(--brand-500);border-color:var(--brand-500)}
+.btn-secondary,.btn.secondary,.btn-cancel{background:var(--surface);color:var(--ink-800);border-color:var(--line-strong)}
+.btn-secondary:hover,.btn.secondary:hover,.btn-cancel:hover{background:var(--ink-50);border-color:var(--ink-400)}
+.btn-ghost{background:transparent;color:var(--ink-700);border-color:transparent}
+.btn-ghost:hover{background:var(--ink-100)}
+.btn-danger{background:var(--err-700);color:#fff;border-color:var(--err-700)}
+.btn-danger:hover{background:var(--err-600)}
+.btn-success,.btn-ok{background:var(--ok-700);color:#fff;border-color:var(--ok-700)}
+.btn-success:hover,.btn-ok:hover{background:var(--ok-600)}
+.btn-lg{min-height:52px;padding:0 24px;font-size:18px}
+.btn-block{display:flex;width:100%}
+.btn:disabled,.btn[aria-disabled="true"],.btn.disabled{opacity:.45;cursor:not-allowed;transform:none}
+/* botón de solo ícono (cuadrado tocable) */
+.btn-icon{width:var(--touch);padding:0}
+
+/* ── 6. Campos ─────────────────────────────────────────────────────────── */
 /* Accesibilidad (regla usuario 2026-08-30): letra GRANDE en todo campo de carga —
    alguien que ve mal tiene que poder escribir sin equivocarse. 18px de piso
    (ademas evita el zoom automatico de iOS, que salta con menos de 16px).
    Los estilos propios de cada pantalla pueden subirla, nunca bajarla. */
 input, select, textarea { font-size: 18px; }
+:where(input:not([type=checkbox],[type=radio],[type=range],[type=file],[type=color],[type=hidden]),select,textarea){
+  min-height:var(--touch);padding:0 12px;border:1.5px solid var(--line-strong);border-radius:var(--r-md);
+  background:var(--surface);color:var(--ink-900);transition:border-color .12s,box-shadow .12s;
+}
+:where(textarea){padding:10px 12px;line-height:1.4}
+:where(select){padding-right:34px;appearance:none;-webkit-appearance:none;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23475569' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center}
+:where(input,select,textarea):where(:hover:not(:focus,:disabled)){border-color:var(--ink-400)}
+:where(input,select,textarea):focus{outline:none;border-color:var(--brand-500);box-shadow:var(--ring)}
+:where(input,textarea)::placeholder{color:var(--ink-400)}
+:where(input,select,textarea):disabled{background:var(--ink-100);color:var(--ink-500);cursor:not-allowed}
+:where(input[type=checkbox],input[type=radio]){width:20px;height:20px;accent-color:var(--brand-600);vertical-align:middle;cursor:pointer}
+input.err,select.err,.is-err{border-color:var(--err-600)!important;background:var(--err-50)}
+input.ok,.is-ok{border-color:var(--ok-600)!important}
+:where(input[type=date]){min-width:0}
+/* buscador: lupa adentro del campo */
+.search-box{margin:var(--s2) 0}
+.search-box input,input.search,input[type=search]{
+  width:100%;padding-left:40px!important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.5-3.5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:12px center}
 
-/* ============================================================
-   gp2-modulo.css — esqueleto compartido de los modulos GP2.
+/* ── 7. Chips y segmentos ──────────────────────────────────────────────────
+   Todo lo que ELIGE (proveedor, tallerista, rubro, filtro, pestaña) se ve igual:
+   blanco con borde y, elegido, relleno tinta. Una sola señal de "seleccionado". */
+.provs-grid,.chips{display:flex;flex-wrap:wrap;gap:var(--s2);margin:var(--s2) 0}
+.prov-btn,.seg-btn,.chip,.tab-btn,.pill-btn,.filtro-btn,.tallerista-btn{
+  display:inline-flex;flex-direction:column;align-items:flex-start;justify-content:center;
+  min-height:var(--touch);padding:6px 14px;border-radius:var(--r-md);
+  border:1.5px solid var(--line-strong);background:var(--surface);color:var(--ink-800);
+  font-size:var(--fs-base);font-weight:600;line-height:1.2;text-align:left;cursor:pointer;
+  transition:background .12s,border-color .12s,color .12s;
+}
+.seg-btn,.tab-btn,.pill-btn,.filtro-btn{align-items:center;text-align:center}
+.chip{flex-direction:row;align-items:center;gap:6px}
+.chip .n{margin-left:0}
+.prov-btn:hover,.seg-btn:hover,.chip:hover,.tab-btn:hover,.pill-btn:hover,.filtro-btn:hover,.tallerista-btn:hover{border-color:var(--ink-500);background:var(--ink-50)}
+.prov-btn.active,.seg-btn.active,.chip.active,.tab-btn.active,.pill-btn.active,.filtro-btn.active,.tallerista-btn.active,
+.tab-btn[aria-selected="true"],.chip[aria-pressed="true"]{
+  background:var(--ink-900);color:#fff;border-color:var(--ink-900);
+}
+.prov-btn .meta,.tallerista-btn .prov-meta,.chip .meta{display:block;font-size:var(--fs-cap);font-weight:600;color:var(--ink-500);margin-top:2px}
+.prov-btn.active .meta,.tallerista-btn.active .prov-meta,.chip.active .meta{color:var(--ink-300)}
+.chip .n,.seg-btn .n{display:inline-block;margin-left:6px;padding:0 7px;border-radius:var(--r-pill);background:var(--ink-100);color:var(--ink-600);font-size:var(--fs-cap);font-weight:700}
+.chip.active .n,.seg-btn.active .n{background:rgba(255,255,255,.16);color:#fff}
+/* segmentado: botones pegados en una cápsula (Todos | Con stock | Sin stock) */
+.seg{display:inline-flex;padding:3px;gap:3px;background:var(--ink-100);border-radius:10px;flex-wrap:wrap}
+.seg > .seg-btn{border-color:transparent;background:transparent;min-height:var(--touch)}
+.seg > .seg-btn:hover{background:rgba(255,255,255,.7)}
+.seg > .seg-btn.active{background:var(--surface);color:var(--ink-900);border-color:var(--surface);box-shadow:var(--sh-1)}
+/* pestañas de página (subrayado) */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:0 0 var(--s3);overflow-x:auto;scrollbar-width:none}
+.tabs > *{min-height:var(--touch);padding:0 16px;border:0;border-bottom:3px solid transparent;background:none;
+  font-size:var(--fs-base);font-weight:600;color:var(--ink-500);cursor:pointer;white-space:nowrap}
+.tabs > .active,.tabs > [aria-selected="true"]{color:var(--ink-900);border-bottom-color:var(--brand-600)}
 
-   Reproduce la estructura de Gestion Productiva Entero:
-     card blanca + header negro
-     fase0: fila de chips (proveedor / tallerista)
-     fase1: tabla editable (cantidad + tandas + faltante)
-     fase3: confirmacion
+/* ── 8. Tablas ─────────────────────────────────────────────────────────────
+   Densas y legibles: celda 15px, encabezado 12px en mayúsculas, números a la
+   derecha y tabulares. El ENCABEZADO QUEDA FIJO al scrollear:
+     · tabla suelta en la página: se pega bajo la barra (top: --bar-h);
+     · tabla dentro de .table-wrap: el wrap es su propia ventana (alto máx. =
+       la pantalla) y ahí se pega el encabezado Y la primera columna. */
+:where(table){border-collapse:separate;border-spacing:0;font-size:var(--fs-td);color:var(--ink-800)}
+table.t,.table-wrap > table{width:100%}
+:where(th){
+  text-align:left;font-size:var(--fs-cap);font-weight:700;color:var(--ink-500);
+  text-transform:uppercase;letter-spacing:.04em;line-height:1.25;
+  padding:9px 10px;background:var(--ink-50);border-bottom:1px solid var(--line-strong);vertical-align:bottom;
+}
+:where(td){padding:8px 10px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+/* encabezado fijo: dentro de .table-wrap (top 0) o, en una tabla suelta, con .sticky-head
+   (se pega bajo la barra). NO se aplica a toda tabla: dentro de un contenedor con
+   overflow que no es .table-wrap, un top de 56px correria el encabezado sobre las filas. */
+table.sticky-head thead th{position:sticky;top:var(--bar-h);z-index:5}
+:where(tbody tr:hover > td){background:var(--brand-50)}
+tfoot td,tr.total td{font-weight:750;background:var(--ink-50);border-top:1px solid var(--line-strong);border-bottom:0}
+td.num,th.num,.num{text-align:right}
+td.ctr,th.ctr{text-align:center}
+th.sep,td.sep,.sep{border-left:1px solid var(--line-strong)}
+tr.falt > td,tr.bajo > td{background:var(--falt-50)}
+tr.sel > td,tr.selected > td{background:var(--brand-50)}
+tr.off > td,tr.muted > td{color:var(--ink-400)}
 
-   Lo usan: PS Envio, PS Entrega, Tallerista Control/Envio/Entrega.
-   ============================================================ */
+.table-wrap{
+  overflow:auto;max-height:calc(100vh - var(--bar-h) - 24px);max-height:calc(100dvh - var(--bar-h) - 24px);
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+  overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;
+}
+.table-wrap > table{border:0}
+.table-wrap thead th{position:sticky;top:0;z-index:5}
+.table-wrap > table > thead > tr:first-child > th:first-child{border-top-left-radius:var(--r-lg)}
+.table-wrap > table > thead > tr:first-child > th:last-child{border-top-right-radius:var(--r-lg)}
+/* primera columna fija (código / nombre) cuando la tabla es más ancha que la pantalla */
+.table-wrap > table.t > tbody > tr > td:first-child,
+.table-wrap > table.t > tfoot > tr > td:first-child{position:sticky;left:0;z-index:2;background:var(--surface)}
+.table-wrap > table.t > thead > tr > th:first-child{left:0;z-index:6}
+.table-wrap > table.t > tbody > tr:hover > td:first-child{background:var(--brand-50)}
+.table-wrap > table.t > tbody > tr.falt > td:first-child,.table-wrap > table.t > tbody > tr.bajo > td:first-child{background:var(--falt-50)}
+.table-wrap > table.t > tfoot > tr > td:first-child{background:var(--ink-50)}
+.table-wrap > table.t.no-stick td:first-child,.table-wrap > table.t.no-stick th:first-child{position:static}
+.table-wrap.free{max-height:none}   /* tabla corta que no necesita ventana propia */
 
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,sans-serif;background:#f5f6f8;padding:12px;color:#111}
+table.t{background:var(--surface)}
+.cod{font-weight:700;color:var(--brand-600);white-space:nowrap}
+.proc{color:var(--ink-600)}
+.sub,.muted,.hint{color:var(--ink-500);font-size:var(--fs-sm)}
+td .sub{display:block;margin-top:1px}
 
-/* ---- card + header ---- */
-.card{max-width:1180px;margin:auto;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);overflow:hidden}
-.header{background:#1a1a1a;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-.header h1{font-size:24px;font-weight:700}
-.header .hbtns{display:flex;gap:8px;flex-wrap:wrap}
-.header a,.header button.hlink{background:#fff;color:#111;padding:8px 14px;border-radius:6px;font-weight:700;font-size:18px;text-decoration:none;border:none;cursor:pointer;
-  display:inline-flex;align-items:center;min-height:44px}  /* accesibilidad: mismo look, area tocable de 44px */
+/* ── 9. Grupos y acordeones (Stock General, reportes por tallerista) ──── */
+.grp,.tall-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);margin:0 0 var(--s3);overflow:clip;box-shadow:var(--sh-1)}
+.grp > .gh,.tall-head{
+  position:sticky;top:var(--bar-h);z-index:20;
+  display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--surface-2);
+  border-bottom:1px solid var(--line);font-weight:700;cursor:pointer;
+}
+.grp > .gh:hover{background:var(--ink-100)}
+.gh .nm,.sh .nm,.tall-head .nm{color:var(--ink-900);font-weight:700}
+.tall-head .cod{color:var(--ink-500)}
+details > summary{cursor:pointer;min-height:var(--touch);display:flex;align-items:center;gap:8px;font-weight:650;list-style:none}
+details > summary::-webkit-details-marker{display:none}
+details > summary::before{content:"›";font-size:20px;color:var(--ink-500);transition:transform .15s;width:14px}
+details[open] > summary::before{transform:rotate(90deg)}
 
-.steps{padding:14px 18px}
-.row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;align-items:center}
-label.lbl{font-weight:800;font-size:20px}
-input[type="date"]{height:44px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:20px}
+/* ── 10. KPIs, badges, avisos, estado ──────────────────────────────────── */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--s2);margin:var(--s3) 0}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:10px 14px;min-width:0;box-shadow:var(--sh-1)}
+.kpi .k{font-size:var(--fs-cap);color:var(--ink-500);text-transform:uppercase;font-weight:700;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .v{font-size:var(--fs-kpi);font-weight:750;line-height:1.15;color:var(--ink-900);letter-spacing:-.01em}
+.kpi .d{font-size:var(--fs-sm);color:var(--ink-500)}
+.kpi.ok{border-top:3px solid var(--ok-600)} .kpi.ok .v{color:var(--ok-700)}
+.kpi.warn{border-top:3px solid var(--warn-600)} .kpi.warn .v{color:var(--warn-700)}
+.kpi.err{border-top:3px solid var(--err-600)} .kpi.err .v{color:var(--err-700)}
+.kpi.info{border-top:3px solid var(--brand-500)}
 
-/* ---- botones ---- */
-.btn{padding:10px 16px;min-height:44px;border-radius:8px;border:none;font-weight:800;cursor:pointer;font-size:20px}
-.btn-primary{background:#111;color:#fff}
-.btn-secondary{background:#fff;border:2px solid #d0d7de;color:#111}
-.btn:disabled{opacity:.45;cursor:not-allowed}
+.badge,.tag{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:var(--r-pill);
+  font-size:var(--fs-cap);font-weight:700;letter-spacing:.02em;line-height:1.5;white-space:nowrap;
+  background:var(--ink-100);color:var(--ink-600);border:1px solid transparent}
+.badge.ok,.tag.ok,.badge.hot{background:var(--ok-50);color:var(--ok-700);border-color:var(--ok-200)}
+.badge.warn,.tag.warn{background:var(--warn-50);color:var(--warn-700);border-color:var(--warn-200)}
+.badge.err,.tag.err{background:var(--err-50);color:var(--err-700);border-color:var(--err-200)}
+.badge.info,.tag.info{background:var(--brand-50);color:var(--brand-700);border-color:var(--brand-200)}
+.badge.dark{background:var(--ink-900);color:#fff}
 
-.status{margin:8px 0;font-size:18px;color:#555;min-height:10px}
+/* aviso: banda con borde de color a la izquierda */
+.aviso,.autoinfo,.alert{
+  margin:var(--s3) 0;padding:10px 14px;border-radius:var(--r-md);
+  border:1px solid var(--warn-200);border-left:4px solid var(--warn-600);
+  background:var(--warn-50);color:#6b4100;font-size:14.5px;line-height:1.45;
+}
+.aviso b{color:#4a2d00}
+.aviso code{background:#fef3c7}
+.aviso.info,.autoinfo,.alert.info{border-color:var(--brand-200);border-left-color:var(--brand-500);background:var(--brand-50);color:var(--brand-800)}
+.aviso.info b,.autoinfo b{color:var(--brand-800)}
+.aviso.ok,.alert.ok{border-color:var(--ok-200);border-left-color:var(--ok-600);background:var(--ok-50);color:#14532d}
+.aviso.err,.alert.err{border-color:var(--err-200);border-left-color:var(--err-600);background:var(--err-50);color:#7f1d1d}
 
-/* ---- chips (fase 0) ---- */
-.provs-grid{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
-.prov-btn{padding:10px 16px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:700;cursor:pointer;font-size:19px;color:#111;text-align:left}
-.prov-btn:hover{border-color:#111}
-.prov-btn.active{background:#111;color:#fff;border-color:#111}
-.prov-btn .meta{display:block;font-size:14px;color:#777;font-weight:700;margin-top:3px}
-.prov-btn.active .meta{color:#cfcfcf}
+.status{margin:var(--s2) 0;font-size:var(--fs-sm);color:var(--ink-500);min-height:10px}
+.status.err,.msg.err,.err-text{color:var(--err-700);font-weight:600}
+.status.ok,.msg.ok{color:var(--ok-700);font-weight:600}
+.msg.warn{color:var(--warn-700);font-weight:600}
+.empty{color:var(--ink-500);padding:28px 16px;text-align:center;font-size:var(--fs-base)}
+.empty::before{content:"";display:block;width:36px;height:36px;margin:0 auto 8px;border-radius:50%;
+  background:var(--ink-100) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Crect x='4' y='4' width='16' height='16' rx='3'/%3E%3Cpath d='M8 12h8'/%3E%3C/svg%3E") center/18px no-repeat}
+td.empty::before,.empty.plain::before{display:none}
 
-/* ---- buscador ---- */
-.search-box{margin:12px 0;padding:12px;background:#f6f8fa;border-radius:8px}
-.search-box input{width:100%;padding:10px;font-size:18px;border:2px solid #d0d7de;border-radius:6px}
+/* confirmación de una carga (código grande) */
+.successBox{margin:var(--s3) 0;border:1px solid var(--ok-200);background:var(--ok-50);border-radius:var(--r-lg);padding:24px;text-align:center}
+.successBox .title{font-weight:800;font-size:22px;color:var(--ok-700);margin-bottom:8px}
+.successBox .code{font-size:44px;font-weight:800;letter-spacing:5px;color:var(--ink-900);margin:8px 0;font-variant-numeric:tabular-nums}
 
-/* ---- tabla ---- */
-.table-wrap{overflow-x:auto;border:1px solid #e5e9ee;border-radius:10px}
-table.t{width:100%;border-collapse:collapse;font-size:17px;background:#fff}
-table.t th{background:#f6f8fa;color:#333;text-align:left;padding:9px 8px;border-bottom:2px solid #e5e9ee;font-size:13px;text-transform:uppercase;white-space:nowrap}
-table.t td{padding:7px 8px;border-bottom:1px solid #eef1f4;vertical-align:middle}
-table.t td.num,table.t th.num{text-align:right;font-variant-numeric:tabular-nums}
-table.t td.ctr,table.t th.ctr{text-align:center}
-table.t tr.falt td{background:#fff7ed}
-table.t tfoot td{font-weight:900;background:#f6f8fa;border-top:2px solid #e5e9ee}
-.sep{border-left:2px solid #e5e9ee}
-.cod{font-weight:900;color:#0066cc}
-.proc{color:#555}
-.sub{color:#777;font-size:14px}
-
-/* ---- filtros segmentados (Todos / Con stock / Sin stock / ...) ----
-   Estaban copiados IDENTICOS en 9 pantallas de stock (Flejes x6, SC, SP,
-   Movimiento) y median 38px de alto, por debajo del minimo tactil de 44.
-   Unificados aca 2026-09-03: se toca una vez y valen para las 9. */
-.seg-btn{padding:11px 14px;min-height:44px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:700;cursor:pointer;font-size:17px;color:#111}
-.seg-btn.active{background:#111;color:#fff;border-color:#111}
-
-/* ---- celdas editables ---- */
-/* min-height 44px = minimo tactil de la casa (idea 7337, 2026-09-12): median 39 en
-   TODAS las pantallas de envios/entregas/recepcion. El ancho es fijo, asi que crecer
-   a lo alto no mueve la columna. */
-.cell-in{width:96px;min-height:44px;padding:7px 8px;font-size:18px;border:2px solid #d0d7de;border-radius:6px;text-align:right;font-variant-numeric:tabular-nums}
-.cell-in:focus{outline:none;border-color:#111}
-.cell-in.ro{background:#f6f8fa;color:#555}
-/* 44px = minimo tactil de la casa. Median 34 y son los botones de TODA la carga
-   de envios y entregas (tandas y faltante), que se tocan con el dedo en la
-   tablet del galpon. El .cell-in de al lado tiene ancho fijo, asi que agrandarlos
-   no revienta la columna (2026-09-03). */
-.tanda-btn{width:44px;height:44px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:900;cursor:pointer;font-size:18px;color:#111}
-.tanda-btn.on{background:#0066cc;border-color:#0066cc;color:#fff}
-.falt-box{width:44px;height:44px;border-radius:8px;border:2px solid #d0d7de;background:#fff;font-weight:900;cursor:pointer;font-size:18px;color:#111}
+/* ── 11. Celdas editables (envíos / entregas / recepción) ──────────────── */
+/* min-height 44px = minimo tactil de la casa (idea 7337, 2026-09-12). El ancho es
+   fijo, asi que crecer a lo alto no mueve la columna. */
+.cell-in{width:96px;min-height:var(--touch);padding:0 8px!important;font-size:18px;text-align:right;font-variant-numeric:tabular-nums}
+.cell-in.ro{background:var(--ink-50);color:var(--ink-500)}
+/* 44px = minimo tactil: son los botones de toda la carga de envios y entregas
+   (tandas y faltante), que se tocan con el dedo en la tablet del galpon. */
+.tanda-btn,.falt-box{width:var(--touch);height:var(--touch);border-radius:var(--r-md);border:1.5px solid var(--line-strong);
+  background:var(--surface);font-weight:800;cursor:pointer;font-size:17px;color:var(--ink-800)}
+.tanda-btn:hover,.falt-box:hover{border-color:var(--ink-500)}
+.tanda-btn.on{background:var(--brand-600);border-color:var(--brand-600);color:#fff}
 .falt-box.on{background:#c2410c;border-color:#c2410c;color:#fff}
 
-/* ---- saldos ---- */
-.pos{color:#0a7a2f;font-weight:800}
-.neg{color:#b91c1c;font-weight:800}
-.cero{color:#999}
-
-/* ---- varios ---- */
-.empty{color:#888;padding:16px;text-align:center;font-style:italic;font-size:18px}
+/* ── 12. Utilidades ───────────────────────────────────────────────────── */
+.pos{color:var(--ok-700);font-weight:700}
+.neg{color:var(--err-700);font-weight:700}
+.cero{color:var(--ink-400)}
 .hidden{display:none!important}
+[hidden]{display:none!important}
+.push{margin-left:auto}
+.nowrap{white-space:nowrap}
+.right{text-align:right}
+.center{text-align:center}
+.mt-0{margin-top:0}.mt-2{margin-top:var(--s2)}.mt-4{margin-top:var(--s4)}
+.gap-2{gap:var(--s2)}
+.w-full{width:100%}
+.mono{font-family:var(--mono)}
+.sticky-top{position:sticky;top:var(--bar-h);z-index:25;background:var(--bg)}
+.no-print{}
 
-.successBox{margin:12px 0;border:2px solid #c7e8d1;background:#f3fbf6;border-radius:12px;padding:22px;text-align:center}
-.successBox .title{font-weight:900;font-size:24px;color:#0a7a2f;margin-bottom:10px}
-.successBox .code{font-size:46px;font-weight:900;letter-spacing:5px;color:#111;margin:10px 0}
+/* ── 13. Compatibilidad: clases viejas que todavía usan algunas pantallas ──
+   Se dibujan con el sistema para que NINGUNA pantalla quede con otro look.
+   Al tocar una pantalla, migrar a las clases nuevas. */
+.btn-sm{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:var(--touch);padding:0 14px;
+  border-radius:var(--r-md);border:1.5px solid var(--line-strong);background:var(--surface);color:var(--ink-800);
+  font-size:15px;font-weight:600;cursor:pointer;text-decoration:none}
+.btn-sm:hover{border-color:var(--ink-500);background:var(--ink-50)}
+.edit{color:var(--brand-600);border-color:var(--line-strong)}
+.btn-card,.btn-opcion{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:72px;padding:12px;
+  border-radius:var(--r-lg);border:1.5px solid var(--line-strong);background:var(--surface);color:var(--ink-900);
+  font-size:17px;font-weight:700;cursor:pointer;text-align:center;text-decoration:none;box-shadow:var(--sh-1)}
+.btn-card:hover,.btn-opcion:hover{border-color:var(--brand-500);background:var(--brand-50)}
+.btn-card .sub,.btn-opcion .sub{font-size:var(--fs-cap);font-weight:600;color:var(--ink-500)}
+.btn-card.active,.btn-opcion.active{background:var(--ink-900);color:#fff;border-color:var(--ink-900)}
+.btn-card.active .sub,.btn-opcion.active .sub{color:var(--ink-300)}
+tr.neg td.qty,td.qneg,.qneg{color:var(--err-700)}
 
-/* ---- aviso (estado de los datos) ---- */
-.aviso{background:#fffbeb;border:1px solid #fde68a;color:#7a5200;border-radius:10px;padding:10px 14px;font-size:15px;line-height:1.45;margin:10px 0}
-.aviso b{color:#5c3d00}
-.aviso code{background:#fef3c7;padding:1px 5px;border-radius:4px;font-size:14px}
-
-/* ---- KPIs ---- */
-.kpis{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
-.kpi{background:#f6f8fa;border:1px solid #e5e9ee;border-radius:10px;padding:10px 16px;min-width:130px}
-.kpi .k{font-size:13px;color:#666;text-transform:uppercase;font-weight:700}
-.kpi .v{font-size:26px;font-weight:900;font-variant-numeric:tabular-nums}
-
+/* ── 14. Celular e impresión ──────────────────────────────────────────── */
+@media (max-width:900px){
+  :root{--gutter:14px}
+  .grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:640px){
+  :root{--gutter:10px;--bar-h:52px;--fs-h1:17px;--fs-kpi:22px}
+  .header{padding:6px var(--gutter);gap:6px 8px}
+  .header::before{height:24px;font-size:12px;padding:0 6px}
+  /* en el celular las acciones van en una segunda fila que scrollea de costado */
+  .header .hbtns{display:flex;order:5;flex:1 0 100%;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .header .hbtns::-webkit-scrollbar{display:none}
+  .header .hbtns .back{order:-1}
+  .header a,.header button{min-height:var(--touch);padding:0 12px;font-size:14.5px}
+  .header .back{padding:0 10px 0 6px}
+  .steps,.page{padding:var(--s3) var(--gutter) var(--s6)}
+  .grid-2,.grid-3{grid-template-columns:1fr}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpi{padding:8px 12px}
+  :where(th){padding:8px}
+  :where(td){padding:7px 8px}
+  /* en el celular la barra ocupa 2 filas: la tabla se pega arriba de todo de su ventana */
+  table.sticky-head thead th{position:static}
+  .sec-title,.grp > .gh,.tall-head,.sticky-top{position:static}
+}
 @media print{
-  body{background:#fff;padding:0}
-  .header,.search-box,.btn,.provs-grid,.no-print{display:none!important}
+  body{background:#fff}
+  body > .card{overflow:visible}
+  .header,.search-box,.btn,.provs-grid,.no-print,.chips,.toolbar{display:none!important}
   .card{box-shadow:none;max-width:none}
+  .table-wrap{max-height:none;overflow:visible;border:0}
+  thead th,.sec-title,.grp > .gh{position:static}
+  tbody tr:hover > td{background:none}
 }

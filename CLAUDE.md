@@ -636,6 +636,22 @@ que pueda leer solamente eso y no tener que leer todo tu proceso de análisis."*
   y aplican el delta en `GP2.inventario`. El `var D` de los HTML mapea 1:1 a tablas GP2
   (los contratos de los bundles y los nombres reales de las tablas están en `GP2_MAPA.md`).
 
+## 🎨 REGLA (Thomas, 2026-10-09): UN solo sistema de diseño — `gp2-modulo.css`
+
+[Thomas: *"quiero que deje de sentirse como un conjunto de módulos diseñados por separado … ¿Este componente
+parece pertenecer al mismo producto que todos los demás módulos de GP2? Si la respuesta es no, ajustalo"*]
+
+- **Toda pantalla GP2 carga `gp2-modulo.css`** (tokens, Inter servida desde `fonts/`, barra fija, botones,
+  campos, chips, KPIs, tablas con encabezado fijo). `gp2-claro.css` **se borró**: no volver a crear capas
+  de `!important` que pisen colores.
+- **Markup y clases canónicas en `DISENO_GP2.md`**; la guía viva es `GP2_DS.html`. Antes de escribir CSS en
+  una pantalla, buscar el componente ahí. El `<style>` de una pantalla es para LAYOUT; nada de otra
+  `font-family`, otro botón, otro `th`, otra barra ni hex sueltos (usar `var(--…)`).
+- **Barra**: `body > .card > .header` con `h1` + `.hbtns`; el link de volver lleva `class="back"` (se dibuja
+  a la izquierda). **Tablas de datos**: `<div class="table-wrap"><table class="t">` (encabezado y primera
+  columna fijos). Secciones largas: `h2.sec-title` (sticky).
+- Excepción: `Produccion/RegistroApp/Operarios_GP2.html` es copia de Registro Producción 3.0 y conserva su look.
+
 ## Campos de carga: letra grande + teclado numérico (OBLIGATORIO)
 
 **Regla del usuario (2026-08-30): "Siempre quiero letras bien grandes y legibles para que
