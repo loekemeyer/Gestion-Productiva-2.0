@@ -1,6 +1,23 @@
 <!doctype html>
 <html lang="es">
 <head>
+<!-- v1.5.0 (2026-10-09) — ENTRAN SC Y SP, CON EL STOCK DE HOY [Thomas 09/10: "Agregame al módulo
+     de conteo de versión tablet logística, sc y sp. Quiero que en ese módulo aparezca el stock de
+     hoy ... registrar a la derecha ... cuántos cajones hay realmente ... me calcule cuántos kilos
+     hay y cuántas unidades ... y que yo pueda modificar ... cuántos kilos hay ... me debe corregir
+     a cuántas unidades hay realmente, pero mantener la cantidad de cajones como un dato fijo"].
+     Sector Crudo y Sector Procesado salen arriba de todo, SIN cronograma ("a demanda": se cuentan
+     cuando se quiere). Su planilla es otra: a la izquierda el STOCK DE HOY (cajones · kg · uni,
+     del programa) y a la derecha el CONTEO REAL: Cajones -> Kg (calculado = cajones × uni_x_cajon
+     × kg_x_uni) -> Uni. El Kg se puede pisar (se pesó): entonces las uni salen del kg y los cajones
+     quedan como se cargaron. "↺" vuelve al kg calculado. La base guarda el kg SOLO si se pesó
+     (relevamiento_item.kg NULL = calculado) y es la que calcula las uni (relev_total_uni).
+     db/migracion_relev_sc_sp_cajones_kg_20261009.sql, CONOCIMIENTO §4kj.
+     Mismo día [Thomas: "Agregar también sector movimiento ... cuando termino de cargar el conteo
+     que lo mande a validación stock para poner si quiero que siga el stock del sistema o quede el
+     del conteo"]: entra Sector Movimiento con la misma planilla (sin pesos: se cuenta en uni), y
+     "Completar conteo" abre Validación de Stock con ESE conteo (?id=); el rol "envios" no tiene
+     esa pantalla, así que a él se le sigue diciendo "Queda para validar". -->
 <!-- v1.4.0 (2026-09-14) — ESTE ES EL "CONTEO" DE LA TABLET [usuario 2026-09-14: "dentro del
      módulo conteo tendría que aparecer lo del módulo de relevamientos. Es esa lógica"]. La
      Versión Tablet dejó de tener su propia tabla de conteo con CSV y abre esta pantalla con
@@ -121,6 +138,21 @@
   table.t tr.grupo th{font-size:var(--fs-h3);text-transform:none;letter-spacing:0;background:var(--ink-150);color:var(--ink-900);padding:10px}
   table.t tr.sub th{font-size:var(--fs-cap)}
 
+  /* ---- SC / SP: stock de hoy | conteo real (2026-10-09) ---- */
+  table.t tr.sup th{font-size:var(--fs-cap);text-align:center;background:var(--ink-150);color:var(--ink-900);padding:8px 6px}
+  table.t th.hoy, td.hoy{background:var(--surface-2);color:var(--ink-600)}
+  td.hoy{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+  td.sep, th.sep{border-left:2px solid var(--line-strong)}
+  .in-num.kg{width:120px}
+  /* kg pesado a mano: se distingue del calculado */
+  .in-num.kg.manual{border-color:var(--brand-500);background:var(--brand-50)}
+  .kg-cel{display:inline-flex;align-items:center;gap:6px}
+  .kg-reset{min-width:44px;min-height:44px;border:1.5px solid var(--line-strong);border-radius:var(--r-md);background:var(--surface);
+            font-size:18px;font-weight:700;cursor:pointer;color:var(--brand-600)}
+  .env-nom{display:block;font-size:var(--fs-cap);color:var(--ink-500)}
+  .falta{font-size:var(--fs-sm);color:var(--ink-500);font-style:italic}
+  .dias.demanda{background:var(--brand-50);color:var(--brand-700)}
+
   @media(max-width:430px){
     .cl-acts{margin-left:0;width:100%}
     .cl-tipo,.cl-fecha,.cl-comp{min-width:0}
@@ -197,6 +229,7 @@ function msg(t, malo){
 }
 
 var CRONO=[], REL=null, ITEMS=[];
+var CAJKG = false;   // SC / SP: se cuenta en cajones + kg (lo dice la base: relevamiento_detalle.caj_kg)
 
 /* ---------------- PASO 1: cronograma ---------------- */
 async function boot(){
@@ -249,17 +282,24 @@ function pintarCrono(){
     } else {
       acts = '<button type="button" class="btn btn-primary" data-abrir="'+c.sector_id+'" data-crono="'+c.crono_id+'">Contar</button>';
     }
+    /* SC / SP / Movimiento no tienen cronograma ni fecha [Thomas 09/10: "No es Hoy. Estos stocks no
+       tienen fecha"]: se cuentan cuando se quiere, contra el stock del sistema. */
+    var fecha = c.a_demanda
+      ? ''
+      : '<span class="cl-fecha"><span class="lb">Próximo</span><span class="d">'+fmtFecha(c.fecha)+'</span></span>'+
+        '<span class="dias '+claseDias(c.dias)+'">'+textoDias(c.dias)+'</span>';
     return '<div class="cl'+(hecho?' hecho':'')+'">'+
       '<span class="cl-tipo">'+esc(c.tipo)+'</span>'+
-      '<span class="cl-fecha"><span class="lb">Próximo</span><span class="d">'+fmtFecha(c.fecha)+'</span></span>'+
-      '<span class="dias '+claseDias(c.dias)+'">'+textoDias(c.dias)+'</span>'+
+      fecha+
       '<span class="cl-comp">'+fmt(c.componentes)+' componentes</span>'+
       '<span class="cl-acts">'+acts+'</span>'+
     '</div>';
   }).join('') || '<div class="empty">No hay conteos programados.</div>';
 
   document.querySelectorAll('[data-abrir]').forEach(function(b){
-    b.addEventListener('click', function(){ abrir(Number(b.dataset.abrir), Number(b.dataset.crono)); });
+    // sin cronograma (SC/SP) el data-crono dice "null": se manda null, no NaN
+    var k = Number(b.dataset.crono);
+    b.addEventListener('click', function(){ abrir(Number(b.dataset.abrir), isFinite(k) && k > 0 ? k : null); });
   });
   document.querySelectorAll('[data-del]').forEach(function(b){
     b.addEventListener('click', function(){ eliminar(Number(b.dataset.del)); });
@@ -289,6 +329,7 @@ async function cargarDetalle(relId){
   var r = await SB.rpc('relevamiento_detalle', { p_id: relId });
   if(r.error){ msg('Error: '+r.error.message, true); return; }
   REL = r.data.relevamiento; REL.sector = r.data.sector;
+  CAJKG = !!r.data.caj_kg;
   /* Orden alfanumerico natural (GRJ2 antes que GRJ10) [usuario 2026-10-08: "Ordename
      alfanumericamente ... Todos los relevamientos"]. La base ordena por codigo como texto. */
   ITEMS = (r.data.items || []).sort(function(a,b){
@@ -322,6 +363,7 @@ function encabezado(envase){
 }
 
 function pintarCarga(){
+  if(CAJKG) return pintarCargaCajKg();
   var grupos = cuentaKg() ? null : gruposEnvase();
   $('cargaTitulo').textContent = REL.sector + ' · ' + fmtFecha(REL.fecha);
   $('cargaAyuda').innerHTML = cuentaKg()
@@ -345,6 +387,112 @@ function pintarCarga(){
   document.querySelectorAll('.in-num').forEach(function(inp){
     inp.addEventListener('input', function(){ recalcularFila(Number(inp.dataset.id)); });
   });
+  progreso();
+}
+
+/* ---------------- SC / SP: cajones -> kg -> uni (2026-10-09) ----------------
+   Izquierda el STOCK DE HOY (lo que dice el programa), derecha el CONTEO REAL. El kg arranca
+   calculado de los cajones; si se pesa y se corrige, las uni salen del kg y los cajones quedan
+   como se cargaron. Lo que la pieza no permite (sin uni_x_cajon, sin kg_x_uni) no se inventa. */
+function tieneF(i){ return i.factor!=null && Number(i.factor)>0; }
+function tieneKxu(i){ return i.kg_x_uni!=null && Number(i.kg_x_uni)>0; }
+function soloUni(i){ return !tieneF(i) && !tieneKxu(i); }
+function kgCalc(i, caj){
+  if(caj==null || !tieneF(i) || !tieneKxu(i)) return null;
+  return GP2N.aKg(i.kg_x_uni, Math.round(caj*Number(i.factor)));
+}
+
+function pintarCargaCajKg(){
+  $('cargaTitulo').textContent = REL.sector + ' · ' + fmtFecha(REL.fecha);
+  $('cargaAyuda').innerHTML = 'A la izquierda, el <b>stock del sistema</b>. A la derecha cargá los '+
+    '<b>cajones</b> que hay realmente: los kilos y las unidades se calculan solos. Si pesaste, '+
+    '<b>corregí los kilos</b> y las unidades se ajustan (los cajones quedan como los cargaste).';
+  $('cargaHead').innerHTML = '';
+  $('cargaBody').innerHTML =
+    '<tr class="sup"><th></th><th class="hoy" colspan="3">Stock del sistema</th>'+
+    '<th class="sep" colspan="3">Conteo real</th></tr>'+
+    '<tr class="sub"><th>Insumo</th><th class="num hoy">Cajones</th><th class="num hoy">Kg</th><th class="num hoy">Uni</th>'+
+    '<th class="num sep">Cajones</th><th class="num">Kg</th><th class="num">Uni</th></tr>'+
+    ITEMS.map(filaCajKg).join('');
+
+  document.querySelectorAll('.in-num').forEach(function(inp){
+    inp.addEventListener('input', function(){
+      var id = Number(inp.dataset.id);
+      // tocar el kg = se peso: deja de seguir a los cajones
+      if(inp.dataset.k==='kg') inp.classList.add('manual');
+      recalcularCajKg(id);
+    });
+    // kg borrado y abandonado = no se peso: vuelve al calculado (sin rellenar mientras se tipea)
+    if(inp.dataset.k==='kg') inp.addEventListener('change', function(){
+      if(inp.value.trim()===''){ inp.classList.remove('manual'); recalcularCajKg(Number(inp.dataset.id)); }
+    });
+  });
+  document.querySelectorAll('[data-reset]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var id = Number(b.dataset.reset);
+      var el = document.querySelector('.in-num[data-id="'+id+'"][data-k="kg"]');
+      if(el) el.classList.remove('manual');
+      recalcularCajKg(id);
+    });
+  });
+  progreso();
+}
+
+function filaCajKg(i){
+  var st = Number(i.stock_programa)||0;
+  var hoyCaj = tieneF(i) ? fmt(st/Number(i.factor), 1) : '—';
+  var hoyKg  = tieneKxu(i) ? fmt(GP2N.aKg(i.kg_x_uni, st), 1) : '—';
+  var envNom = (i.envase && i.envase!=='Cajones') ? '<span class="env-nom">'+esc(i.envase)+' de '+fmt(i.factor)+'</span>' : '';
+  var manual = i.kg!=null;
+  var kgVal = manual ? i.kg : kgCalc(i, i.envases);
+  var celCaj = tieneF(i)
+    ? '<input class="in-num" inputmode="decimal" data-k="envases" data-id="'+i.item_id+'" value="'+
+        (i.envases!=null ? fmt(i.envases, 2) : '')+'">'+envNom
+    : '<span class="falta">sin uni × cajón</span>';
+  var celKg = tieneKxu(i)
+    ? '<span class="kg-cel"><input class="in-num kg'+(manual?' manual':'')+'" inputmode="decimal" data-k="kg" data-id="'+i.item_id+'"'+
+        ' value="'+(kgVal!=null ? fmt(kgVal, 2) : '')+'">'+
+        '<button type="button" class="kg-reset" data-reset="'+i.item_id+'" title="Volver al kg calculado de los cajones"'+
+        (manual?'':' style="visibility:hidden"')+'>↺</button></span>'
+    : '<span class="falta">sin kg × uni</span>';
+  // sin uni_x_cajon ni kg_x_uni no hay de donde calcular: se cargan las uni directo
+  var celUni = soloUni(i)
+    ? '<input class="in-num" inputmode="numeric" data-k="sueltas" data-id="'+i.item_id+'" value="'+(i.sueltas!=null?fmt(i.sueltas):'')+'">'
+    : fmt(i.total_uni);
+  var cargado = (i.envases!=null || i.sueltas!=null || i.kg!=null);
+  return '<tr'+(cargado?' class="cargado"':'')+' data-row="'+i.item_id+'">'+
+    '<td><span class="cod">'+esc(i.codigo)+'</span><br><span class="desc">'+esc(i.descripcion||'')+'</span></td>'+
+    '<td class="hoy">'+hoyCaj+'</td><td class="hoy">'+hoyKg+'</td><td class="hoy">'+fmt(st)+'</td>'+
+    '<td class="num sep">'+celCaj+'</td>'+
+    '<td class="num">'+celKg+'</td>'+
+    '<td class="tot num" data-tot="'+i.item_id+'">'+celUni+'</td>'+
+  '</tr>';
+}
+
+function kgManual(id){
+  var el = document.querySelector('.in-num[data-id="'+id+'"][data-k="kg"]');
+  return !!(el && el.classList.contains('manual'));
+}
+
+/* Espejo de GP2.relev_total_uni para SC/SP, solo para ver el numero al tipear. */
+function recalcularCajKg(id){
+  var i = itemDe(id); if(!i) return;
+  var caj = valorDe(id,'envases');
+  var kgEl = document.querySelector('.in-num[data-id="'+id+'"][data-k="kg"]');
+  var manual = kgManual(id);
+  if(kgEl && !manual){
+    var kc = kgCalc(i, caj);
+    kgEl.value = kc!=null ? fmt(kc, 2) : '';
+  }
+  var rb = document.querySelector('[data-reset="'+id+'"]');
+  if(rb) rb.style.visibility = manual ? '' : 'hidden';
+  var t = null;
+  if(soloUni(i)) t = valorDe(id,'sueltas');
+  else if(manual){ var kg = valorDe(id,'kg'); if(kg!=null){ var u = GP2N.aUni(i.kg_x_uni, kg); t = u===null ? null : Math.round(u); } }
+  else if(caj!=null && tieneF(i)) t = Math.round(caj*Number(i.factor));
+  if(!soloUni(i)){ var td = document.querySelector('[data-tot="'+id+'"]'); if(td) td.textContent = fmt(t); }
+  var tr = document.querySelector('[data-row="'+id+'"]');
+  if(tr) tr.classList.toggle('cargado', t!=null || caj!=null);
   progreso();
 }
 
@@ -419,6 +567,13 @@ function progreso(){
 }
 
 function payloadCarga(){
+  // SC / SP: el kg viaja SOLO si se peso a mano; si no, la base calcula de los cajones
+  if(CAJKG) return ITEMS.map(function(i){
+    return { item_id:i.item_id,
+             envases: valorDe(i.item_id,'envases'),
+             sueltas: valorDe(i.item_id,'sueltas'),
+             kg:      kgManual(i.item_id) ? valorDe(i.item_id,'kg') : null };
+  });
   return ITEMS.map(function(i){
     return { item_id:i.item_id,
              envases: i.cuenta_kg ? null : valorDe(i.item_id,'envases'),
@@ -446,8 +601,14 @@ $('btnCompletar').addEventListener('click', async function(){
     if(!(await guardar(true))) return;
     var r = await SB.rpc('relevamiento_cerrar', { p_id: REL.id });
     if(r.error) throw r.error;
-    // El operario termina aca. La comparacion la hace el operador del sistema en
-    // "Validacion de Stock" [usuario 2026-09-04].
+    /* Terminado el conteo se va DERECHO a Validacion de Stock con ese conteo abierto, para
+       elegir sistema o conteo [Thomas 2026-10-09]. El rol "envios" no tiene esa pantalla
+       (auth-guard): ahi termina como antes y lo valida el operador del sistema. */
+    if((sessionStorage.getItem('gp_role') || 'admin') !== 'envios'){
+      var deTablet = new URLSearchParams(location.search).get('volver') === 'tablet';
+      location.href = 'Validacion_Stock.html?id=' + REL.id + (deTablet ? '&volver=tablet' : '');
+      return;
+    }
     msg('✓ Conteo completado. Queda para validar.');
     REL=null; ITEMS=[];
     await boot();
@@ -472,7 +633,7 @@ async function salirDeCarga(){
       else await SB.rpc('relevamiento_descartar_si_vacio', { p_id: REL.id });
     }
   }catch(e){ /* si falla, igual se vuelve al cronograma */ }
-  REL = null; ITEMS = [];
+  REL = null; ITEMS = []; CAJKG = false;
   await boot();
   mostrar('crono');
 }

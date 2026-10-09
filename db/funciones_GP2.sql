@@ -1417,6 +1417,111 @@ AS $function$
 $function$
 ;
 
+-- ---------- cambiar_inyector_bundle ----------
+CREATE OR REPLACE FUNCTION "GP2".cambiar_inyector_bundle()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+  with iny as (
+    select p.id, p.nombre
+      from proveedor_insumo p
+     where p.activo
+       and exists (select 1 from ubicacion u where u.tipo = 'inyector' and u.ref_id = p.id)
+  ), pz as (
+    select c.id, c.codigo, c.descripcion, c.familia_pedido,
+           nullif(btrim(coalesce(c.proveedor,'')),'') as prov
+      from componente c
+     where c.familia_pedido is not null
+       and not c.discontinuado
+       and coalesce(c.estado_compra,'compra') = 'compra'
+  ), oc as (
+    select c.familia_pedido, o.numero, o.proveedor,
+           sum(greatest(coalesce(i.cantidad,0) - coalesce(i.recibido,0), 0)) as pendiente
+      from orden_compra o
+      join orden_compra_item i on i.oc_id = o.id
+      join componente c on c.id = i.componente_id
+     where o.estado in ('borrador','enviada')
+       and c.familia_pedido is not null
+     group by 1, 2, 3
+    having sum(greatest(coalesce(i.cantidad,0) - coalesce(i.recibido,0), 0)) > 0
+  )
+  select jsonb_build_object(
+    'iny', (select coalesce(jsonb_agg(jsonb_build_object('id', id, 'n', nombre) order by nombre), '[]'::jsonb) from iny),
+    'fam', (select coalesce(jsonb_agg(jsonb_build_object(
+              'n',     f.nombre,
+              'min',   f.pedido_minimo_uni,
+              'prov',  (select case when count(distinct pz.prov) = 1 and count(*) = count(pz.prov)
+                                    then min(pz.prov) end
+                          from pz where pz.familia_pedido = f.nombre),
+              'partes',(select coalesce(jsonb_agg(jsonb_build_object('id', pz.id, 'cod', pz.codigo,
+                                                                     'd', pz.descripcion, 'prov', pz.prov)
+                                                  order by pz.codigo), '[]'::jsonb)
+                          from pz where pz.familia_pedido = f.nombre),
+              'oc',    (select coalesce(jsonb_agg(jsonb_build_object('numero', oc.numero, 'prov', oc.proveedor,
+                                                                     'pend', oc.pendiente)
+                                                  order by oc.numero), '[]'::jsonb)
+                          from oc where oc.familia_pedido = f.nombre)
+            ) order by f.nombre), '[]'::jsonb)
+              from familia_pedido f
+             where exists (select 1 from pz where pz.familia_pedido = f.nombre))
+  );
+$function$
+;
+
+-- ---------- cambiar_inyector_familia ----------
+CREATE OR REPLACE FUNCTION "GP2".cambiar_inyector_familia(p_familia text, p_proveedor text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'GP2'
+AS $function$
+declare
+  v_fam  text := nullif(btrim(coalesce(p_familia,'')),'');
+  v_prov text := nullif(btrim(coalesce(p_proveedor,'')),'');
+  v_antes jsonb; v_partes jsonb; v_n int;
+begin
+  perform "GP2"._exigir_autorizado();
+
+  if v_fam is null or not exists (select 1 from familia_pedido where nombre = v_fam) then
+    raise exception 'La familia "%" no existe.', coalesce(v_fam, '');
+  end if;
+  if v_prov is null then
+    raise exception 'Elegí el inyector que se lleva la matriz de %.', v_fam;
+  end if;
+  if not exists (select 1 from proveedor_insumo p
+                  where p.nombre = v_prov and p.activo
+                    and exists (select 1 from ubicacion u where u.tipo = 'inyector' and u.ref_id = p.id)) then
+    raise exception '"%" no es un inyector activo.', v_prov;
+  end if;
+
+  select coalesce(jsonb_agg(distinct nullif(btrim(coalesce(c.proveedor,'')),''))
+                    filter (where nullif(btrim(coalesce(c.proveedor,'')),'') is not null), '[]'::jsonb)
+    into v_antes
+    from componente c
+   where c.familia_pedido = v_fam and not c.discontinuado
+     and coalesce(c.estado_compra,'compra') = 'compra';
+
+  with u as (
+    update componente c
+       set proveedor = v_prov
+     where c.familia_pedido = v_fam
+       and not c.discontinuado
+       and coalesce(c.estado_compra,'compra') = 'compra'
+    returning c.codigo
+  )
+  select count(*), coalesce(jsonb_agg(codigo order by codigo), '[]'::jsonb) into v_n, v_partes from u;
+
+  if v_n = 0 then
+    raise exception 'La familia % no tiene piezas que se compren.', v_fam;
+  end if;
+
+  return jsonb_build_object('ok', true, 'familia', v_fam, 'antes', v_antes,
+                            'proveedor', v_prov, 'n', v_n, 'partes', v_partes);
+end $function$
+;
+
 -- ---------- cargar_compra_mp ----------
 CREATE OR REPLACE FUNCTION "GP2".cargar_compra_mp(p_proveedor text, p_kg numeric, p_remito text DEFAULT NULL::text, p_fecha timestamp with time zone DEFAULT now(), p_pct_corto numeric DEFAULT NULL::numeric)
  RETURNS jsonb
@@ -7961,12 +8066,25 @@ CREATE OR REPLACE FUNCTION "GP2".relev_total_uni(p_componente_id bigint, p_envas
  STABLE
  SET search_path TO 'GP2'
 AS $function$
-DECLARE f numeric; es_kg boolean; env text; um text; kxu numeric;
+DECLARE f numeric; es_kg boolean; env text; um text; kxu numeric; v_sector bigint;
 BEGIN
   SELECT rf.factor, rf.cuenta_kg, rf.envase INTO f, es_kg, env
   FROM "GP2".relev_factor(p_componente_id) rf;
-  SELECT c.unidad_medida, nullif(c.kg_x_uni,0) INTO um, kxu
+  SELECT c.unidad_medida, nullif(c.kg_x_uni,0), c.sector_id INTO um, kxu, v_sector
   FROM "GP2".componente c WHERE c.id=p_componente_id;
+
+  -- SC / SP: cajones + kg [Thomas 09/10]. El kg pesado manda sobre los cajones para las unidades;
+  -- los cajones quedan como dato contado.
+  IF v_sector IN (1, 2, 3) THEN
+    IF p_kg IS NOT NULL THEN
+      IF kxu IS NULL THEN RETURN NULL; END IF;
+      RETURN round(p_kg / kxu);
+    END IF;
+    IF p_envases IS NOT NULL AND f IS NOT NULL THEN
+      RETURN round(p_envases * f) + coalesce(p_sueltas,0);
+    END IF;
+    RETURN p_sueltas;                         -- sin factor: se cuenta suelto
+  END IF;
 
   IF es_kg THEN
     IF p_kg IS NULL THEN RETURN NULL; END IF;
@@ -8006,8 +8124,10 @@ BEGIN
 
   SELECT k.fecha INTO v_fecha FROM "GP2".relevamiento_cronograma k WHERE k.id = p_crono_id;
 
+  -- sin cronograma (SC/SP, a demanda) la fecha es HOY en Argentina (2026-10-09)
   INSERT INTO "GP2".relevamiento (sector_id, fecha, encargado, cronograma_id)
-  VALUES (p_sector_id, coalesce(v_fecha, current_date), nullif(trim(p_encargado),''), p_crono_id)
+  VALUES (p_sector_id, coalesce(v_fecha, (now() at time zone 'America/Argentina/Buenos_Aires')::date),
+          nullif(trim(p_encargado),''), p_crono_id)
   RETURNING id INTO v_id;
 
   -- La materia prima BRUTA de un PS hibrido (proveedor_servicio.mp_componente_id: ALAMBRE -> Charcas,
@@ -8093,7 +8213,8 @@ AS $function$
     where not exists (select 1 from prox p where p.clave = b.clave)
     order by b.clave, b.fecha desc
   ),
-  fila as (select * from prox union all select * from ult)
+  fila as (select * from prox union all select * from ult),
+  hoy as (select (now() at time zone 'America/Argentina/Buenos_Aires')::date d)
   select jsonb_build_object(
     'hoy', current_date,
     'cronograma', coalesce(jsonb_agg(x order by x->>'fecha'), '[]'::jsonb)
@@ -8118,6 +8239,31 @@ AS $function$
       )
     ) x
     from fila f join "GP2".sector s on s.id = f.sector_id
+    union all
+    -- SC y SP: a demanda, sin cronograma [Thomas 09/10: «que aparezca el stock de hoy»].
+    -- Su conteo es el abierto (en_curso/contado) o el que se aplico HOY; mañana vuelve «Contar».
+    select jsonb_build_object(
+      'tipo', case s.id when 1 then 'Crudo (SC)' when 2 then 'Procesado (SP)' else 'Movimiento' end,
+      'sector_id', s.id, 'sector', s.nombre,
+      'crono_id', null, 'fecha', h.d, 'dias', 0, 'vencido', false, 'a_demanda', true,
+      'componentes', (select count(*) from "GP2".componente c where c.sector_id = s.id
+                        and not exists (select 1 from "GP2".proveedor_servicio ps where ps.mp_componente_id = c.id)),
+      'relevamiento', (
+        select jsonb_build_object('id', r.id, 'estado', r.estado,
+                 'contados', (select count(*) from "GP2".relevamiento_item ri
+                              where ri.relevamiento_id = r.id and ri.contado),
+                 'items', (select count(*) from "GP2".relevamiento_item ri
+                           where ri.relevamiento_id = r.id))
+        from "GP2".relevamiento r
+        where r.sector_id = s.id and r.cronograma_id is null
+          and (r.estado in ('en_curso','contado')
+               or (r.estado = 'aplicado'
+                   and (r.aplicado_en at time zone 'America/Argentina/Buenos_Aires')::date = h.d))
+        order by r.id desc limit 1
+      )
+    ) x
+    from "GP2".sector s cross join hoy h
+    where s.id in (1, 2, 3)
   ) t;
 $function$
 ;
@@ -8251,6 +8397,8 @@ AS $function$
   select jsonb_build_object(
     'relevamiento', to_jsonb(r) - 'creado_en',
     'sector', s.nombre,
+    -- SC / SP se cuentan en cajones + kg (2026-10-09)
+    'caj_kg', (r.sector_id in (1, 2, 3)),
     'items', coalesce((
       select jsonb_agg(jsonb_build_object(
         'item_id', ri.id,

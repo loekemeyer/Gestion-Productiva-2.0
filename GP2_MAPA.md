@@ -127,6 +127,15 @@ Tablas: `articulo_linea_tallerista` (las 13 excepciones de la línea) y `contrap
 `ruta_paso` de antes y de después). Internas (sin EXECUTE para nadie): `_linea_tallerista`,
 `_contrapartes_articulo`, `_cambiar_contraparte`. `_cc_quitar_pasos` (único borrado) se creó a mano en el SQL Editor (08/10/2026).
 
+## cambiar_inyector_bundle() / cambiar_inyector_familia — CambiarInyector/CambiarInyector_GP2.html
+
+Módulo de Herramientas (2026-10-09, CONOCIMIENTO §4ki). Quién tiene la matriz de cada familia de pedido de plásticos.
+
+| RPC | Parámetros | Devuelve |
+|---|---|---|
+| `cambiar_inyector_bundle()` | — | `{ iny[{id,n}], fam[{ n, min, prov, partes[{id,cod,d,prov}], oc[{numero,prov,pend}] }] }`. `iny` = proveedores activos con ubicación `inyector`. `fam` = familias de `familia_pedido` con piezas que se compran (sin "Otros"). `prov` = el inyector de todas sus piezas, **`null` = repartidas**. `oc` = O.C. abiertas (borrador/enviada) con pendiente de esa familia |
+| `cambiar_inyector_familia(p_familia, p_proveedor)` | familia + nombre del inyector | `{ ok, familia, antes[], proveedor, n, partes[] }`. Escribe `componente.proveedor` de las piezas de la familia (no discontinuadas, que se compran). Exige sesión habilitada (anon sin EXECUTE) |
+
 ## produccion_bundle(p_matriz, p_anio) — Produccion/rendimiento_GP2.js (solo lectura)
 
 Se llama 2 veces: sin args al init (usa `matrices` + `empleados`) y con
@@ -152,6 +161,7 @@ confirmar acá que la clave existe; si un bundle cambia, actualizar esta tabla e
 | `alertas_bundle()` | Alertas | `generado_en, matriz_sin_tiempo, pendientes, pm, recepcion_de_mas, ref_fecha, rm, ventana_dias` (`recepcion_de_mas` = `{total, items}` de `alerta_recepcion` en estado `abierta`, 2026-09-13) |
 | `calculadora_cajones_bundle()` | Calcular Cajones | `cajones, sectores, comps` |
 | `cambiar_contraparte_bundle()` | Cambiar Tallerista / Prov. A.T. | `art, pat, tall` |
+| `cambiar_inyector_bundle()` | Cambiar Inyector | `fam, iny` |
 | `control_recepcion_bundle(p_sector_id)` | control-cajas.js (11) y control-remaches.js (5, 8, …) | `recepciones, sector, sector_id, uni_x_paq_default` (reemplaza a `control_cajas_bundle` + `control_kg_bundle`, 2026-09-05) |
 | `control_envios_bundle(p_desde, p_hasta)` | Control Envíos y Entregas | (por vista/tipo, ver la pantalla) |
 | `control_ps_bundle()` | Control PS | `generado_en, proveedores` (cada proveedor trae `nombre_corto`) |

@@ -16260,7 +16260,84 @@ se cuenta cada sector" (los crudos `CV*` en kilos): **no** van en kilos, van en 
   Los 4 registros de prueba del 06/10 (legajo 1 «Pruebas», ids 7513-7516) quedaron en la 512.
 
 
-## 4kh. Rediseño integral: UN sistema de diseño para todo GP2 (2026-10-09) — v1.258.0
+## 4ki. Cambiar Inyector: quién tiene la matriz de cada FAMILIA de plásticos (2026-10-09) — v1.259.0
+
+`[usuario Thomas, 09/10: «Quiero que agregues el módulo de Cambiar Inyectores que está oculto con la finalidad de poder
+cambiar las partes que produce cada uno. Los inyectores se llevan las matrices. Hay una matriz por familia. Estas familias
+están modeladas en órdenes de compra de plásticos. La única familia que no va en este módulo es la familia Otros. Entonces
+la idea es que pueda cambiar quién posee la matriz de la familia. Que me deje cambiar por cada familia»]`
+
+- **El modelo ya estaba, no hizo falta tabla nueva**: familia = `GP2.familia_pedido` (una matriz del inyector, §OC v1.43.0);
+  inyector de cada pieza = `componente.proveedor`. Cambiar quién tiene la matriz = pasar el proveedor de **todas** las piezas
+  de la familia juntas. "Otros" = piezas con `familia_pedido` NULL (20 en el sector 6): no son familia y no entran.
+- **Pantalla nueva** `CambiarInyector/CambiarInyector_GP2.html`, en **Herramientas** debajo de Cambiar Tallerista/Prov. A.T.
+  Una tarjeta por familia (29) con sus piezas y un botón por inyector (los 4 con ubicación `inyector`: JL Matriceria,
+  Kollplast, Pat Bet Plast, Pettofrezza Rafael). Tocar otro → confirmar → `cambiar_inyector_familia`. Hecha con el sistema de
+  diseño v2.0 de la sesión de Naza (09/10) [Thomas: «Pushea con el diseño que está generando la sesión de "Naza 09.10"»]. Se
+  pusheó ANTES que el rediseño [Thomas: «Pushea ahora, no importa la otra sesión»]: carga el `gp2-modulo.css` de main
+  (token 20260912c) y cada `var()` lleva su respaldo; cuando entre el v2.0 se ve con el sistema nuevo sin tocar la pantalla.
+- **La pantalla vieja "Inyectores · Quién hace cada parte" (`Compras/Inyectores_GP2.html`) sigue OCULTA** a propósito: es pieza
+  por pieza, tiene todos los rubros y el panel de material; ésta es la que pidió Thomas, por familia. Si alguien cambia una
+  pieza suelta desde la vieja, la familia queda "repartida" y la nueva lo avisa (borde ámbar) hasta que se elija uno.
+- **Lo que NO mueve el cambio** `[deducido]`: las O.C. ya abiertas siguen con el inyector viejo (se avisa antes de confirmar:
+  al 09/10, O.C. N° 3 de JL Matriceria con Cierra Bolsa y Cuchillo Untar pendientes) y la resina que el inyector viejo tiene en
+  su poder queda en su ubicación (Control Partes Inyectores). Las próximas O.C. de la familia salen para el nuevo.
+- Al 09/10 las 29 familias tenían un solo inyector cada una (0 repartidas). Ojo: algunas `familia_pedido.nota` nombran a
+  Kollplast (Bujes, Insertos) pero las piezas están en Pat Bet Plast — la nota es texto viejo de la planilla, manda `proveedor`.
+- Base: `db/migracion_cambiar_inyector_20261009.sql` (`cambiar_inyector_bundle` anon+auth, `cambiar_inyector_familia` sólo
+  authenticated con `_exigir_autorizado`). Probada con rollback. Test: `tests/ui/test_cambiar_inyector.js`.
+- **Menú**: la 9ª baldosa de Herramientas no entraba en 375×600 (646 de 600). En pantalla baja el encabezado del menú pasa a
+  una línea (logo 100px + versión al lado). Con el menú rediseñado de Naza también se pasa (632 de 600): lo tiene que
+  resolver el merge.
+
+## 4kh. Reset de stock y movimientos — Cervantes + talleristas, CON Virgilio prendido (2026-10-09) — PENDIENTE DE CORRER
+
+- [usuario Thomas, 09/10] *"Quiero que me elimines todos los stocks, movimientos, ordenes de compra, etc. Que quede todo en
+  cero"* → *"No apagues la entrada de Virgilio"* → *"Todo lo que se recibe en Cervantes eliminá el stock y movimiento"* →
+  *"Lo de los talleristas también en 0"*.
+- [dato, medido antes] 308 movimientos (220 `consumo_virgilio` + 43 `recepcion_virgilio` del espejo de Virgilio, 20 compras,
+  10 ajustes, 5 fabricaciones, 4 traslados, 3 consumo_inyector, 3 envíos/entregas), 226 filas de inventario ≠ 0, ledger =
+  inventario (invariante B en 0). `trg_virgilio_espejo_gp2` está **prendido** (se volvió a prender después de §4ej).
+- **Script: `db/reset_cervantes_20261009.sql`**, a correr en el SQL Editor (el conector volvió a cortarse a los 60 s con el
+  DELETE: no se aplicó nada desde la sesión). Borra los 308 movimientos (Cervantes, talleristas, P.S. e inyectores) y las 20
+  recepciones con sus controles y rollos; el trigger deja el inventario en 0 y las O.C. con `recibido` 0. **Las O.C. no se
+  borran** (el pedido se acotó a "lo que se recibe"), tampoco `inventario.maximo`, producción, relevamientos ni las tablas de
+  frontera con Virgilio (`ingreso_virgilio` sólo suelta su vínculo a la recepción). Respaldo en la misma transacción:
+  `GP2.bkp_reset_cervantes_20261009` (ensayado con rollback: 308 mov, 226 inventario, 20 recepciones…).
+- **Pedernera / Carlos Aguirre (P.S.) entra en el borrado** `[deducido]`: en el espejo de Virgilio figura como un tallerista
+  más (24 consumos + 7 entregas a Virgilio). Si se la deja afuera queda en −22.319 y Virgilio (Distribución) en 6.336.
+- ⚠ **El cero no dura**: con la entrada de Virgilio prendida, la próxima entrega cargada en Virgilio vuelve a crear
+  `consumo_virgilio` / `recepcion_virgilio` y mueve stock de talleristas. Decisión del dueño, avisada antes.
+- Precedente: el reset del 02/10 (§4ih) se revirtió a la hora; por eso el respaldo es obligatorio.
+## 4kj. Conteo (Relevamientos): entran SC, SP y Movimiento con el stock del sistema, y al completar se va a Validación (2026-10-09) — v1.260.0
+
+`[usuario Thomas, 09/10]` *«Agregame al módulo de conteo de versión tablet logística, sc y sp. Quiero que en ese módulo
+aparezca el stock de hoy … registrar a la derecha … cuántos cajones hay realmente … me calcule cuántos kilos hay y cuántas
+unidades … y que yo pueda modificar … cuántos kilos hay … me debe corregir a cuántas unidades hay realmente, pero mantener la
+cantidad de cajones como un dato fijo»* y, después, *«Agregar también sector movimiento y sector transito. Además cuando termino
+de cargar el conteo que lo mande a validación stock para poner si quiero que siga el stock del sistema o quede el del conteo»*.
+
+- **A demanda, sin cronograma y SIN FECHA.** Sector Crudo (1), Procesado (2) y Movimiento (3) salen arriba de todo en el
+  Conteo **sin fecha** `[Thomas 09/10, corrigiendo la primera versión que decía «Es hoy»: «No es Hoy. Estos stocks no tienen
+  fecha»]`. (La base manda la fecha de hoy sólo para ordenar; la pantalla no la muestra.) Su conteo es el abierto o el aplicado hoy; mañana vuelve «Contar». Los 7 sectores con
+  cronograma quedaron idénticos (verificado por md5 del bundle antes/después).
+- **La planilla de esos 3 sectores**: izquierda **Stock del sistema** (programa: cajones = uni ÷ uni_x_cajon, kg = uni × kg_x_uni,
+  uni); derecha **Conteo real**: Cajones → Kg (calculado) → Uni. **Si se pesa y se corrige el kg, las uni salen del kg y los
+  cajones quedan como se cargaron** (`relevamiento_item.kg` se guarda SÓLO si se pesó; NULL = calculado). «↺» vuelve al
+  calculado. El cálculo lo hace la base (`relev_total_uni`, rama sectores 1-3).
+- **Lo que la pieza no permite no se inventa**: sin uni_x_cajon no hay cajones, sin kg_x_uni no hay kg; sin ninguno de los dos
+  se cargan las uni directo. `[dato 09/10]` SC 74/74 completos; SP 73/82 (C13, Z12, Z31 sin uni_x_cajon —usan su envase de
+  entrega—; Z44, Z46-Z50 sin nada); **Movimiento 0/63** (WIP entre matrices, §2c-undecies): hoy se cuenta todo en uni.
+- **«Sector Tránsito» NO se agregó** `[deducido, sin confirmar]`: el que se llamaba así ES el Sector Movimiento (renombrado el
+  2026-09-03). El «Stock Tránsito PS» no es una ubicación: esas piezas viven físicamente en SC/SP y ya se cuentan ahí; contarlas
+  aparte las contaría dos veces. Queda a confirmar con Thomas qué quiso decir.
+- **Completar conteo → Validación de Stock** con ese conteo abierto (`?id=`), donde se elige Conteo o Programa (sistema) por
+  ítem. ⚠ Esto **revierte** la separación del 2026-09-04 («el operario cuenta, el operador valida») para quien tenga acceso;
+  el rol `envios` NO tiene Validación en `auth-guard.js`, así que a él se le sigue diciendo «Queda para validar» (no se le
+  amplió el permiso: decidir el stock sigue fuera de ese rol).
+- `db/migracion_relev_sc_sp_cajones_kg_20261009.sql`, `tests/ui/test_relevamiento.js`.
+
+## 4kk. Rediseño integral: UN sistema de diseño para todo GP2 (2026-10-09) — v1.261.0
 
 [usuario, Thomas: *"quiero que analices todo el programa de GP2 de punta a punta y hagas un rediseño
 integral … que deje de sentirse como un conjunto de módulos diseñados por separado … interfaz grande, densa
@@ -16278,4 +16355,6 @@ tengas miedo de cambiarlo"*]
 - **Menú**: misma barra; accesos rápidos (Tablet Logística, Tablet Operarios, Monitor) como baldosas grandes;
   KPIs de hoy/mes como `.kpi`; grupos con baldosas en 2 columnas; link "Ver todos los módulos" (= `?todos=1`).
   En el celular se conserva todo lo pedido antes (los 2 grupos entran en una pantalla, pastillas abajo).
-- Queda afuera a propósito: `Operarios_GP2.html` (copia de Registro Producción 3.0; se cambia allá).
+- **Tablet de operarios**: se rediseñó en el origen, Registro Producción 3.0 v3.1.11 [Elías: «Habilito lo de tablet de operarios»],
+  y se copió acá con su script (hoy es la copia de v3.1.13).
+- (Al principio se numeró 4kh; se renumeró a 4kk porque main ya tenía otra 4kh, la del reset de stock.)
