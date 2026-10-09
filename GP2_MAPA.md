@@ -129,7 +129,7 @@ Tablas: `articulo_linea_tallerista` (las 13 excepciones de la línea) y `contrap
 
 ## cambiar_inyector_bundle() / cambiar_inyector_familia — CambiarInyector/CambiarInyector_GP2.html
 
-Módulo de Herramientas (2026-10-09, CONOCIMIENTO §4kh). Quién tiene la matriz de cada familia de pedido de plásticos.
+Módulo de Herramientas (2026-10-09, CONOCIMIENTO §4ki). Quién tiene la matriz de cada familia de pedido de plásticos.
 
 | RPC | Parámetros | Devuelve |
 |---|---|---|

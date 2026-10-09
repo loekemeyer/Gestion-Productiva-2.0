@@ -234,6 +234,16 @@ window.supabase = { createClient: function(){ return {
     const idx = seq.map(k => orden.indexOf(k));
     return { seq: seq.filter((k, i) => i === 0 || seq[i - 1] !== k), creciente: idx.every((v, i) => i === 0 || idx[i - 1] <= v), n: seq.length };
   });
+  // v3.5.0 ["opción en stock general para poder descargar en Excel"]: baja lo que muestra la tabla,
+  // mismas columnas, y en "Todos" SIN el tope de 400 filas
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#btnExcel')]);
+  const csv = require('fs').readFileSync(await dl.path(), 'utf8');
+  const lin = csv.replace(/^\uFEFF/, '').split('\n');
+  const nTabla = await page.evaluate(() => filtradas().length);
+  ok(/^stock_general_Todos_\d{4}-\d{2}-\d{2}\.csv$/.test(dl.suggestedFilename()), 'Excel: nombre con rubro y fecha (' + dl.suggestedFilename() + ')');
+  ok(lin[0] === 'sep=;' && /"Rubro";"Dónde";"Código";"Descripción";"Kg"/.test(lin[1]), 'Excel: abre en columnas, encabezado = el de la tabla');
+  ok(lin.length - 2 === nTabla, 'Excel: una fila por cada fila filtrada (' + (lin.length - 2) + ' de ' + nTabla + ')');
+  ok(await page.evaluate(() => { const b = document.getElementById('btnExcel'); return b.offsetParent !== null && b.getBoundingClientRect().height >= 44; }), 'Excel: botón a la vista y tocable');
   ok(ordRub.n > 1 && ordRub.creciente, 'Todos: ordenado por rubro en el orden de los botones — ' + ordRub.seq.join(' > '));
   ok(base.hAj >= 44, 'boton Ajuste tocable (' + Math.round(base.hAj) + 'px, minimo 44)');
   ok(await vis('btnAjuste'), '± Ajuste siempre a la vista (ya no se esconde por pestaña)');

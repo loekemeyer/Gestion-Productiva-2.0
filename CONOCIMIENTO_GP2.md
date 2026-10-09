@@ -16260,7 +16260,7 @@ se cuenta cada sector" (los crudos `CV*` en kilos): **no** van en kilos, van en 
   Los 4 registros de prueba del 06/10 (legajo 1 «Pruebas», ids 7513-7516) quedaron en la 512.
 
 
-## 4kh. Cambiar Inyector: quién tiene la matriz de cada FAMILIA de plásticos (2026-10-09) — v1.258.0
+## 4ki. Cambiar Inyector: quién tiene la matriz de cada FAMILIA de plásticos (2026-10-09) — v1.259.0
 
 `[usuario Thomas, 09/10: «Quiero que agregues el módulo de Cambiar Inyectores que está oculto con la finalidad de poder
 cambiar las partes que produce cada uno. Los inyectores se llevan las matrices. Hay una matriz por familia. Estas familias
@@ -16273,7 +16273,9 @@ la idea es que pueda cambiar quién posee la matriz de la familia. Que me deje c
 - **Pantalla nueva** `CambiarInyector/CambiarInyector_GP2.html`, en **Herramientas** debajo de Cambiar Tallerista/Prov. A.T.
   Una tarjeta por familia (29) con sus piezas y un botón por inyector (los 4 con ubicación `inyector`: JL Matriceria,
   Kollplast, Pat Bet Plast, Pettofrezza Rafael). Tocar otro → confirmar → `cambiar_inyector_familia`. Hecha con el sistema de
-  diseño v2.0 de la sesión de Naza (09/10) [Thomas: «Pushea con el diseño que está generando la sesión de "Naza 09.10"»].
+  diseño v2.0 de la sesión de Naza (09/10) [Thomas: «Pushea con el diseño que está generando la sesión de "Naza 09.10"»]. Se
+  pusheó ANTES que el rediseño [Thomas: «Pushea ahora, no importa la otra sesión»]: carga el `gp2-modulo.css` de main
+  (token 20260912c) y cada `var()` lleva su respaldo; cuando entre el v2.0 se ve con el sistema nuevo sin tocar la pantalla.
 - **La pantalla vieja "Inyectores · Quién hace cada parte" (`Compras/Inyectores_GP2.html`) sigue OCULTA** a propósito: es pieza
   por pieza, tiene todos los rubros y el panel de material; ésta es la que pidió Thomas, por familia. Si alguien cambia una
   pieza suelta desde la vieja, la familia queda "repartida" y la nueva lo avisa (borde ámbar) hasta que se elija uno.
