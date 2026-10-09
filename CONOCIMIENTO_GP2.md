@@ -16289,3 +16289,23 @@ la idea es que pueda cambiar quién posee la matriz de la familia. Que me deje c
 - **Menú**: la 9ª baldosa de Herramientas no entraba en 375×600 (646 de 600). En pantalla baja el encabezado del menú pasa a
   una línea (logo 100px + versión al lado). Con el menú rediseñado de Naza también se pasa (632 de 600): lo tiene que
   resolver el merge.
+
+## 4kh. Reset de stock y movimientos — Cervantes + talleristas, CON Virgilio prendido (2026-10-09) — PENDIENTE DE CORRER
+
+- [usuario Thomas, 09/10] *"Quiero que me elimines todos los stocks, movimientos, ordenes de compra, etc. Que quede todo en
+  cero"* → *"No apagues la entrada de Virgilio"* → *"Todo lo que se recibe en Cervantes eliminá el stock y movimiento"* →
+  *"Lo de los talleristas también en 0"*.
+- [dato, medido antes] 308 movimientos (220 `consumo_virgilio` + 43 `recepcion_virgilio` del espejo de Virgilio, 20 compras,
+  10 ajustes, 5 fabricaciones, 4 traslados, 3 consumo_inyector, 3 envíos/entregas), 226 filas de inventario ≠ 0, ledger =
+  inventario (invariante B en 0). `trg_virgilio_espejo_gp2` está **prendido** (se volvió a prender después de §4ej).
+- **Script: `db/reset_cervantes_20261009.sql`**, a correr en el SQL Editor (el conector volvió a cortarse a los 60 s con el
+  DELETE: no se aplicó nada desde la sesión). Borra los 308 movimientos (Cervantes, talleristas, P.S. e inyectores) y las 20
+  recepciones con sus controles y rollos; el trigger deja el inventario en 0 y las O.C. con `recibido` 0. **Las O.C. no se
+  borran** (el pedido se acotó a "lo que se recibe"), tampoco `inventario.maximo`, producción, relevamientos ni las tablas de
+  frontera con Virgilio (`ingreso_virgilio` sólo suelta su vínculo a la recepción). Respaldo en la misma transacción:
+  `GP2.bkp_reset_cervantes_20261009` (ensayado con rollback: 308 mov, 226 inventario, 20 recepciones…).
+- **Pedernera / Carlos Aguirre (P.S.) entra en el borrado** `[deducido]`: en el espejo de Virgilio figura como un tallerista
+  más (24 consumos + 7 entregas a Virgilio). Si se la deja afuera queda en −22.319 y Virgilio (Distribución) en 6.336.
+- ⚠ **El cero no dura**: con la entrada de Virgilio prendida, la próxima entrega cargada en Virgilio vuelve a crear
+  `consumo_virgilio` / `recepcion_virgilio` y mueve stock de talleristas. Decisión del dueño, avisada antes.
+- Precedente: el reset del 02/10 (§4ih) se revirtió a la hora; por eso el respaldo es obligatorio.
