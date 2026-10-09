@@ -1,13 +1,13 @@
 "use strict";
 
-/* ⚠ COPIA PARA PROBAR — la FUENTE es cervantes-gp2/app.js de loekemeyer/Registro-Produccion-3.0 (v3.1.14).
+/* ⚠ COPIA PARA PROBAR — la FUENTE es cervantes-gp2/app.js de loekemeyer/Registro-Produccion-3.0 (v3.1.15).
    Copiada con tools/copiar_botonera_de_3_0.py [Elías, 08/10/2026: «GP2 sólo hacer copia y hacer modificaciones para
    testear»]. Lo que tiene que llegar a los operarios se cambia en 3.0, no acá: la próxima copia pisa este archivo.
-   Graba IGUAL que 3.0 (código de la TV, pase, funciones reg_prod_3_0); lo cargado desde acá lleva app_version 'gp2-20261009e/v3.1.14'.
+   Graba IGUAL que 3.0 (código de la TV, pase, funciones reg_prod_3_0); lo cargado desde acá lleva app_version 'gp2-20261009f/v3.1.15'.
    Diferencias con 3.0: claves gp2c_*, p_app "gp2", sin service worker propio y «Volver» al menú de GP2. */
 
 /* ============================================================
-   app.js — Registro Producción 3.0 · Cervantes · botonera de GP2 (v3.1.14)
+   app.js — Registro Producción 3.0 · Cervantes · botonera de GP2 (v3.1.15)
    ESTE ARCHIVO ES LA FUENTE de la botonera de Cervantes desde el 08/10/2026 [Elías: «se va a dejar de modificar en GP2 y
    modificar en este, y GP2 sólo hacer copia y hacer modificaciones para testear»]: los cambios se hacen ACÁ, a mano.
    Nació de la tablet de GP2 (Produccion/RegistroApp/operarios_gp2.js de loekemeyer/Gestion-Productiva-2.0, commit e110890,
@@ -36,7 +36,7 @@
    de ayer), los errores de envío a la auditoría, reintento cada 3 s y envío en segundo plano por el service worker.
    ============================================================ */
 
-const COPIA_GP2 = "gp2-20261009e/v3.1.14";   // va en el app_version de cada toque (GP2 no lleva const de versión)
+const COPIA_GP2 = "gp2-20261009f/v3.1.15";   // va en el app_version de cada toque (GP2 no lleva const de versión)
 
 const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
 const SUPABASE_KEY = "sb_publishable_BqpAgZH6ty-9wft10_YMhw_0rcIPuWT";
@@ -1168,7 +1168,11 @@ function leerCambioSede() {
     return c && c.dia === dayKeyAR() ? c : null;     // uno de otro día ya no vale
   } catch { return null; }
 }
-function cambioHaciaAca() { const c = leerCambioSede(); return c && c.hacia === "cervantes" ? c : null; }
+function cambioHaciaAca() {
+  if (!hayOtraSede()) return null;   // la copia de la tablet de GP2 comparte el dominio (y el localStorage): ahí no hay cambio de sede
+  const c = leerCambioSede();
+  return c && c.hacia === "cervantes" ? c : null;
+}
 function borrarCambioSede() { try { localStorage.removeItem(LS_CAMBIO_SEDE); } catch { /* sin storage */ } }
 function cancelarCambioSede() {
   const c = cambioHaciaAca();

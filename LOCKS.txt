@@ -5,6 +5,7 @@
 (vacío)
 
 [HISTORIAL]
+2026-10-09 (93) - Tablet Operarios = copia de Registro 3.0 v3.1.15 (token 20261009f): la copia no toma un «Cambiar sede» de 3.0 a medias (mismo dominio, mismo localStorage). version.js v1.261.7 (?v=20261009z1). elias (claude-remote).
 2026-10-09 (92) - Tablet Operarios = copia de Registro 3.0 v3.1.14 (token 20261009e): «Cambiar sede» de 3.0 (en la copia NO se ve: sólo aparece dentro de /cervantes-gp2/). version.js v1.261.6 (?v=20261009z). Hecho con tools/copiar_botonera_de_3_0.py. elias (claude-remote).
 2026-10-09 (91) - Reset GP2 APLICADO (Thomas en el SQL Editor): movimiento 0, inventario todo en 0, recepciones 0, O.C. 0, cola 0. Respaldo GP2.bkp_reset_cervantes_20261009 (RLS on). CONOCIMIENTO 4kh. Hecho-por: Thomas Loekemeyer (employee_id 3) (claude-remote).
 2026-10-09 (90) - Reset: se suman las 3 O.C. (orden_compra + cascada) [Thomas: «las 3 o.c. tambien»]. db/reset_cervantes_20261009.sql, CONOCIMIENTO 4kh. Pendiente de correr en el SQL Editor. Hecho-por: Thomas Loekemeyer (employee_id 3) (claude-remote).
