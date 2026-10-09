@@ -22,28 +22,28 @@
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
 <style>
-  .provs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
-  .prov-btn{padding:10px 16px;border-radius:10px;border:2px solid #d0d7de;background:#fff;font-weight:800;cursor:pointer;font-size:17px;color:#111}
-  .prov-btn.active{background:#111;color:#fff;border-color:#111}
-  .items{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin:12px 0}
-  .item-btn{padding:14px 8px;background:#fff;border:2px solid #d0d7de;border-radius:10px;cursor:pointer;text-align:center}
-  .item-btn:hover{border-color:#111}
-  .item-btn .code{display:block;font-size:20px;font-weight:800;color:#0066cc}
-  .item-btn .desc{display:block;font-size:14px;color:#333;margin-top:4px;overflow-wrap:anywhere}
-  .item-btn .stk{display:block;font-size:13px;color:#0a7a2f;font-weight:700;margin-top:4px}
-  .item-btn .env{display:block;font-size:12px;color:#555;margin-top:2px}
-  .popup{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
+  /* Lo propio de esta pantalla es layout: el resto lo pone gp2-modulo.css. */
+  .status.bad{color:var(--err-700);font-weight:600}
+  /* grilla de cartones/cajas: una tarjeta tocable por insumo */
+  .items{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:var(--s2);margin:var(--s3) 0}
+  .item-btn{padding:12px 10px;background:var(--surface);border:1.5px solid var(--line-strong);border-radius:var(--r-lg);
+            cursor:pointer;text-align:center;box-shadow:var(--sh-1);color:var(--ink-800)}
+  .item-btn:hover{border-color:var(--brand-500);background:var(--brand-50)}
+  .item-btn .code{display:block;font-size:20px;font-weight:750;color:var(--brand-600)}
+  .item-btn .desc{display:block;font-size:var(--fs-sm);color:var(--ink-700);margin-top:4px;overflow-wrap:anywhere}
+  .item-btn .stk{display:block;font-size:var(--fs-sm);color:var(--ok-700);font-weight:700;margin-top:4px}
+  .item-btn .env{display:block;font-size:var(--fs-cap);color:var(--ink-500);margin-top:2px}
+  /* ventana para la cantidad */
+  .popup{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
   .popup.open{display:flex}
-  .pop-card{background:#fff;border-radius:14px;width:100%;max-width:440px;padding:22px}
-  .pop-card h3{font-size:22px;font-weight:800;margin-bottom:10px}
-  .pop-card .info{background:#f6f8fa;border-radius:8px;padding:10px;margin-bottom:12px;font-size:16px}
-  .pop-card input{width:100%;padding:12px;font-size:24px;text-align:center;border:2px solid #d0d7de;border-radius:8px}
-  .conv{font-size:17px;color:#0b3b73;font-weight:700;text-align:center;padding:6px 0;min-height:26px}
+  .pop-card{background:var(--surface);border-radius:var(--r-lg);width:100%;max-width:440px;padding:22px;box-shadow:var(--sh-2)}
+  .pop-card h3{font-size:var(--fs-h2);font-weight:700;margin-bottom:10px;color:var(--ink-900)}
+  .pop-card .info{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-md);padding:10px;margin-bottom:12px;font-size:var(--fs-td)}
+  .pop-card input{width:100%;font-size:24px;text-align:center;min-height:52px}
+  .conv{font-size:17px;color:var(--brand-700);font-weight:700;text-align:center;padding:6px 0;min-height:26px}
   .pop-actions{display:flex;gap:10px;margin-top:10px}
-  .pop-actions button{flex:1;padding:12px;font-size:17px;font-weight:800;border-radius:8px;cursor:pointer;border:2px solid #d0d7de;background:#fff}
-  .pop-actions .ok{background:#111;color:#fff;border-color:#111}
-  .ult{margin-top:16px}
-  .ult table{width:100%}
+  .pop-actions .btn{flex:1}
+  .ult{margin-top:var(--s2)}
 </style>
 </head>
 <body>
@@ -55,18 +55,18 @@
   </div>
 
   <div class="steps">
-    <div class="row"><b style="font-size:18px">Proveedor de Artículo Terminado:</b></div>
-    <div class="provs" id="provs"></div>
+    <h2 class="sec-title">Proveedor de Artículo Terminado</h2>
+    <div class="provs-grid" id="provs"></div>
 
     <div id="zona" class="hidden">
-      <div class="search-box"><input type="text" id="q" placeholder="Buscar cartón o caja…"></div>
+      <div class="search-box"><input type="search" class="search" id="q" placeholder="Buscar cartón o caja…"></div>
       <div class="items" id="items"></div>
     </div>
 
     <div class="ult">
-      <h2 style="font-size:18px;margin:14px 0 6px">Últimos envíos</h2>
+      <h2 class="sec-title">Últimos envíos</h2>
       <div class="table-wrap"><table class="t">
-        <thead><tr><th>Fecha</th><th>Prov AT</th><th>Insumo</th><th style="text-align:right">Cantidad</th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Prov AT</th><th>Insumo</th><th class="num">Cantidad</th></tr></thead>
         <tbody id="ultBody"></tbody>
       </table></div>
     </div>
@@ -78,11 +78,11 @@
   <div class="pop-card">
     <h3 id="popTitle"></h3>
     <div class="info" id="popInfo"></div>
-    <input id="popQty" inputmode="numeric" placeholder="">
+    <input id="popQty" inputmode="numeric" placeholder="" aria-label="Cantidad">
     <div class="conv" id="popConv"></div>
     <div class="pop-actions">
-      <button type="button" id="popCancel">Cancelar</button>
-      <button type="button" class="ok" id="popOk">Enviar</button>
+      <button type="button" class="btn btn-secondary btn-lg" id="popCancel">Cancelar</button>
+      <button type="button" class="btn btn-primary btn-lg ok" id="popOk">Enviar</button>
     </div>
     <div id="popMsg" class="status"></div>
   </div>
@@ -197,8 +197,8 @@ $('popOk').addEventListener('click', async function(){
 function pintarUltimos(){
   $('ultBody').innerHTML=(D.ultimos||[]).map(function(u){
     return '<tr><td>'+new Date(u.fecha).toLocaleDateString('es-AR')+'</td><td>'+esc(u.prov)+'</td>'+
-      '<td>'+esc(u.comp)+'</td><td style="text-align:right">'+fmt(u.cantidad)+'</td></tr>';
-  }).join('') || '<tr><td colspan="4" style="color:#888">Sin envíos todavía.</td></tr>';
+      '<td>'+esc(u.comp)+'</td><td class="num">'+fmt(u.cantidad)+'</td></tr>';
+  }).join('') || '<tr><td colspan="4" class="muted">Sin envíos todavía.</td></tr>';
 }
 
 $('q').addEventListener('input', pintarItems);

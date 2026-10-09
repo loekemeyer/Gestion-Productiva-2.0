@@ -342,7 +342,7 @@ function abrirPopup(it) {
     <br>Proveedor: ${esc(it.proveedor || "—")} · Remito ${esc(it.remito || "—")} · ${esc(fmtFechaCorta(it.fecha))}
     <br>Declarado por proveedor: <b>${fmt(decl)}</b> ${umDe(it)}
     ${umDe(it) === "uni" && !kxDe(it)
-      ? '<br><span style="color:#b42318;font-weight:800">Sin kg por unidad cargado: contá las unidades (no se puede convertir el peso).</span>'
+      ? '<br><span class="err-text">Sin kg por unidad cargado: contá las unidades (no se puede convertir el peso).</span>'
       : ""}
   `;
   // Que se pide tipear: la balanza (kg) salvo que no haya kg_x_uni con que convertir.

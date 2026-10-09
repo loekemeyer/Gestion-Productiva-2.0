@@ -37,20 +37,20 @@
 
     <!-- FASE 0 — elegir inyector -->
     <div id="fase0">
-      <div class="row"><label class="lbl">Inyector</label></div>
+      <h2 class="sec-title">Inyector</h2>
       <div class="provs-grid" id="provGrid"></div>
       <div id="status" class="status">Cargando…</div>
     </div>
 
     <!-- FASE 1 — control -->
     <div id="fase1" class="hidden">
-      <div class="row"><label class="lbl" id="fase1Title">Inyector</label></div>
+      <h2 class="sec-title" id="fase1Title">Inyector</h2>
 
       <!-- El inyector no guarda piezas: guarda RESINA (kg). Enviado = bolsa que se le
            mando, Consumido = kg gastado al entregar piezas, Saldo = kg que le quedan. -->
 
       <div class="search-box no-print">
-        <input type="text" id="q" placeholder="Buscar por resina, descripción o código…">
+        <input type="search" class="search" id="q" placeholder="Buscar por resina, descripción o código…">
       </div>
 
       <div class="table-wrap">

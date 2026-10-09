@@ -26,69 +26,62 @@
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../apple-touch-icon.png?v=20260829j">
 <style>
-  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;align-items:center}
-  /* 44px = minimo tactil de la casa (2026-09-03). */
-  .chip{padding:10px 16px;min-height:44px;border-radius:20px;border:2px solid #d0d7de;background:#fff;font-weight:700;font-size:16px;cursor:pointer;color:#111}
-  .chip.active{background:#e7eff8;color:#fff;border-color:#cddaea}
-  .chip .badge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:10px;background:#fde68a;color:#7c2d12;font-size:12px;font-weight:800}
-  .chip.active .badge{background:#fff;color:#0b3b73}
+  /* Lo propio de esta pantalla es layout: tipografía, colores, botones, campos y
+     tablas los pone gp2-modulo.css (sistema de diseño 2026-10-09). */
+  .chips{align-items:center}
+  .chip .badge{margin-left:6px}
 
-  .resumen{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
-  .rcard{border:1px solid #e6eaee;border-radius:10px;padding:7px 12px;font-size:13px;color:#555}
-  .rcard b{display:block;font-size:17px;color:#111}
+  .nota{margin:0 0 var(--s2);padding:4px 14px;background:var(--brand-50);border:1px solid var(--brand-200);
+        border-left:4px solid var(--brand-500);border-radius:var(--r-md);font-size:14.5px;color:var(--brand-800)}
+  .nota > div{padding:0 0 10px}
 
-  .parte{display:flex;gap:14px;align-items:center;padding:11px 12px;border-bottom:1px solid #e6eaee;flex-wrap:wrap}
-  .parte:hover{background:#f6faff}
-  .parte.sin{background:#fffbeb}          /* sin ningun pintor: hay que definirlo */
-  .parte.sin:hover{background:#fef6da}
+  /* carga de cada pintor: mini-KPIs (el más cargado en ámbar, el menos en verde) */
+  .carga{display:flex;gap:var(--s2);flex-wrap:wrap;margin:var(--s2) 0;align-items:stretch}
+  .cbox{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:6px 14px;
+        font-size:var(--fs-sm);font-weight:600;color:var(--ink-600);min-width:130px;box-shadow:var(--sh-1)}
+  .cbox b{display:block;font-size:20px;font-weight:750;color:var(--ink-900);line-height:1.2}
+  .cbox .sub{display:block;font-size:var(--fs-cap);font-weight:500}
+  .cbox.max{border-top:3px solid var(--warn-600)}
+  .cbox.min{border-top:3px solid var(--ok-600)}
+  .acciones{display:flex;gap:var(--s2) var(--s3);flex-wrap:wrap;align-items:center;margin:var(--s2) 0}
+  .acciones .search-box{flex:1 1 260px;margin:0}
+
+  /* lista de partes: una fila por parte, botonera de pintores a la derecha */
+  .lista{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:clip;box-shadow:var(--sh-1)}
+  .lista:empty{display:none}
+  .parte{display:flex;gap:14px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
+  .parte:last-child{border-bottom:0}
+  .parte:hover{background:var(--brand-50)}
+  .parte.sin{background:var(--falt-50)}          /* sin ningun pintor: hay que definirlo */
   .p-izq{flex:1;min-width:230px}
-  .p-cod{font-weight:800;font-size:18px;color:#0066cc}
-  .p-desc{font-size:15px;color:#333;overflow-wrap:anywhere}
-  .p-meta{font-size:12px;color:#777;margin-top:2px}
-  .p-meta b{color:#0a7a2f}
-  .p-meta .nada{color:#b45309;font-weight:700}
-  .p-der{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .p-cod{font-weight:700;font-size:var(--fs-base);color:var(--brand-600)}
+  .p-desc{font-size:var(--fs-td);color:var(--ink-700);overflow-wrap:anywhere}
+  .p-meta{font-size:var(--fs-sm);color:var(--ink-500);margin-top:2px}
+  .p-meta b{color:var(--ok-700)}
+  .p-meta .nada{color:var(--warn-700);font-weight:700}
+  .p-der{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 
-  .pbtn{padding:10px 16px;border-radius:10px;border:2px solid #d0d7de;background:#fff;
-        font-weight:800;font-size:15px;cursor:pointer;color:#111;white-space:nowrap}
-  .pbtn:hover{border-color:#111}
-  .pbtn.on{background:#e7f8ed;color:#fff;border-color:#cdead6}
+  .pbtn{min-height:var(--touch);padding:0 14px;border-radius:var(--r-md);border:1.5px solid var(--line-strong);
+        background:var(--surface);color:var(--ink-800);font-size:var(--fs-td);font-weight:600;cursor:pointer;white-space:nowrap}
+  .pbtn:hover{border-color:var(--ink-500)}
   .pbtn:disabled{opacity:.45;cursor:wait}
   /* el que TIENE la parte este mes: verde lleno. Los otros que pueden hacerla
-     quedan con borde, para que se vea de un saque quien la tiene. */
-  .pbtn.puede{border-color:#cdead6;color:#0a7a2f;background:#f3fbf5}
-  .pbtn.tiene{background:#e7f8ed;color:#fff;border-color:#cdead6}
-  .pbtn.prop{border-style:dashed;border-color:#cddaea;color:#0b3b73;background:#f3f7fd}
-  .carga{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;align-items:center}
-  .cbox{border:2px solid #e6eaee;border-radius:10px;padding:8px 14px;font-size:13px;color:#555;min-width:130px}
-  .cbox b{display:block;font-size:20px;color:#111}
-  .cbox .sub{font-size:12px;color:#888}
-  .btn-prop{padding:11px 16px;min-height:44px;border-radius:10px;border:2px solid #cddaea;background:#e7eff8;
-            color:#fff;font-weight:800;font-size:15px;cursor:pointer}
-  .btn-prop:disabled{opacity:.5}
+     quedan con borde verde, para que se vea de un saque quien la tiene. */
+  .pbtn.puede{border-color:var(--ok-600);color:var(--ok-700);background:var(--ok-50)}
+  .pbtn.on,.pbtn.tiene{background:var(--ok-700);color:#fff;border-color:var(--ok-700)}
+  .pbtn.prop{border-style:dashed;border-color:var(--brand-500);color:var(--brand-700);background:var(--brand-50)}
 
   @media (max-width:640px){
-    .card{border-radius:0}
-    .header{padding:10px 12px}
-    .header h1{font-size:19px;line-height:1.15}
-    .header .hbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-    .header .hbtns a,.header .hbtns .hlink{font-size:13px;padding:7px 11px}
-    .steps{padding-top:6px}
-    .nota{font-size:13px;padding:8px 10px;margin:6px 0}
-    .chips,.resumen{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
+    .nota{font-size:13.5px}
+    .chips,.carga{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
                     scrollbar-width:none;margin:6px 0;padding-bottom:2px}
-    .chips::-webkit-scrollbar,.resumen::-webkit-scrollbar{display:none}
-    .chip{flex:0 0 auto;font-size:16px;padding:10px 14px;min-height:44px}
-    .rcard{flex:0 0 auto;font-size:12px;padding:5px 10px;line-height:1.15}
-    .rcard b{font-size:15px}
-    .search-box{margin:6px 0}
+    .chips::-webkit-scrollbar,.carga::-webkit-scrollbar{display:none}
+    .chip,.cbox{flex:0 0 auto}
+    .acciones .btn{flex:1 1 100%}
     .parte{padding:9px 10px;gap:7px}
     .p-izq{min-width:100%;flex:none}
-    .p-cod{font-size:16px}
-    .p-desc{font-size:14px}
-    .p-meta{font-size:11px}
     .p-der{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:7px;justify-content:stretch}
-    .pbtn{width:100%;min-height:44px;padding:10px 8px;font-size:14px;white-space:normal}
+    .pbtn{width:100%;padding:8px;font-size:14px;white-space:normal}
   }
 </style>
 </head>
@@ -98,7 +91,7 @@
   <div class="header">
     <h1>Pintores · Quién pinta cada parte</h1>
     <div class="hbtns">
-      <button class="hlink" id="btnNuevo" type="button">+ Pintor</button>
+      <button class="hlink primary" id="btnNuevo" type="button">+ Pintor</button>
       <a href="../Envios/EnviosPS_GP2.html">Envío PS</a>
       <a class="back" href="../../GP2_MODULOS.html">Atrás</a>
     </div>
@@ -107,7 +100,7 @@
   <div class="steps">
     <details class="nota">
       <summary>Cada parte va entera a un pintor. El programa propone el reparto; vos lo corregís.</summary>
-      <div style="margin-top:6px">
+      <div>
         Una parte la pueden hacer <b>varios</b> (los botones con borde verde), pero
         <b>la trabaja uno solo</b>: el que queda en verde lleno. La parte no se parte al medio —
         lo que se reparte es el <b>total de trabajo</b>, medido en cajones del mes.
@@ -118,8 +111,10 @@
 
     <div class="chips" id="filtroChips"></div>
     <div class="carga" id="carga"></div>
-    <div style="margin:8px 0"><button class="btn-prop" id="btnProponer" type="button">⚖ Proponer reparto parejo</button></div>
-    <div class="search-box"><input type="text" id="q" placeholder="Buscar por código o descripción…"></div>
+    <div class="acciones">
+      <div class="search-box"><input type="search" class="search" id="q" placeholder="Buscar por código o descripción…"></div>
+      <button class="btn btn-secondary btn-prop" id="btnProponer" type="button">⚖ Proponer reparto parejo</button>
+    </div>
 
     <div class="lista" id="lista"></div>
     <div id="vacio" class="empty hidden">No hay partes para esa búsqueda.</div>
@@ -158,7 +153,7 @@ function pintarChips(){
           : k==='sin'   ? PARTES.filter(function(p){ return p.asignado==null; }).length
                         : PARTES.filter(function(p){ return (p.pueden||[]).length>1; }).length;
     return '<button class="chip'+(filtro===k?' active':'')+'" data-f="'+k+'">'+
-           FILTROS[k]+'<span class="badge">'+n+'</span></button>';
+           FILTROS[k]+'<span class="n">'+n+'</span></button>';
   }).join('');
   Array.prototype.forEach.call($('filtroChips').querySelectorAll('.chip'), function(b){
     b.addEventListener('click', function(){ filtro=b.dataset.f; pintarChips(); render(); });
@@ -180,9 +175,9 @@ function pintarCarga(){
   var min = Math.min.apply(null, vals.concat([max]));
   $('carga').innerHTML = PINTORES.map(function(x){
     var c = acum[x.id]||0;
-    var borde = (PINTORES.length>1 && c===max && max>min) ? '#b45309'
-              : (PINTORES.length>1 && c===min && max>min) ? '#0a7a2f' : '#e6eaee';
-    return '<div class="cbox" style="border-color:'+borde+'"><b>'+fmt(c,1)+'</b>'+
+    var borde = (PINTORES.length>1 && c===max && max>min) ? ' max'
+              : (PINTORES.length>1 && c===min && max>min) ? ' min' : '';
+    return '<div class="cbox'+borde+'"><b>'+fmt(c,1)+'</b>'+
            esc(x.nombre)+'<span class="sub">cajones/mes · '+(partes[x.id]||0)+' partes</span></div>';
   }).join('');
 }

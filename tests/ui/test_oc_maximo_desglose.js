@@ -106,10 +106,13 @@ window.supabase = { createClient: function(){ return {
   await page.evaluate(() => document.body.click());
   ok(await page.$eval('#dsgPop', x => x.hidden), 'tablet: tocar afuera la cierra');
 
-  // v1.45.1 [Thomas: "hay mas blanco de un lado que de otro"]: con la tabla a la vista la tarjeta la abraza.
-  const anchos = await page.evaluate(() => [document.querySelector('.card').getBoundingClientRect().width,
-    document.querySelector('#panGen .table-wrap').getBoundingClientRect().width]);
-  ok(anchos[0] - anchos[1] < 60, 'la tarjeta abraza la tabla (sin blanco de un solo lado): ' + anchos.map(Math.round).join(' vs '));
+  // v1.45.1 [Thomas: "hay mas blanco de un lado que de otro"]: con la tabla a la vista la caja blanca la abraza.
+  // Sistema de diseño 2026-10-09: la barra y la .card van a todo el ancho (la .card ya no es una caja
+  // blanca), asi que lo blanco que tiene que abrazar la tabla es el .table-wrap. Se sigue cuidando lo
+  // mismo: que no quede blanco vacio al costado de la tabla.
+  const anchos = await page.evaluate(() => [document.querySelector('#panGen .table-wrap').getBoundingClientRect().width,
+    document.querySelector('#panGen .table-wrap > table').getBoundingClientRect().width]);
+  ok(anchos[0] - anchos[1] < 60, 'la caja de la tabla abraza la tabla (sin blanco de un solo lado): ' + anchos.map(Math.round).join(' vs '));
 
   await browser.close();
   console.log(process.exitCode ? 'HAY FALLOS' : 'TODO OK');

@@ -255,7 +255,7 @@ function renderChips(rows) {
   const chipsHtml = legajos.map(leg => {
     const c = colorOperario(leg);
     return `
-      <button class="oper-chip" data-leg="${leg}" type="button">
+      <button class="chip oper-chip" data-leg="${leg}" type="button">
         <span class="chip-dot" style="background:${c}"></span>
         ${nombreOperario(leg)}
         <span class="chip-n">${counts[leg]}</span>
@@ -265,8 +265,8 @@ function renderChips(rows) {
 
   const actions = legajos.length > 1 ? `
     <span class="chips-actions">
-      <button class="chips-action-btn" id="chipsAllBtn" type="button">Todos</button>
-      <button class="chips-action-btn" id="chipsNoneBtn" type="button">Ninguno</button>
+      <button class="btn btn-ghost chips-action-btn" id="chipsAllBtn" type="button">Todos</button>
+      <button class="btn btn-ghost chips-action-btn" id="chipsNoneBtn" type="button">Ninguno</button>
     </span>
   ` : "";
 
@@ -467,19 +467,19 @@ function renderChart() {
       // padding 60 dias a cada lado para poder scrollear mas alla del rango de datos
       min: fullStartMs - 60 * 86400000,
       max: fullEndMs + 60 * 86400000,
-      axisLine: { lineStyle: { color: "#475569" } },
-      axisLabel: { color: "#94a3b8", fontSize: 11 },
+      axisLine: { lineStyle: { color: "#cbd5e1" } },
+      axisLabel: { color: "#64748b", fontSize: 12 },
       splitLine: { show: false },
     },
     yAxis: {
       type: "value",
       name: "seg/uni",
-      nameTextStyle: { color: "#94a3b8", fontSize: 11, padding: [0, 0, 6, 0] },
+      nameTextStyle: { color: "#64748b", fontSize: 12, padding: [0, 0, 6, 0] },
       min: 0,
       max: yMax > 0 ? yMax : null,
-      axisLine: { lineStyle: { color: "#475569" } },
-      axisLabel: { color: "#94a3b8", fontSize: 11 },
-      splitLine: { lineStyle: { color: "rgba(148,163,184,.08)" } },
+      axisLine: { lineStyle: { color: "#cbd5e1" } },
+      axisLabel: { color: "#64748b", fontSize: 12 },
+      splitLine: { lineStyle: { color: "rgba(15,23,42,.06)" } },
     },
     dataZoom: [
       {

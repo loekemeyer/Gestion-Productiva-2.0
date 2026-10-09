@@ -6,89 +6,80 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Control Cajas · GP2</title>
 <link rel="icon" href="../GP2_favicon.png"/>
+<link rel="stylesheet" href="../gp2-modulo.css?v=20261009ds">
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:Arial,sans-serif;background:#f5f6f8;padding:12px;color:#111}
-  .card{max-width:840px;margin:auto;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);overflow:hidden}
-  .header{background:#0b1220;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center}
-  .header h1{font-size:24px;font-weight:800;letter-spacing:.3px}
-  .header button{background:#fff;color:#111;border:none;padding:8px 14px;border-radius:6px;font-weight:800;cursor:pointer;font-size:18px}
+  /* Rediseño 2026-10-09 (sistema GP2 v2.0): tipografía, botones, campos y barra salen de
+     gp2-modulo.css. Acá queda el LAYOUT propio: filtros, remitos agrupados, tarjetas y el popup.
+     (El display de .overlay queda acá a propósito: los tests stubean el CSS del sistema.) */
+  .ok{color:var(--ok-700)}
+  .bad{color:var(--err-700)}
 
-  .body{padding:14px 18px}
-  .status{margin:8px 0;font-size:18px}
-  .ok{color:#0a7a2f}
-  .bad{color:#b42318}
+  .filtros{display:flex;gap:8px 12px;flex-wrap:wrap;align-items:flex-end;padding:12px 14px;margin:0 0 var(--s3)}
+  .filtros .field select{min-width:180px}
+  .filtros .cta-count{margin-left:auto;align-self:center;font-size:var(--fs-sm);padding:4px 12px}
 
-  .filtros{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:10px 14px;background:#f6f8fa;border:1px solid #eaecef;border-radius:8px;margin-bottom:12px}
-  .filtros label{font-weight:800;font-size:16px}
-  .filtros select{height:38px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:18px;background:#fff}
-  .filtros .cta-count{margin-left:auto;background:#0b5cad;color:#fff;padding:6px 12px;border-radius:6px;font-weight:800;font-size:15px}
-  .filtros .cta-count.done{background:#0a7a2f}
+  .rem-block{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-1);margin:0 0 var(--s3);overflow:clip}
+  .rem-hdr{position:sticky;top:var(--bar-h);z-index:20;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:10px 16px;background:var(--surface-2);border-bottom:1px solid var(--line)}
+  .rem-hdr .rem-title{font-weight:700;color:var(--ink-900);font-size:var(--fs-h3)}
+  .rem-hdr .rem-meta{color:var(--ink-500);font-size:var(--fs-sm)}
+  .rem-badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:var(--r-pill);font-size:var(--fs-cap);font-weight:700;white-space:nowrap;
+    background:var(--brand-50);color:var(--brand-700);border:1px solid var(--brand-200)}
+  .rem-badge.done{background:var(--ok-50);color:var(--ok-700);border-color:var(--ok-200)}
 
-  .rem-block{border:1px solid #d0d7de;border-radius:10px;margin-bottom:14px;overflow:hidden}
-  .rem-hdr{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#eef4fb;border-bottom:1px solid #d0d7de;font-size:16px;gap:10px;flex-wrap:wrap}
-  .rem-hdr .rem-title{font-weight:900;color:#0b3b73;font-size:17px}
-  .rem-hdr .rem-meta{color:#555;font-size:14px}
-  .rem-hdr .rem-badge{background:#0b5cad;color:#fff;padding:4px 10px;border-radius:6px;font-weight:800;font-size:14px;white-space:nowrap}
-  .rem-hdr .rem-badge.done{background:#0a7a2f}
-
-  .items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;padding:12px}
-  .item-btn{background:#fff;border:2px solid #d0d7de;border-radius:10px;padding:12px 8px;cursor:pointer;text-align:center;font-weight:700;transition:all .15s;position:relative}
-  .item-btn:hover{border-color:#0b5cad;background:#fbfdff}
-  .item-btn.done{border-color:#0a7a2f;background:#f3fbf6}
-  .item-btn .cod{display:block;font-size:24px;font-weight:900;color:#0066cc}
-  .item-btn .desc{display:block;font-size:16px;color:#111;margin-top:4px;font-weight:800}
-  .item-btn .decl{display:block;margin-top:10px;font-size:15px;color:#333;background:#f6f8fa;border-radius:6px;padding:6px}
-  .item-btn .decl b{color:#0b5cad;font-size:17px}
-  .item-btn .ctrl{display:block;margin-top:6px;font-size:14px;color:#0a7a2f;font-weight:800}
-  .item-btn .ctrl small{color:#555;font-weight:600;font-size:12px;display:block}
-  .item-btn .diff{display:block;margin-top:2px;font-size:13px;font-weight:800}
-  .item-btn .diff.dif{color:#b42318}
-  .item-btn .diff.ok{color:#0a7a2f}
-  .item-btn .tilde{position:absolute;top:6px;right:8px;color:#0a7a2f;font-size:22px;font-weight:900;display:none}
+  .items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:var(--s2);padding:12px}
+  .item-btn{position:relative;display:flex;flex-direction:column;gap:2px;min-height:var(--touch);background:var(--surface);
+    border:1px solid var(--line-strong);border-radius:var(--r-md);padding:10px 12px;cursor:pointer;transition:border-color .12s,background .12s}
+  .item-btn:hover{border-color:var(--brand-500);background:var(--brand-50)}
+  .item-btn.done{border-color:var(--ok-200);background:var(--ok-50)}
+  .item-btn .cod{font-size:20px;line-height:1.15;padding-right:24px}
+  .item-btn .desc{font-size:var(--fs-td);color:var(--ink-900);font-weight:600;line-height:1.25}
+  .item-btn .decl{margin-top:6px;font-size:var(--fs-sm);color:var(--ink-700);background:var(--ink-50);border-radius:var(--r-sm);padding:4px 8px}
+  .item-btn .decl b{color:var(--ink-900);font-size:var(--fs-td)}
+  .item-btn .decl.virg{background:var(--warn-50);color:var(--warn-700)}
+  .item-btn .ctrl{margin-top:4px;font-size:var(--fs-sm);color:var(--ok-700);font-weight:700}
+  .item-btn .ctrl small{display:block;color:var(--ink-500);font-weight:500;font-size:var(--fs-cap)}
+  .item-btn .diff{font-size:var(--fs-sm);font-weight:700}
+  .item-btn .diff.dif{color:var(--err-700)}
+  .item-btn .diff.ok{color:var(--ok-700)}
+  .item-btn .tilde{position:absolute;top:6px;right:10px;color:var(--ok-700);font-size:20px;font-weight:800;display:none}
   .item-btn.done .tilde{display:block}
 
-  .empty{padding:22px;color:#666;text-align:center;font-style:italic;font-size:17px}
-
-  /* Popup */
-  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:16px;z-index:100}
+  /* popup de control */
+  .overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:100}
   .overlay.open{display:flex}
-  .modal{width:min(560px,100%);max-height:94vh;overflow-y:auto;background:#fff;border-radius:14px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
-  .modal h3{font-size:22px;font-weight:800;margin-bottom:10px}
-  .modal .item-info{background:#f6f8fa;padding:12px;border-radius:8px;margin-bottom:12px;font-size:16px;line-height:1.45}
-  .modal .item-info b{color:#0b5cad}
-
-  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:end}
-  .grid3 .fld label{display:block;font-size:15px;font-weight:800;margin-bottom:4px;color:#333;text-align:center}
-  .grid3 .fld input{width:100%;padding:14px 6px;font-size:28px;text-align:center;border:2px solid #d0d7de;border-radius:8px;font-weight:900}
-  .grid3 .fld input:focus{outline:none;border-color:#0b5cad;background:#fbfdff}
-
-  .paq-line{margin-top:14px;padding:10px 12px;background:#eef4fb;border:1px solid #c8dcef;border-radius:8px;font-size:18px;font-weight:800;color:#0b3b73;text-align:center}
-  .paq-line b{color:#111}
-  .total-line{margin-top:10px;padding:14px;background:#111;color:#fff;border-radius:8px;font-size:24px;font-weight:900;text-align:center}
-  .diff-line{margin-top:8px;padding:10px 12px;border-radius:6px;font-size:16px;font-weight:800;text-align:center}
-  .diff-line.ok{background:#f3fbf6;color:#0a7a2f;border:1px solid #b8e0c2}
-  .diff-line.bad{background:#fef3f2;color:#b42318;border:1px solid #f4c7c3}
-
-  .virg-line{margin-top:8px;padding:10px 12px;border-radius:6px;font-size:16px;font-weight:800;text-align:center;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}
-  .virg-box{margin-top:10px;padding:12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;display:flex;flex-wrap:wrap;gap:10px;align-items:end}
-  .virg-box label{display:block;font-size:15px;font-weight:800;color:#9a3412;margin-bottom:4px;width:100%}
-  .virg-box input{flex:1;min-width:120px;padding:12px 8px;font-size:24px;text-align:center;border:2px solid #fdba74;border-radius:8px;font-weight:900}
-  .virg-box input:focus{outline:none;border-color:#ea580c;background:#fff}
-  .virg-box .btn{flex:0 0 auto;background:#9a3412;color:#fff;border:none}
-  #btnVirgilio{color:#9a3412;border-color:#fdba74}
-  /* "→ Virgilio" arriba [Thomas 2026-10-02]: botón al tope del popup que despliega el input. */
-  .btn-virg-top{display:inline-flex;align-items:center;gap:6px;margin:0 0 12px;padding:10px 16px;background:#fff7ed;color:#9a3412;border:2px solid #fdba74;border-radius:8px;font-size:17px;font-weight:800;cursor:pointer;min-height:44px}
-  .btn-virg-top.on{background:#9a3412;color:#fff;border-color:#9a3412}
+  .modal{width:min(560px,100%);max-height:94vh;overflow-y:auto;background:var(--surface);border-radius:var(--r-lg);padding:18px 20px;box-shadow:var(--sh-2)}
+  .modal h3{font-size:var(--fs-h2);margin-bottom:10px;color:var(--ink-900)}
+  .modal .item-info{background:var(--surface-2);border:1px solid var(--line);padding:10px 12px;border-radius:var(--r-md);margin-bottom:12px;line-height:1.45}
+  .modal .item-info b{color:var(--ink-900)}
+  /* campos de conteo: número protagonista (se carga parado, con la tablet en la mano) */
+  .fld label{display:block;font-size:var(--fs-sm);font-weight:600;margin-bottom:4px;color:var(--ink-600)}
+  .fld input{width:100%;min-height:56px;font-size:28px;font-weight:750;text-align:center}
+  .diff-line{margin-top:10px;padding:10px 12px;border-radius:var(--r-md);font-weight:700;text-align:center}
+  .diff-line.ok{background:var(--ok-50);color:var(--ok-700);border:1px solid var(--ok-200)}
+  .diff-line.bad{background:var(--err-50);color:var(--err-700);border:1px solid var(--err-200)}
 
   .actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
-  .btn{padding:12px 16px;border:none;border-radius:8px;font-size:18px;font-weight:800;cursor:pointer;flex:1;min-width:110px}
-  .btn-primary{background:#111;color:#fff}
-  .btn-primary:disabled{opacity:.4;cursor:not-allowed}
-  .btn-secondary{background:#fff;color:#111;border:2px solid #d0d7de}
-  .btn-danger{background:#fff;color:#b42318;border:2px solid #f4c7c3}
+  .actions .btn{flex:1;min-width:110px}
+  .btn-danger{background:var(--surface);color:var(--err-700);border-color:var(--err-200)}
+  .btn-danger:hover{background:var(--err-50)}
+  .msg{margin-top:10px;font-size:var(--fs-sm)}
 
-  .msg{margin-top:10px;font-size:15px}
+  .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end}
+  .grid3 .fld label{text-align:center}
+  .paq-line{margin-top:12px;padding:8px 12px;background:var(--brand-50);border:1px solid var(--brand-200);border-radius:var(--r-md);font-weight:650;color:var(--brand-800);text-align:center}
+  .paq-line b{color:var(--ink-900)}
+  .total-line{margin-top:10px;padding:12px;background:var(--ink-900);color:#fff;border-radius:var(--r-md);font-size:24px;font-weight:800;text-align:center;font-variant-numeric:tabular-nums}
+
+  /* "→ Virgilio" arriba [Thomas 2026-10-02]: botón al tope del popup que despliega el input. */
+  .virg-line{margin:0 0 12px;padding:8px 12px;border-radius:var(--r-md);font-weight:700;text-align:center;background:var(--warn-50);color:var(--warn-700);border:1px solid var(--warn-200)}
+  .virg-box{margin:8px 0 12px;padding:12px;background:var(--warn-50);border:1px solid var(--warn-200);border-radius:var(--r-md);display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+  .virg-box label{display:block;font-size:var(--fs-sm);font-weight:700;color:var(--warn-700);width:100%}
+  .virg-box input{flex:1;min-width:120px;min-height:52px;font-size:24px;font-weight:750;text-align:center}
+  .virg-box .btn{flex:0 0 auto}
+  .btn-virg-top{margin:0 0 12px;background:var(--warn-50);color:var(--warn-700);border-color:var(--warn-200)}
+  .btn-virg-top:hover{background:var(--warn-200)}
+  .btn-virg-top.on{background:var(--warn-700);color:#fff;border-color:var(--warn-700)}
 </style>
 </head>
 <body>
@@ -96,19 +87,21 @@
 <div class="card">
   <div class="header">
     <h1>Control Cajas</h1>
-    <button onclick="history.length>1?history.back():(window.location.href='../GP2_MODULOS.html')">Atrás</button>
+    <div class="hbtns">
+      <a class="back" href="../GP2_MODULOS.html" onclick="if(history.length>1){history.back();return false;}">Atrás</a>
+    </div>
   </div>
-  <div class="body">
-    <div class="filtros">
-      <label>Estado</label>
-      <select id="selEstado">
-        <option value="pendientes" selected>Pendientes</option>
-        <option value="controladas">Controladas</option>
-        <option value="todas">Todas</option>
-      </select>
-      <label>Proveedor</label>
-      <select id="selProv"><option value="todos">Todos</option></select>
-      <span id="ctaCount" class="cta-count">0 items</span>
+  <div class="steps">
+    <div class="panel filtros">
+      <div class="field"><label for="selEstado">Estado</label>
+        <select id="selEstado">
+          <option value="pendientes" selected>Pendientes</option>
+          <option value="controladas">Controladas</option>
+          <option value="todas">Todas</option>
+        </select></div>
+      <div class="field"><label for="selProv">Proveedor</label>
+        <select id="selProv"><option value="todos">Todos</option></select></div>
+      <span id="ctaCount" class="cta-count rem-badge">0 items</span>
     </div>
 
     <div id="statusMsg" class="status"></div>
@@ -162,6 +155,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="../supabase-config.js?v=20260929a"></script>
-<script src="control-cajas.js?v=1.4.0"></script>
+<script src="control-cajas.js?v=20261009c"></script>
 </body>
 </html>

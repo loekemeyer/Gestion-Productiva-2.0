@@ -9,89 +9,74 @@
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../supabase-config.js?v=20260929a"></script>
+<link rel="stylesheet" href="../../gp2-modulo.css?v=20261009ds">
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:Arial,sans-serif;background:#f5f6f8;padding:12px;color:#111}
-  .card{max-width:960px;margin:auto;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);overflow:hidden}
-  .header{background:#ffffff;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-  .header h1{font-size:24px;font-weight:700}
-  .header a{background:#fff;color:#111;padding:8px 14px;border-radius:6px;font-weight:700;font-size:18px;text-decoration:none}
+  /* Solo layout propio: barra, campos, botones, avisos y tabla son gp2-modulo.css. */
+  /* escritorio: la carga a la izquierda y los ultimos registros a la derecha */
+  .reg-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s4);align-items:start}
+  @media (min-width:1100px){
+    .reg-layout{grid-template-columns:minmax(0,1fr) minmax(400px,640px)}
+    .recent{position:sticky;top:calc(var(--bar-h) + 12px)}
+  }
+  .datos{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px var(--s3);margin:0 0 var(--s3)}
+  .datos input{width:100%}
+  .search-box{margin:4px 0 var(--s2)}
+  .items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:var(--s2);margin:0 0 var(--s3);max-height:420px;overflow-y:auto;padding:2px}
+  .item-btn{align-items:center;text-align:center;overflow:hidden;min-height:72px}
+  .item-btn .code{display:block;font-size:20px;font-weight:800;color:var(--brand-600)}
+  .item-btn.active .code{color:var(--brand-200)}
+  .item-btn .desc{display:block;font-size:var(--fs-td);margin-top:4px;font-weight:600;line-height:1.2;white-space:normal;overflow-wrap:anywhere}
+  .items-grid > .empty{grid-column:1/-1}
 
-  .steps{padding:14px 18px}
-  .row{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0;align-items:flex-end}
-  .fld{display:flex;flex-direction:column;gap:4px}
-  .fld.grow{flex:1 1 180px}
-  .fld>span{font-size:14px;color:#475569;font-weight:700}
-  input[type="text"],input[type="date"],input[type="number"]{height:42px;border:2px solid #d0d7de;border-radius:8px;padding:0 12px;font-size:20px;width:100%}
-  label.lbl{font-weight:800;font-size:20px}
+  #panel{padding:16px;margin:0 0 var(--s3)}
+  #panel .flow{margin:0 0 12px;font-size:var(--fs-base)}
+  #panel select{width:100%;margin-bottom:12px}
+  .carga{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+  .carga .field{flex:1 1 180px}
+  .carga input{width:100%;font-size:20px}
+  #fUni{background:var(--ink-100);font-weight:800}
+  .msg{margin-top:10px;font-size:var(--fs-base);min-height:20px}
 
-  .btn{padding:12px 20px;border-radius:8px;border:none;font-weight:800;cursor:pointer;font-size:21px}
-  .btn-primary{background:#111;color:#fff}
-  .btn-primary:disabled{opacity:.4;cursor:not-allowed}
-  .btn-secondary{background:#fff;border:2px solid #d0d7de;color:#111}
-
-  .search-box{margin:12px 0;padding:12px;background:#f6f8fa;border-radius:8px}
-  .search-box input{width:100%;padding:10px;font-size:18px;border:2px solid #d0d7de;border-radius:6px}
-  .items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin:12px 0;max-height:420px;overflow-y:auto}
-  .item-btn{padding:12px 8px;background:#fff;border:2px solid #d0d7de;border-radius:10px;cursor:pointer;text-align:center;transition:all .12s;overflow:hidden}
-  .item-btn:hover{border-color:#111;background:#f6f8fa}
-  .item-btn.active{background:#111;color:#fff;border-color:#111}
-  .item-btn .code{display:block;font-size:22px;font-weight:900;color:#0066cc}
-  .item-btn.active .code{color:#165298}
-  .item-btn .desc{display:block;font-size:16px;margin-top:6px;font-weight:700;line-height:1.2;white-space:normal;overflow-wrap:anywhere}
-
-  .panel{margin:12px 0;border:2px solid #d0d7de;border-radius:12px;padding:16px;background:#fbfdff}
-  .panel .flow{background:#eef4fb;border:1px solid #bcd6f0;border-radius:8px;padding:12px;font-size:19px;color:#0b3b73;margin-bottom:12px}
-  .panel .flow b{color:#0f2f52}
-  .panel select{height:44px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:19px;width:100%;margin-bottom:12px}
-  .hint{font-size:15px;color:#667085;font-style:italic}
-  .msg{margin-top:10px;font-size:18px;min-height:20px}
-  .msg.ok{color:#0a7a2f;font-weight:700} .msg.err{color:#b42318;font-weight:700} .msg.warn{color:#b45309;font-weight:700}
-
-  .recent{margin-top:10px}
-  .recent h2{font-size:18px;color:#333;margin:6px 0}
-  /* La tabla mide ~436px: sin wrapper, a 390px Golpes y Uni quedaban afuera de
-     la pantalla y sin scroll (2026-09-03). */
-  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  table.rec{width:100%;min-width:420px;border-collapse:collapse;font-size:16px}
-  table.rec th{color:#555;text-align:left;padding:7px 8px;border-bottom:2px solid #e5e9ee;font-size:13px;text-transform:uppercase}
-  table.rec td{padding:8px;border-bottom:1px solid #eef1f4}
-  table.rec td.n{text-align:right;font-variant-numeric:tabular-nums}
-  .empty{color:#888;padding:14px;text-align:center;font-style:italic}
+  .recent .panel-head{position:static}
+  .recent .table-wrap{border:0;border-radius:0 0 var(--r-lg) var(--r-lg);max-height:calc(100dvh - var(--bar-h) - 90px)}
+  .recent .t td{white-space:nowrap}
 </style>
 </head>
 <body>
 
 <div class="card">
   <div class="header">
-    <h1>Registro Producción</h1>
-    <a class="back" href="../../GP2_MODULOS.html">Atrás</a>
+    <h1>Registro Producción <small>carga manual</small></h1>
+    <div class="hbtns">
+      <a class="back" href="../../GP2_MODULOS.html">Atrás</a>
+    </div>
   </div>
 
-  <div class="steps">
-    <div class="row">
-      <div class="fld grow"><span>Fecha</span><input type="date" id="fFecha"></div>
-      <div class="fld grow"><span>Legajo</span><input type="text" id="fLegajo" inputmode="numeric" placeholder="Legajo del operario"></div>
-      <div class="fld grow"><span>Nombre (opcional)</span><input type="text" id="fNombre" placeholder="Nombre"></div>
-    </div>
-
-    <div class="row"><label class="lbl">Matriz</label></div>
-    <div class="search-box"><input type="text" id="q" placeholder="Buscar matriz por N° o nombre…" oninput="renderMats()"></div>
-    <div class="items-grid" id="matGrid"></div>
-
-    <div id="panel" class="panel" style="display:none">
-      <div id="flow" class="flow"></div>
-      <div id="salidaWrap"></div>
-      <div class="row" style="align-items:flex-end">
-        <div class="fld grow"><span>Golpes del contador</span><input inputmode="numeric" type="number" id="fGolpes" min="1" step="1" placeholder="0" oninput="pintarUni()"></div>
-        <div class="fld grow"><span>Unidades producidas</span><input inputmode="numeric" type="number" id="fUni" min="1" step="1" placeholder="0" readonly style="background:#f1f5f9;font-weight:900"></div>
-        <button class="btn btn-primary" id="btnGuardar" onclick="guardar()">Guardar producción</button>
+  <div class="steps reg-layout">
+    <div class="cargar">
+      <div class="datos">
+        <div class="field"><label for="fFecha">Fecha</label><input type="date" id="fFecha"></div>
+        <div class="field"><label for="fLegajo">Legajo</label><input type="text" id="fLegajo" inputmode="numeric" placeholder="Legajo del operario"></div>
+        <div class="field"><label for="fNombre">Nombre (opcional)</label><input type="text" id="fNombre" placeholder="Nombre"></div>
       </div>
-      <div class="msg" id="msg"></div>
+
+      <div class="field search-box"><label for="q">Matriz</label><input type="search" class="search" id="q" placeholder="Buscar matriz por N° o nombre…" oninput="renderMats()"></div>
+      <div class="items-grid" id="matGrid"></div>
+
+      <div id="panel" class="panel" style="display:none">
+        <div id="flow" class="aviso info flow"></div>
+        <div id="salidaWrap"></div>
+        <div class="carga">
+          <div class="field"><label for="fGolpes">Golpes del contador</label><input inputmode="numeric" type="number" id="fGolpes" min="1" step="1" placeholder="0" oninput="pintarUni()"></div>
+          <div class="field"><label for="fUni">Unidades producidas</label><input inputmode="numeric" type="number" id="fUni" min="1" step="1" placeholder="0" readonly></div>
+          <button class="btn btn-primary btn-lg" id="btnGuardar" onclick="guardar()">Guardar producción</button>
+        </div>
+        <div class="msg" id="msg"></div>
+      </div>
     </div>
 
-    <div class="recent">
-      <h2>Últimos registros</h2>
+    <div class="recent panel">
+      <div class="panel-head">Últimos registros</div>
       <div id="tabla"><p class="empty">—</p></div>
     </div>
   </div>
@@ -128,7 +113,7 @@ function renderMats(){
   var g=$('matGrid'); g.innerHTML='';
   keys.slice(0,300).forEach(k=>{
     var m=D.mat[k];
-    var b=document.createElement('button'); b.className='item-btn'+(String(matSel)===String(k)?' active':'');
+    var b=document.createElement('button'); b.className='prov-btn item-btn'+(String(matSel)===String(k)?' active':'');
     b.innerHTML='<span class="code">N°'+esc(m.n)+'</span><span class="desc">'+esc(m.d||'')+'</span>';
     b.addEventListener('click',()=>selMat(k));
     g.appendChild(b);
@@ -172,9 +157,9 @@ async function cargarUltimos(){
   if(res.error){t.innerHTML='<p class="empty">Error cargando</p>';return;}
   var data=res.data||[];
   if(!data.length){t.innerHTML='<p class="empty">Sin registros todavía</p>';return;}
-  t.innerHTML='<div class="table-wrap"><table class="rec"><thead><tr><th>Fecha</th><th>Legajo</th><th>Nombre</th><th>Matriz</th><th class="n">Golpes</th><th class="n">Uni</th></tr></thead><tbody>'+
+  t.innerHTML='<div class="table-wrap"><table class="t rec"><thead><tr><th>Fecha</th><th>Legajo</th><th>Nombre</th><th>Matriz</th><th class="num">Golpes</th><th class="num">Uni</th></tr></thead><tbody>'+
     data.map(r=>{var f=r.fecha?new Date(r.fecha).toLocaleDateString('es-AR'):'';
-      return '<tr><td>'+f+'</td><td>'+esc(r.legajo||'')+'</td><td>'+esc(r.nombre_empleado||'')+'</td><td>'+esc(r.matriz_raw||'')+' · '+esc(r.nombre_matriz||'')+'</td><td class="n">'+(r.golpes==null?'—':r.golpes)+'</td><td class="n">'+(r.uni==null?'':r.uni)+'</td></tr>';}).join('')+
+      return '<tr><td>'+f+'</td><td>'+esc(r.legajo||'')+'</td><td>'+esc(r.nombre_empleado||'')+'</td><td>'+esc(r.matriz_raw||'')+' · '+esc(r.nombre_matriz||'')+'</td><td class="num">'+(r.golpes==null?'—':r.golpes)+'</td><td class="num">'+(r.uni==null?'':r.uni)+'</td></tr>';}).join('')+
     '</tbody></table></div>';
 }
 async function guardar(){

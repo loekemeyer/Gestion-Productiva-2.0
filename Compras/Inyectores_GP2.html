@@ -20,105 +20,79 @@
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <style>
-  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;align-items:center}
-  .chip{padding:8px 14px;border-radius:20px;border:2px solid #d0d7de;background:#fff;font-weight:700;font-size:15px;cursor:pointer;color:#111}
-  .chip.active{background:#dbe7f6;color:#0b3b73;border-color:#9dbbdd}
-  .chip .badge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:10px;background:#fde68a;color:#7c2d12;font-size:12px;font-weight:800}
-  .chip.active .badge{background:#fff;color:#0b3b73}
+  /* Lo propio de esta pantalla es layout: tipografía, colores, botones, campos y
+     tablas los pone gp2-modulo.css (sistema de diseño 2026-10-09). */
+  .chips{align-items:center}
+  .chips-lbl{font-weight:700;font-size:var(--fs-sm);color:var(--ink-600);margin-right:4px}
+  .chip .badge{margin-left:6px}
+  .status.bad{color:var(--err-700);font-weight:600}
 
-  .parte{display:flex;gap:14px;align-items:center;padding:11px 12px;border-bottom:1px solid #e6eaee;flex-wrap:wrap}
-  .parte:hover{background:#f6faff}
-  .parte.sin{background:#fffbeb}
-  .parte.sin:hover{background:#fef6da}
+  /* lista de partes: una fila por parte, botonera de proveedores a la derecha */
+  .lista{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);overflow:clip;box-shadow:var(--sh-1)}
+  .parte{display:flex;gap:14px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
+  .parte:last-child{border-bottom:0}
+  .parte:hover{background:var(--brand-50)}
+  .parte.sin{background:var(--falt-50)}
+  .parte.nocompra{background:var(--ink-50)}
   .p-izq{flex:1;min-width:230px}
-  .p-cod{font-weight:800;font-size:18px;color:#0066cc}
-  .p-desc{font-size:15px;color:#333;overflow-wrap:anywhere}
-  .p-meta{font-size:12px;color:#777;margin-top:2px}
-  .p-meta b{color:#b45309}
-  .p-der{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .p-cod{font-weight:700;font-size:var(--fs-base);color:var(--brand-600)}
+  .p-desc{font-size:var(--fs-td);color:var(--ink-700);overflow-wrap:anywhere}
+  .p-meta{font-size:var(--fs-sm);color:var(--ink-500);margin-top:2px}
+  .p-meta b{color:var(--warn-700)}
+  .p-der{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 
-  .pbtn{padding:10px 16px;border-radius:10px;border:2px solid #d0d7de;background:#fff;
-        font-weight:800;font-size:15px;cursor:pointer;color:#111;white-space:nowrap}
-  .pbtn:hover{border-color:#111}
-  .pbtn.on{background:#d8f0e2;color:#166534;border-color:#8fccaa}
-  .pbtn.clear{font-weight:700;color:#777}
-  .pbtn.clear.on{background:#eef1f5;color:#334155;border-color:#c2ccd8}
+  /* botón de proveedor: se ve como un chip del sistema; elegido = tinta rellena */
+  .pbtn{min-height:var(--touch);padding:0 14px;border-radius:var(--r-md);border:1.5px solid var(--line-strong);
+        background:var(--surface);color:var(--ink-800);font-size:var(--fs-td);font-weight:600;cursor:pointer;white-space:nowrap}
+  .pbtn:hover{border-color:var(--ink-500);background:var(--ink-50)}
+  .pbtn.on{background:var(--ink-900);color:#fff;border-color:var(--ink-900)}
+  .pbtn.clear{color:var(--ink-500)}
+  .pbtn.clear.on{background:var(--ink-100);color:var(--ink-700);border-color:var(--line-strong)}
   .pbtn:disabled{opacity:.45;cursor:wait}
   /* no se compra: se fabrica adentro o esta discontinuado */
-  .pbtn.est{font-weight:700;color:#5b21b6;border-color:#ddd6fe}
-  .pbtn.est.on{background:#e5daf6;color:#5b21b6;border-color:#c3aee6}
-  .parte.nocompra{background:#faf5ff}
-  .parte.nocompra:hover{background:#f3e8ff}
+  .pbtn.est{border-style:dashed;color:var(--ink-600)}
+  .pbtn.est.on{background:var(--ink-600);color:#fff;border-color:var(--ink-600);border-style:solid}
 
-  .resumen{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
-  .rcard{background:#f6f8fa;border-radius:10px;padding:9px 14px;font-size:15px;font-weight:700}
-  .rcard b{font-size:19px;display:block}
-  .rcard.warn{background:#fffbeb;color:#7c2d12}
-  .nota{background:#eef4fb;border-left:4px solid #cddaea;padding:10px 12px;border-radius:6px;font-size:14px;margin:10px 0}
-  .nota summary{cursor:pointer;font-weight:700;list-style:none}
-  .nota summary::-webkit-details-marker{display:none}
-  .nota summary::after{content:" ▾";color:#0b3b73}
-  .nota[open] summary::after{content:" ▴"}
-  .lista{border:1px solid #e6eaee;border-radius:10px;overflow:hidden}
+  /* resumen por proveedor: mini-KPIs en una fila */
+  .resumen{display:flex;gap:var(--s2);flex-wrap:wrap;margin:var(--s2) 0}
+  .rcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:6px 12px;
+         font-size:var(--fs-sm);font-weight:600;color:var(--ink-600);box-shadow:var(--sh-1)}
+  .rcard b{font-size:20px;font-weight:750;display:block;color:var(--ink-900);line-height:1.2}
+  .rcard.warn{background:var(--warn-50);border-color:var(--warn-200);color:var(--warn-700)}
+  .rcard.warn b{color:var(--warn-700)}
+  .nota{margin:0 0 var(--s2);padding:4px 14px;background:var(--brand-50);border:1px solid var(--brand-200);
+        border-left:4px solid var(--brand-500);border-radius:var(--r-md);font-size:14.5px;color:var(--brand-800)}
+  .nota > div{padding:0 0 10px}
 
   /* ── material plastico por inyector (2026-09-10) ── */
-  #matPanel{border:1px solid #cddaea;border-radius:10px;padding:10px 12px;margin:10px 0;background:#f8fbff}
-  .mat-titulo{font-weight:800;font-size:17px;color:#0b3b73;margin-bottom:6px}
-  .mat-virgilio{font-size:15px;color:#333;margin-bottom:8px;line-height:1.5}
-  .mat-tabla{border-collapse:collapse;width:100%;font-size:15px;min-width:640px}
-  .mat-tabla th{text-align:left;font-size:13px;color:#555;padding:6px 8px;border-bottom:2px solid #d0d7de;white-space:nowrap}
-  .mat-tabla td{padding:6px 8px;border-bottom:1px solid #e6eaee;vertical-align:middle}
-  .mat-tabla td.num{text-align:right;white-space:nowrap}
-  .mat-tabla td.num.falta{color:#b45309;font-weight:800}
-  .mat-tabla td.vacio{color:#777;font-size:14px}
-  .mat-bolsas,#matBolsas{width:84px;font-size:20px;font-weight:800;text-align:right;padding:8px 10px;
-        border:2px solid #d0d7de;border-radius:8px;min-height:44px}
-  .mat-btn,#matEnviar{padding:10px 16px;border-radius:10px;border:2px solid #0b5cad;background:#0b5cad;color:#fff;
-        font-weight:800;font-size:15px;cursor:pointer;min-height:44px;white-space:nowrap}
-  .mat-btn:disabled,#matEnviar:disabled{opacity:.45;cursor:wait}
-  .mat-manual{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:15px}
-  .mat-manual label{display:flex;gap:6px;align-items:center;font-weight:700}
-  .mat-manual select{font-size:18px;padding:8px;border:2px solid #d0d7de;border-radius:8px;min-height:44px;max-width:100%}
-  @media (max-width:640px){
-    .mat-manual{gap:7px}
-    .mat-manual select{flex:1 1 100%}
-  }
+  #matPanel{margin:var(--s3) 0}
+  .mat-virgilio{font-size:var(--fs-td);color:var(--ink-700);margin-bottom:8px;line-height:1.5}
+  .mat-tabla{min-width:640px}
+  .mat-tabla td.num{white-space:nowrap}
+  .mat-tabla td.num.falta{color:var(--warn-700);font-weight:700}
+  .mat-tabla td.vacio{color:var(--ink-500);font-size:var(--fs-sm)}
+  .mat-bolsas,#matBolsas{width:84px;font-size:20px;font-weight:700;text-align:right}
+  .mat-manual{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+  .mat-manual .lbl-env{font-weight:700;color:var(--ink-700)}
+  .mat-manual label{display:flex;gap:6px;align-items:center;font-weight:600;color:var(--ink-600)}
+  .mat-manual select{max-width:100%}
 
   /* ── celular: que se llegue a los botones sin scrollear medio metro ──
-     El encabezado (nota + chips de rubro + resumen) se comprime a una linea
-     cada uno, y los botones de proveedor pasan a una grilla de 2 columnas
-     con alto de dedo (44px) en vez de envolverse en 3 filas. */
+     Los chips de rubro y el resumen van en una línea que se desliza, y los
+     botones de proveedor pasan a una grilla de 2 columnas con alto de dedo. */
   @media (max-width:640px){
-    .card{border-radius:0}
-    /* el encabezado compartido se comia media pantalla: titulo mas chico y los
-       3 botones en una sola fila (solo en esta pantalla, no toca gp2-modulo.css) */
-    .header{padding:10px 12px}
-    .header h1{font-size:19px;line-height:1.15}
-    .header .hbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-    .header .hbtns a,.header .hbtns .hlink{font-size:13px;padding:7px 11px}
-    .steps{padding-top:6px}
-    .nota{font-size:13px;padding:8px 10px;margin:6px 0}
-
-    /* rubros y resumen: una sola linea que se desliza al costado */
+    .nota{font-size:13.5px}
+    .mat-manual select{flex:1 1 100%}
     .chips,.resumen{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
                     scrollbar-width:none;margin:6px 0;padding-bottom:2px}
     .chips::-webkit-scrollbar,.resumen::-webkit-scrollbar{display:none}
-    .chip{flex:0 0 auto;font-size:14px;padding:7px 12px}
-    .chip .badge{font-size:11px;padding:1px 6px}
-    .rcard{flex:0 0 auto;font-size:12px;padding:5px 10px;line-height:1.15}
-    .rcard b{font-size:15px}
-    .search-box{margin:6px 0}
-
-    /* la parte: titulo compacto arriba, botonera a lo ancho abajo */
+    .chip,.rcard{flex:0 0 auto}
     .parte{padding:9px 10px;gap:7px}
     .p-izq{min-width:100%;flex:none}
-    .p-cod{font-size:16px}
-    .p-desc{font-size:14px}
-    .p-meta{font-size:11px}
     .p-der{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:7px;justify-content:stretch}
-    .pbtn{width:100%;min-height:44px;padding:10px 8px;font-size:14px;white-space:normal}
+    .pbtn{width:100%;padding:8px;font-size:14px;white-space:normal}
     /* "sin asignar" ocupa el ancho entero: es la salida, no una opcion mas */
-    .pbtn.clear{grid-column:1 / -1;min-height:38px}
+    .pbtn.clear{grid-column:1 / -1}
   }
 </style>
 </head>
@@ -128,7 +102,7 @@
   <div class="header">
     <h1>Inyectores · Quién hace cada parte</h1>
     <div class="hbtns">
-      <button class="hlink" id="btnNuevo" type="button">+ Proveedor</button>
+      <button class="hlink primary" id="btnNuevo" type="button">+ Proveedor</button>
       <a class="back" href="../GP2_MODULOS.html">Atrás</a>
     </div>
   </div>
@@ -136,7 +110,7 @@
   <div class="steps">
     <details class="nota">
       <summary>Tocá el botón del proveedor que fabrica cada parte. Se guarda al instante.</summary>
-      <div style="margin-top:6px">
+      <div>
         Lo que quede asignado acá es lo que <b>separa la Orden de Compra</b>: en OC elegís el
         proveedor y la orden sale sólo con <b>sus</b> partes. Si mañana cambia el inyector,
         se cambia desde acá y la OC lo sigue solo.
@@ -148,11 +122,12 @@
 
     <!-- Materia prima plastica: lo que cada inyector necesita para sus OC abiertas vs lo que tiene.
          Solo aparece cuando el bundle trae materiales (rubro Plasticos). -->
-    <div id="matPanel" class="hidden">
-      <div class="mat-titulo">Material plástico en poder de cada inyector</div>
+    <div id="matPanel" class="panel hidden">
+      <div class="panel-head mat-titulo">Material plástico en poder de cada inyector</div>
+      <div class="panel-body">
       <div class="mat-virgilio" id="matVirgilio"></div>
       <div class="table-wrap">
-        <table class="mat-tabla" id="matTabla">
+        <table class="t mat-tabla" id="matTabla">
           <thead><tr>
             <th>Inyector</th><th>Material</th><th>Necesita p/ OC</th><th>Tiene</th><th>Le falta</th><th>Bolsas</th><th></th>
           </tr></thead>
@@ -160,16 +135,17 @@
         </table>
       </div>
       <div class="mat-manual">
-        <span style="font-weight:800">Envío manual:</span>
+        <span class="lbl-env">Envío manual:</span>
         <select id="matIny" aria-label="Inyector"></select>
         <select id="matMat" aria-label="Material"></select>
         <label for="matBolsas">Bolsas <input type="text" inputmode="numeric" id="matBolsas" value="1"></label>
-        <button type="button" id="matEnviar">Enviar</button>
+        <button type="button" class="btn btn-primary" id="matEnviar">Enviar</button>
       </div>
       <div id="matStatus" class="status"></div>
+      </div>
     </div>
 
-    <div class="search-box"><input type="text" id="q" placeholder="Buscar por código o descripción…"></div>
+    <div class="search-box"><input type="search" class="search" id="q" placeholder="Buscar por código o descripción…"></div>
 
     <div class="lista" id="lista"></div>
     <div id="vacio" class="empty hidden">No hay partes para esa búsqueda.</div>
@@ -238,7 +214,7 @@ function pintarMaterial(){
       '<td class="num">' + fmt(r.kg_en_inyector, 1) + " kg</td>" +
       '<td class="num' + (falta ? " falta" : "") + '">' + fmt(r.kg_a_enviar, 1) + " kg</td>" +
       '<td><input type="text" inputmode="numeric" class="mat-bolsas" aria-label="Bolsas a enviar" value="' + esc(String(r.bolsas_a_enviar || 0)) + '"></td>' +
-      '<td><button type="button" class="mat-btn">Enviar</button></td>';
+      '<td><button type="button" class="mat-btn btn btn-primary">Enviar</button></td>';
     tr.querySelector(".mat-btn").addEventListener("click", function(){
       enviarMaterial(r.proveedor, r.material_id, GP2N.entero(tr.querySelector(".mat-bolsas").value), this);
     });
@@ -276,7 +252,7 @@ async function enviarMaterial(prov, compId, bolsas, btn){
 function pintarChips(){
   var g = $("secChips"); g.innerHTML = "";
   var lbl = document.createElement("span");
-  lbl.style.cssText = "font-weight:800;font-size:15px;margin-right:4px";
+  lbl.className = "chips-lbl";
   lbl.textContent = "Rubro:";
   g.appendChild(lbl);
   (D.sectores||[]).forEach(function(s){
@@ -284,7 +260,7 @@ function pintarChips(){
     b.type = "button";
     b.className = "chip" + (Number(s.id) === Number(secSel) ? " active" : "");
     b.innerHTML = esc(s.nombre.replace(/^Sector /, "")) +
-      (Number(s.sin_prov) > 0 ? ('<span class="badge">' + fmt(s.sin_prov) + " sin asignar</span>") : "");
+      (Number(s.sin_prov) > 0 ? ('<span class="badge warn">' + fmt(s.sin_prov) + " sin asignar</span>") : "");
     b.addEventListener("click", function(){ secSel = Number(s.id); $("q").value=""; cargar(); });
     g.appendChild(b);
     // en el celular los rubros van en una linea que se desliza: si el elegido

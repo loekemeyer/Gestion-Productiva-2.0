@@ -18,6 +18,14 @@
 <link rel="stylesheet" href="../../gp2-modulo.css?v=20261009ds"/>
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
+<style>
+ .toolbar .grow{flex:1 1 320px}
+ /* encabezado de DOS filas (grupos Base / Online / Movimientos + columnas): el sistema fija
+    cada th a top:0, así que la segunda fila se pega debajo de la primera (34px = alto de
+    una fila de encabezado del sistema: 9+15+9 + borde) */
+ .table-wrap > table > thead > tr:nth-child(2) > th{top:34px}
+ .stk-cell{cursor:pointer}
+</style>
 </head>
 <body>
 
@@ -38,21 +46,21 @@
 
     <!-- FASE 0 — elegir tallerista -->
     <div id="fase0">
-      <div class="row"><label class="lbl">Tallerista</label></div>
+      <h2 class="sec-title">Tallerista</h2>
       <div class="provs-grid" id="tallGrid"></div>
       <div id="status" class="status">Cargando…</div>
     </div>
 
     <!-- FASE 1 — control -->
     <div id="fase1" class="hidden">
-      <div class="row"><label class="lbl" id="fase1Title">Tallerista</label></div>
+      <h2 class="sec-title"><span id="fase1Title">Tallerista</span></h2>
 
       <!-- Sin aviso de ledger parcial y sin la fila de KPIs (Partes / Enviado / Entregado /
            Saldo) [usuario 2026-09-18: "en control de partes de ps y talleristas, que todo esto NO
            EXISTA"]. Los mismos totales siguen abajo, en la fila de totales de la tabla. -->
 
-      <div class="search-box no-print">
-        <input type="text" id="q" placeholder="Buscar por sector, descripción o código…">
+      <div class="toolbar no-print">
+        <div class="field grow"><label for="q">Buscar</label><input type="text" id="q" class="search" placeholder="Sector, descripción o código…"></div>
       </div>
 
       <div class="table-wrap">

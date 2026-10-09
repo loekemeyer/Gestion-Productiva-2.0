@@ -30,49 +30,51 @@
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <style>
-  .ct-wrap{max-width:760px}
-  .ct-buscar{display:flex;flex-direction:column;gap:6px;margin:6px 0 10px}
-  .ct-buscar label{font-size:18px;font-weight:800;color:#111}
-  .ct-buscar input{width:100%;padding:12px 14px;border:2px solid #cbd5e1;border-radius:10px;font-size:20px}
-  .ct-lista{display:flex;flex-direction:column;gap:8px;margin:8px 0}
-  .ct-art{display:flex;flex-direction:column;gap:6px;text-align:left;background:#fff;border:2px solid #d0d7de;
-          border-radius:12px;padding:12px 14px;cursor:pointer;font-size:18px;min-height:44px;color:#111}
-  .ct-art:hover{border-color:#111}
-  .ct-art .t{font-size:20px}
-  .ct-art .t b{font-size:22px;font-weight:900}
+  /* 2026-10-09: sistema de diseño único (gp2-modulo.css). Layout propio: la lista de
+     artículos en columnas y, al elegir uno, "Hoy lo hace" al lado de "Qué cambia". */
+  .ct-buscar{margin:0 0 var(--s2)}
+  .ct-buscar input{width:100%;font-size:20px}
+  .ct-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:var(--s2);margin:var(--s2) 0}
+  .ct-art{display:flex;flex-direction:column;gap:6px;text-align:left;background:var(--surface);border:1.5px solid var(--line-strong);
+          border-radius:var(--r-lg);padding:12px 14px;cursor:pointer;font-size:17px;min-height:var(--touch);color:var(--ink-800);box-shadow:var(--sh-1)}
+  .ct-art:hover{border-color:var(--brand-500);background:var(--brand-50)}
+  .ct-art .t b{font-size:19px;font-weight:800;color:var(--ink-900)}
   .ct-chips{display:flex;flex-wrap:wrap;gap:6px}
-  .ct-chip{font-size:15px;font-weight:700;padding:3px 10px;border-radius:999px;background:#eef2f7;color:#334155}
-  .ct-chip.fab{background:#fef3c7;color:#92400e}
-  .ct-chip.pat{background:#dcfce7;color:#166534}
-  .ct-mas{font-size:16px;color:#64748b;margin:4px 0}
-  .ct-tit{font-size:22px;margin:4px 0 8px}
-  .ct-tit b{font-size:26px;font-weight:900}
-  .lbl2{font-size:14px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.4px;margin:14px 0 6px}
-  .ct-fila{border:2px solid #e2e8f0;border-radius:12px;padding:12px 14px;margin:8px 0;display:flex;flex-direction:column;gap:8px}
+  .ct-chip.fab{background:var(--warn-50);color:var(--warn-700);border-color:var(--warn-200)}
+  .ct-chip.pat{background:var(--ok-50);color:var(--ok-700);border-color:var(--ok-200)}
+  .ct-mas{font-size:var(--fs-base);color:var(--ink-500);margin:4px 0}
+  #fase1:not(.hidden){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s4);align-items:start}
+  #fase1 #prev:empty{display:none}
+  .ct-tit{font-size:20px;margin:0 0 4px;color:var(--ink-800)}
+  .ct-tit b{font-size:24px;font-weight:800;color:var(--ink-900)}
+  .lbl2{font-size:var(--fs-cap);font-weight:700;color:var(--ink-500);text-transform:uppercase;letter-spacing:.04em;margin:14px 0 6px}
+  .ct-fila{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-1);padding:12px 14px;margin:8px 0;display:flex;flex-direction:column;gap:10px}
   .ct-quien{display:flex;align-items:flex-start;gap:10px}
-  .ct-ico{font-size:28px;line-height:1}
-  .ct-quien b{font-size:21px}
-  .ct-sub{font-size:16px;color:#475569;margin-top:2px}
+  .ct-ico{font-size:26px;line-height:1}
+  .ct-quien b{font-size:19px;color:var(--ink-900)}
+  .ct-sub{font-size:var(--fs-sm);color:var(--ink-500);margin-top:2px}
   .ct-cambia{display:flex;flex-direction:column;gap:6px}
-  .ct-cambia label{font-size:16px;font-weight:800;color:#111}
-  .ct-cambia select{width:100%;padding:10px 12px;border:2px solid #cbd5e1;border-radius:10px;background:#fff;min-height:48px}
-  .ct-prev{border:2px solid #0b3b73;border-radius:12px;padding:14px 16px;margin:14px 0;background:#f8fbff}
-  .ct-prev h3{font-size:20px;margin:0 0 6px}
-  .ct-prev h4{font-size:15px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.4px;margin:12px 0 4px}
+  .ct-cambia label{font-size:var(--fs-sm);font-weight:600;color:var(--ink-600)}
+  .ct-cambia select{width:100%}
+  .ct-prev{background:var(--surface);border:1px solid var(--brand-200);border-top:3px solid var(--brand-500);border-radius:var(--r-lg);box-shadow:var(--sh-1);padding:14px 16px;margin:0}
+  .ct-prev h3{font-size:var(--fs-h2);margin:0 0 6px;color:var(--ink-900)}
+  .ct-prev .de-a{font-size:18px}
+  .ct-prev h4{font-size:var(--fs-cap);font-weight:700;color:var(--ink-500);text-transform:uppercase;letter-spacing:.04em;margin:14px 0 4px}
   .ct-prev ul{margin:0;padding-left:0;list-style:none}
-  .ct-prev li{font-size:18px;padding:4px 0;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;gap:10px}
-  .ct-prev li .q{color:#475569;white-space:nowrap}
-  .ct-aviso{font-size:17px;padding:8px 10px;border-radius:8px;margin:6px 0}
-  .ct-aviso.warn{background:#fef3c7;color:#78350f}
-  .ct-aviso.info{background:#e0f2fe;color:#075985}
-  .ct-aviso.bloq{background:#fee2e2;color:#991b1b;font-weight:700}
+  .ct-prev li{font-size:var(--fs-td);padding:6px 0;border-bottom:1px solid var(--line-soft);display:flex;justify-content:space-between;gap:10px}
+  .ct-prev li .q{color:var(--ink-600);white-space:nowrap;font-variant-numeric:tabular-nums}
+  .ct-aviso{margin:6px 0}
+  .ct-aviso.bloq{font-weight:650}
   .ct-acc{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
   .ct-acc .btn{flex:1 1 180px}
+  #okDetail{font-size:18px;color:var(--ink-700)}
+  .center-row{justify-content:center}
+  @media (max-width:900px){ #fase1:not(.hidden){grid-template-columns:1fr} }
 </style>
 </head>
 <body>
 
-<div class="card ct-wrap">
+<div class="card">
   <div class="header">
     <h1>Cambiar tallerista / Prov. A.T.</h1>
     <div class="hbtns">
@@ -81,13 +83,13 @@
     </div>
   </div>
 
-  <div class="steps">
+  <div class="steps page-mid">
 
     <!-- FASE 0 — elegir artículo -->
     <div id="fase0">
-      <div class="ct-buscar">
+      <div class="field ct-buscar">
         <label for="q">Artículo (código o descripción)</label>
-        <input type="text" id="q" inputmode="text" autocomplete="off" placeholder="Ej: 542 o ahueca">
+        <input type="text" id="q" class="search" inputmode="text" autocomplete="off" placeholder="Ej: 542 o ahueca">
       </div>
       <div id="status" class="status">Cargando…</div>
       <div id="lista" class="ct-lista"></div>
@@ -103,10 +105,10 @@
     <div id="fase2" class="hidden">
       <div class="successBox">
         <div class="title">✓ Cambio hecho</div>
-        <div id="okDetail" style="font-size:18px;color:#333"></div>
+        <div id="okDetail"></div>
       </div>
-      <div class="row" style="justify-content:center">
-        <a class="btn btn-secondary" id="btnDespiece" href="../Programa/Programa.html" style="text-decoration:none;display:inline-flex;align-items:center">Ver en Despiece x Art.</a>
+      <div class="row center-row">
+        <a class="btn btn-secondary" id="btnDespiece" href="../Programa/Programa.html">Ver en Despiece x Art.</a>
         <button class="btn btn-primary" id="btnOtro" type="button">Cambiar otro artículo</button>
       </div>
     </div>
@@ -147,10 +149,10 @@ async function cargar(){
 /* ---------- fase 0: lista ---------- */
 function chipsDe(a){
   var h = "";
-  (a.tall || []).forEach(function(t){ h += '<span class="ct-chip">👷 ' + esc(t.n) + '</span>'; });
-  (a.pat || []).forEach(function(p){ h += '<span class="ct-chip pat">🏭 ' + esc(p.n) + '</span>'; });
-  if (a.fab) h += '<span class="ct-chip fab">🏠 Fábrica (matrices)</span>';
-  return h || '<span class="ct-chip">sin asignar</span>';
+  (a.tall || []).forEach(function(t){ h += '<span class="badge ct-chip">👷 ' + esc(t.n) + '</span>'; });
+  (a.pat || []).forEach(function(p){ h += '<span class="badge ct-chip pat">🏭 ' + esc(p.n) + '</span>'; });
+  if (a.fab) h += '<span class="badge ct-chip fab">🏠 Fábrica (matrices)</span>';
+  return h || '<span class="badge ct-chip">sin asignar</span>';
 }
 
 function renderLista(){
@@ -248,9 +250,9 @@ function cantTxt(c){
 function renderPrev(r){
   var d = r.desde || {}, h2 = r.hasta || {}, a = r.articulo || {};
   var h = '<div class="ct-prev"><h3>Qué cambia en el ' + esc(a.cod) + '</h3>' +
-    '<div style="font-size:19px"><b>' + esc(d.n || "—") + '</b> → <b>' + esc(h2.n || "—") + '</b></div>';
+    '<div class="de-a"><b>' + esc(d.n || "—") + '</b> → <b>' + esc(h2.n || "—") + '</b></div>';
 
-  (r.bloqueos || []).forEach(function(b){ h += '<div class="ct-aviso bloq">⛔ ' + esc(b) + '</div>'; });
+  (r.bloqueos || []).forEach(function(b){ h += '<div class="aviso err ct-aviso bloq">⛔ ' + esc(b) + '</div>'; });
 
   if ((r.partes || []).length){
     var titulo = r.tipo === "fabrica_a_tallerista"
@@ -268,7 +270,7 @@ function renderPrev(r){
     h += '</ul>';
   }
   (r.avisos || []).forEach(function(av){
-    h += '<div class="ct-aviso ' + (av.nivel === "warn" ? "warn" : "info") + '">' + (av.nivel === "warn" ? "⚠ " : "ℹ ") + esc(av.txt) + '</div>';
+    h += '<div class="aviso ct-aviso ' + (av.nivel === "warn" ? "warn" : "info") + '">' + (av.nivel === "warn" ? "⚠ " : "ℹ ") + esc(av.txt) + '</div>';
   });
 
   h += '<div class="ct-acc">' +
@@ -289,7 +291,7 @@ async function verCambio(i){
   var r = await SB.rpc("cambiar_contraparte_preview",
     { p_articulo: ART.id, p_tipo: SEL.tipo, p_desde: SEL.desde, p_hasta: SEL.hasta });
   $("ver" + i).disabled = false;
-  if (r.error){ $("prev").innerHTML = '<div class="ct-aviso bloq">⛔ ' + esc(r.error.message) + '</div>'; return; }
+  if (r.error){ $("prev").innerHTML = '<div class="aviso err ct-aviso bloq">⛔ ' + esc(r.error.message) + '</div>'; return; }
   renderPrev(r.data);
 }
 
@@ -302,14 +304,14 @@ async function confirmar(){
     { p_articulo: ART.id, p_tipo: SEL.tipo, p_desde: SEL.desde, p_hasta: SEL.hasta, p_usuario: null });
   if (r.error){
     btn.disabled = false;
-    $("msgPrev").innerHTML = '<span style="color:#991b1b;font-weight:700">⛔ ' + esc(r.error.message) + '</span>';
+    $("msgPrev").innerHTML = '<span class="err-text">⛔ ' + esc(r.error.message) + '</span>';
     return;
   }
   var d = r.data || {};
   $("okDetail").innerHTML =
     '<b>' + esc((d.articulo || {}).cod) + '</b>: de <b>' + esc((d.desde || {}).n || "—") + '</b> a <b>' + esc((d.hasta || {}).n || "—") + '</b>.' +
     '<br>' + (d.pasos || 0) + ' paso(s) de ruta' + ((d.inventario_nuevo || 0) ? ', ' + d.inventario_nuevo + ' parte(s) nuevas en su stock' : '') + '.' +
-    '<br><span style="font-size:15px;color:#555">Despiece x Art. ya lo muestra con el cambio.</span>';
+    '<br><span class="sub">Despiece x Art. ya lo muestra con el cambio.</span>';
   $("fase1").classList.add("hidden"); $("fase2").classList.remove("hidden");
   $("btnVolver").classList.remove("hidden");
 }

@@ -38,21 +38,21 @@
 
     <!-- FASE 0 — elegir proveedor -->
     <div id="fase0">
-      <div class="row"><label class="lbl">Proveedor de servicio</label></div>
+      <h2 class="sec-title">Proveedor de servicio</h2>
       <div class="provs-grid" id="provGrid"></div>
       <div id="status" class="status">Cargando…</div>
     </div>
 
     <!-- FASE 1 — control -->
     <div id="fase1" class="hidden">
-      <div class="row"><label class="lbl" id="fase1Title">Proveedor</label></div>
+      <h2 class="sec-title" id="fase1Title">Proveedor</h2>
 
       <!-- Sin aviso de "datos parciales" y sin la fila de KPIs (Partes / Enviado / Entregado /
            Saldo) [usuario 2026-09-18: "en control de partes de ps y talleristas, que todo esto NO
            EXISTA"]. Los mismos totales siguen abajo, en la fila de totales de la tabla. -->
 
       <div class="search-box no-print">
-        <input type="text" id="q" placeholder="Buscar por sector, descripción o código…">
+        <input type="search" class="search" id="q" placeholder="Buscar por sector, descripción o código…">
       </div>
 
       <div class="table-wrap">

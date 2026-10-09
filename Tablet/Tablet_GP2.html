@@ -725,177 +725,187 @@
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <style>
-  /* los tres modos: baldosas grandes, el activo en negro (mismo lenguaje que .seg-btn).
-     Conteo es un <a>: se va al módulo de Relevamientos, así que nunca queda "activo". */
-  .modos{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:10px 0}
-  .modo-btn{min-height:60px;border-radius:12px;border:2px solid #d0d7de;background:#fff;
-    font-weight:900;font-size:20px;cursor:pointer;color:#111;text-decoration:none;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-  .modo-btn.active{background:#111;color:#fff;border-color:#111}
-  .modo-btn small{display:block;font-size:13px;font-weight:700;color:#777;margin-top:2px}
-  .modo-btn.active small{color:#cfcfcf}
+  /* Tablet Logística — sólo layout propio. Tipografía, barra, botones, campos, tablas y avisos
+     vienen de gp2-modulo.css (sistema de diseño GP2, 2026-10-09). Se usa con el dedo en el
+     galpón: baldosas grandes, el elegido en tinta 900 (mismo lenguaje que .chip / .prov-btn). */
+
+  /* los modos: baldosas grandes, el activo relleno. Conteo y Cajones son <a> a otro módulo,
+     así que nunca quedan "activos". */
+  .modos{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--s2);margin:0 0 var(--s3)}
+  .modo-btn{min-height:64px;border-radius:var(--r-lg);border:1.5px solid var(--line-strong);background:var(--surface);
+    color:var(--ink-900);font-weight:700;font-size:19px;cursor:pointer;text-decoration:none;box-shadow:var(--sh-1);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6px 10px;
+    transition:background .12s,border-color .12s}
+  .modo-btn:hover{border-color:var(--ink-500)}
+  .modo-btn.active{background:var(--ink-900);color:#fff;border-color:var(--ink-900)}
+  .modo-btn small{display:block;font-size:var(--fs-sm);font-weight:600;color:var(--ink-500);margin-top:2px}
+  .modo-btn.active small{color:var(--ink-300)}
+
+  /* el título de cada fase (tipo elegido / contraparte elegida) se lee como título de sección */
+  #fase0Title,#fase1Title{font-size:var(--fs-h2);font-weight:700;color:var(--ink-900);text-transform:none;letter-spacing:-.005em}
+  .fase-head{justify-content:space-between;align-items:center}
+  #accBox{margin:0;gap:var(--s2) 10px}
+  #accBox .lbl{font-size:var(--fs-sm)}
+
   /* Primero el TIPO y recién después la contraparte: 33 botones juntos no se leen en la
      tablet. No se estiran a todo el ancho (máximo 320px cada uno) para no dejar baldosas
      enormes con dos palabras adentro. */
-  .tipos{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,320px));gap:10px;
-    margin:8px 0;justify-content:start}
-  .tipo-btn{min-height:78px;border-radius:12px;border:2px solid #d0d7de;background:#fff;color:#111;
-    padding:12px 16px;text-align:left;cursor:pointer;text-decoration:none;display:block}
-  .tipo-btn:hover{border-color:#111}
-  .tipo-btn .ti{display:block;font-size:21px;font-weight:900}
-  .tipo-btn small{display:block;font-size:14px;font-weight:700;color:#777;margin-top:4px;line-height:1.3}
-  .tipo-btn small b{color:#c2410c}
-  .cp-tipo{font-size:14px;color:#777;font-weight:700}
+  .tipos{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,320px));gap:var(--s3);
+    margin:var(--s2) 0;justify-content:start}
+  .tipo-btn{min-height:80px;border-radius:var(--r-lg);border:1.5px solid var(--line-strong);background:var(--surface);
+    color:var(--ink-900);padding:12px 16px;text-align:left;cursor:pointer;text-decoration:none;display:block;
+    box-shadow:var(--sh-1);transition:border-color .12s,background .12s}
+  .tipo-btn:hover{border-color:var(--brand-500);background:var(--brand-50)}
+  .tipo-btn .ti{display:block;font-size:20px;font-weight:700}
+  .tipo-btn small{display:block;font-size:var(--fs-sm);font-weight:600;color:var(--ink-500);margin-top:4px;line-height:1.3}
+  .tipo-btn small b{color:var(--warn-700)}
+  .cp-tipo{font-size:var(--fs-sm);color:var(--ink-500);font-weight:600}
+
   /* fila con exceso: se ve, no frena */
-  table.t tr.demas td{background:#fff4e5}
-  .demas-tag{display:inline-block;margin-top:4px;background:#c2410c;color:#fff;border-radius:999px;
-    padding:3px 10px;font-size:14px;font-weight:800;white-space:nowrap}
-  .esp{font-size:17px;font-variant-numeric:tabular-nums;white-space:nowrap}
-  .esp small{display:block;color:#777;font-size:13px;font-weight:700}
-  .uni-tag{display:inline-block;background:#eef2f6;border-radius:6px;padding:2px 7px;font-size:13px;
-    font-weight:800;color:#333;margin-left:4px;white-space:nowrap}
-  .uni-tag.kg{background:#e6f0ff;color:#0b4aa2}
+  table.t tr.demas td{background:var(--falt-50)}
+  .demas-tag{display:inline-block;margin-top:4px;background:var(--warn-700);color:#fff;border-radius:var(--r-pill);
+    padding:3px 10px;font-size:var(--fs-sm);font-weight:700;white-space:nowrap}
+  .esp{font-size:17px;white-space:nowrap}
+  .esp small{display:block;color:var(--ink-500);font-size:var(--fs-cap);font-weight:700}
+  .uni-tag{display:inline-block;background:var(--ink-100);border-radius:var(--r-sm);padding:2px 7px;font-size:var(--fs-cap);
+    font-weight:700;color:var(--ink-700);margin-left:4px;white-space:nowrap;vertical-align:middle}
+  .uni-tag.kg{background:var(--brand-50);color:var(--brand-700)}
   .cell-in.big{font-size:20px;width:110px}
   /* equivalencia en la unidad de envio del proveedor (Ester: se carga kg, al lado las bolsas) */
-  .env-eq{display:block;margin-top:4px;color:#0b4aa2;font-size:14px;font-weight:800;white-space:nowrap}
-  .alerta-box{margin:10px 0;border:2px solid #f4c08c;background:#fff4e5;border-radius:12px;padding:12px 14px;
-    font-size:17px;color:#5c2d00;line-height:1.4}
-  .alerta-box b{color:#8a3b00}
-  input#fRemito{height:44px;border:2px solid #d0d7de;border-radius:8px;padding:0 10px;font-size:19px;width:150px}
+  .env-eq{display:block;margin-top:4px;color:var(--brand-600);font-size:var(--fs-sm);font-weight:700;white-space:nowrap}
+  .alerta-box{margin:var(--s3) 0;border:1px solid var(--warn-200);border-left:4px solid var(--warn-600);background:var(--warn-50);
+    border-radius:var(--r-md);padding:12px 14px;font-size:17px;color:#6b4100;line-height:1.4}
+  .alerta-box b{color:#4a2d00}
+  input#fRemito{width:170px}
+
   /* COLUMNAS SIN BLANCO MUERTO EN LA TABLET [usuario 2026-09-17: "optimizame todos los espacios en
      blanco que hay entre las columnas en todas las pantallas de envio a ps en la version tablet"].
-     table.t viene a width:100% de gp2-modulo.css: con 3 o 4 columnas el navegador repartia el ancho
-     sobrante y dejaba un desierto entre la pieza y su numero (el ojo tenia que cruzar media pantalla
-     para leer una fila). Aca #tblBox (buscador + cartel + tabla) es inline-block: encoge hasta el
-     ancho de la tabla, y la tabla al de su propio contenido. El .table-wrap sigue con su scroll
-     propio para cuando no entra (celular, o muchas columnas). */
+     #tblBox (buscador + cartel + tabla) es inline-block: encoge hasta el ancho de la tabla, y la
+     tabla al de su propio contenido. El .table-wrap sigue con su scroll propio para cuando no entra. */
   #tblBox{display:inline-block;max-width:100%;vertical-align:top}
-  .table-wrap{display:block;max-width:100%}
-  table.t{width:100%}   /* 100% de #tblBox, que ya mide lo que mide el contenido */
-  /* un poco mas de aire ADENTRO de cada columna, que es el unico blanco que suma: separa los
-     numeros del borde sin volver a abrir el hueco entre columnas. */
-  table.t th,table.t td{padding-left:12px;padding-right:12px}
-  table.t td.num,table.t th.num{white-space:nowrap}
-  /* la de Pieza es la unica que puede crecer: con techo, para que una descripcion larga no reabra
-     el hueco; abajo del techo la descripcion envuelve en dos lineas. */
-  table.t th:first-child,table.t td:first-child{max-width:340px}
-  table.t td:first-child .sub{white-space:normal}
-  /* ---- TARJETAS DE PARTE — Enviar → Prov. de servicio [usuario 2026-09-18: "quiero reemplazar
-     ese listado por boxes o tarjetas individuales… al seleccionar una parte, debe abrirse una vista
-     donde se muestre la cantidad sugerida y un campo para la cantidad efectiva"]. Solo esa vista:
-     talleristas, prov. de art. terminado y TODO Recibir siguen con la tabla de siempre. ---- */
+  #tblBox .table-wrap{display:block;max-width:100%}
+  #tblBox table.t th,#tblBox table.t td{padding-left:12px;padding-right:12px}
+  #tblBox table.t td.num,#tblBox table.t th.num{white-space:nowrap}
+  /* la de Pieza es la unica que puede crecer: con techo, para que una descripcion larga no reabra el hueco */
+  #tblBox table.t th:first-child,#tblBox table.t td:first-child{max-width:340px}
+  #tblBox table.t td:first-child .sub{white-space:normal}
+
+  /* ---- TARJETAS DE PARTE [usuario 2026-09-18: "quiero reemplazar ese listado por boxes o
+     tarjetas individuales… al seleccionar una parte, debe abrirse una vista donde se muestre la
+     cantidad sugerida y un campo para la cantidad efectiva"]. ---- */
   #tblBox.cards{display:block;width:100%}          /* la grilla usa el ancho entero, no el de la tabla */
-  .cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:10px}
+  .cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:var(--s3);margin-top:var(--s3)}
   .parte-card{display:flex;flex-direction:column;gap:3px;min-height:132px;text-align:left;cursor:pointer;
-    border:2px solid #d0d7de;border-radius:14px;background:#fff;color:#111;padding:14px 16px;font-family:inherit;
-    /* nada de la tarjeta se puede cortar: el texto largo baja de renglon en vez de irse afuera
-       (pasaba con "Sugerido 13.272 uni · sin cajón cargado", que quedaba comido por el borde) */
+    border:1.5px solid var(--line-strong);border-radius:var(--r-lg);background:var(--surface);color:var(--ink-900);
+    padding:14px 16px;box-shadow:var(--sh-1);transition:border-color .12s,background .12s;
+    /* nada de la tarjeta se puede cortar: el texto largo baja de renglon en vez de irse afuera */
     overflow-wrap:anywhere}
-  .parte-card:hover{border-color:#111}
-  .parte-card.cargada{border-color:#15803d;background:#f4fbf6}
+  .parte-card:hover{border-color:var(--brand-500)}
+  .parte-card.cargada{border-color:var(--ok-600);background:var(--ok-50)}
   /* recibi de mas: avisa, no frena (mismo criterio que la fila de la tabla) */
-  .parte-card.demas{border-color:#c2410c;background:#fff4e5}
-  .parte-card.demas .pc-estado{color:#c2410c}
-  .pc-demas{display:block;font-size:15px;font-weight:800;color:#c2410c}
-  .pc-cod{font-size:23px;font-weight:900;line-height:1.1}
-  .pc-desc{font-size:16px;font-weight:700;color:#444;line-height:1.25}
-  /* el sugerido es EL dato de la tarjeta: grande y en naranja fuerte [usuario 2026-09-18:
-     "quiero que en todos los box me aparezca el sugerido mas grande y de otro color mas
-     llamativo"]. La aclaracion de al lado ("sin cajon cargado") queda chica y gris para que
-     el numero no compita con ella; el naranja no choca con el verde del estado "envia N". */
-  .pc-sug{font-size:21px;font-weight:900;color:#c2410c;line-height:1.2}
-  /* EL ROTULO va en su propio renglon, chico y gris (2026-09-21): en Recibir pasó a ser "Stock
-     prov. de servicio", y en 21px negrita se comia tres renglones de la tarjeta y le robaba la
-     jerarquia al numero, que es lo que el operario tiene que leer de lejos. */
-  .pc-sug .pc-rot{display:block;font-size:14px;font-weight:800;color:#777;letter-spacing:.4px}
-  .pc-sug .pc-nota{font-size:14px;font-weight:700;color:#777}
-  .pc-estado{margin-top:auto;padding-top:6px;font-size:17px;font-weight:800;color:#15803d}
-  .parte-card:not(.cargada) .pc-estado{color:#9aa1a8}
-  /* EL RÓTULO DEL RUBRO: parte la grilla del tallerista en bloques (crudo, procesado, remaches,
-     plásticas, cajas, cartones). Ocupa el ancho entero de la grilla, así que en 390px —donde la
-     grilla es de una sola columna— se ve igual, arriba de su primera tarjeta. */
-  .pc-rubro{grid-column:1/-1;font-size:18px;font-weight:900;color:#0b4aa2;letter-spacing:.4px;
-    text-transform:uppercase;padding:10px 2px 0;border-top:2px solid #e3e8ee;margin-top:4px}
-  .pc-rubro.primero{border-top:0;padding-top:0;margin-top:0}
-  /* AVISOS DE GESTIÓN VIRGILIO (v1.40.0, antes en Recepción de Insumos > Importados): Recibir → Virgilio */
-  .vir-badge{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;background:#d97706;color:#fff;font-size:16px;font-weight:900}
-  #virAvisos{margin:12px 0 0}
-  .vir-aviso{margin:0 0 10px;padding:10px;border:2px solid #d97706;border-radius:8px;background:#fef3c7;color:#78350f;text-align:center}
-  .vir-txt{font-size:19px;font-weight:700;line-height:1.3}
-  .vir-txt b{color:#451a03}
-  .vir-meta{font-size:15px;font-weight:600;color:#92400e;margin-top:4px;overflow-wrap:anywhere}
-  .vir-row{display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap}
-  .vir-b{flex:1 1 90px;min-height:48px;padding:6px 12px;border:2px solid #111;border-radius:8px;background:#fff;color:#111;font-weight:900;font-size:19px;cursor:pointer}
-  .vir-b.vir-si{background:#0a7a2f;border-color:#0a7a2f;color:#fff}
-  .vir-b.vir-no{border-color:#b42318;color:#b42318}
-  .vir-b.vir-no-ok{background:#b42318;border-color:#b42318;color:#fff}
+  .parte-card.demas{border-color:var(--warn-600);background:var(--falt-50)}
+  .parte-card.demas .pc-estado{color:var(--warn-700)}
+  .pc-demas{display:block;font-size:var(--fs-base);font-weight:700;color:var(--warn-700)}
+  .pc-cod{font-size:22px;font-weight:800;line-height:1.1;letter-spacing:-.01em}
+  .pc-desc{font-size:var(--fs-base);font-weight:600;color:var(--ink-700);line-height:1.25}
+  /* el sugerido es EL dato de la tarjeta: grande y de color [usuario 2026-09-18: "quiero que en
+     todos los box me aparezca el sugerido mas grande y de otro color mas llamativo"]. Va en el azul
+     de la marca, el mismo del número de la vista de la parte. */
+  .pc-sug{font-size:22px;font-weight:800;color:var(--brand-600);line-height:1.2;font-variant-numeric:tabular-nums}
+  /* EL ROTULO va en su propio renglon, chico y gris (2026-09-21): el numero es lo que se lee de lejos. */
+  .pc-sug .pc-rot{display:block;font-size:var(--fs-cap);font-weight:700;color:var(--ink-500);letter-spacing:.04em;text-transform:uppercase}
+  .pc-sug .pc-nota{font-size:var(--fs-sm);font-weight:600;color:var(--ink-500)}
+  .pc-estado{margin-top:auto;padding-top:6px;font-size:17px;font-weight:700;color:var(--ok-700)}
+  .parte-card:not(.cargada) .pc-estado{color:var(--ink-400)}
+  /* EL RÓTULO DEL RUBRO: parte la grilla en bloques (crudo, procesado, remaches, plásticas,
+     cajas, cartones). Ocupa el ancho entero de la grilla. */
+  .pc-rubro{grid-column:1/-1;display:flex;align-items:center;gap:10px;font-size:var(--fs-cap);font-weight:700;
+    color:var(--ink-500);letter-spacing:.06em;text-transform:uppercase;padding:var(--s3) 2px 0;margin-top:var(--s1)}
+  .pc-rubro::after{content:"";flex:1;height:1px;background:var(--line-strong)}
+  .pc-rubro.primero{padding-top:0;margin-top:0}
+
+  /* AVISOS DE GESTIÓN VIRGILIO (v1.40.0): Recibir → Virgilio */
+  .vir-badge{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:var(--r-pill);background:var(--warn-600);color:#fff;font-size:var(--fs-sm);font-weight:800}
+  #virAvisos{margin:var(--s3) 0 0}
+  .vir-aviso{margin:0 0 10px;padding:12px;border:1px solid var(--warn-200);border-left:4px solid var(--warn-600);border-radius:var(--r-md);background:var(--warn-50);color:#6b4100;text-align:center}
+  .vir-txt{font-size:19px;font-weight:600;line-height:1.3}
+  .vir-txt b{color:#4a2d00}
+  .vir-meta{font-size:var(--fs-sm);font-weight:600;color:var(--warn-700);margin-top:4px;overflow-wrap:anywhere}
+  .vir-row{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+  .vir-b{flex:1 1 90px;min-height:52px;padding:6px 12px;border:1.5px solid var(--line-strong);border-radius:var(--r-md);background:var(--surface);color:var(--ink-900);font-weight:700;font-size:19px;cursor:pointer}
+  .vir-b.vir-si{background:var(--ok-700);border-color:var(--ok-700);color:#fff}
+  .vir-b.vir-no{border-color:var(--err-600);color:var(--err-700)}
+  .vir-b.vir-no-ok{background:var(--err-700);border-color:var(--err-700);color:#fff}
   .vir-b:disabled{opacity:.45;cursor:not-allowed}
-  .vir-lbl{display:block;font-size:16px;font-weight:800;margin-top:8px;text-align:left}
-  .vir-aviso input.vir-mot{display:block;width:100%;box-sizing:border-box;height:48px;font-size:19px;padding:6px 10px;border:2px solid #d0d7de;border-radius:8px;margin-top:4px}
-  .vir-msg{margin:0 0 10px;padding:10px 14px;border-radius:8px;font-size:18px;font-weight:700}
-  .vir-msg.ok{background:#eefbf1;border:2px solid #0a7a2f;color:#0a3d1a}
-  .vir-msg.bad{background:#ffebee;border:2px solid #b42318;color:#7a1010}
-  .vir-ctrl{display:inline-block;margin-left:6px;padding:6px 14px;background:#0b5cad;color:#fff;border-radius:8px;text-decoration:none;font-weight:900}
+  .vir-lbl{display:block;font-size:var(--fs-base);font-weight:700;margin-top:8px;text-align:left}
+  .vir-aviso input.vir-mot{display:block;width:100%;height:52px;font-size:19px;margin-top:4px}
+  .vir-msg{margin:0 0 10px;padding:10px 14px;border-radius:var(--r-md);font-size:17px;font-weight:600}
+  .vir-msg.ok{background:var(--ok-50);border:1px solid var(--ok-200);border-left:4px solid var(--ok-600);color:#14532d}
+  .vir-msg.bad{background:var(--err-50);border:1px solid var(--err-200);border-left:4px solid var(--err-600);color:#7f1d1d}
+  .vir-ctrl{display:inline-flex;align-items:center;min-height:var(--touch);margin-left:6px;padding:0 14px;background:var(--brand-600);color:#fff;border-radius:var(--r-md);text-decoration:none;font-weight:700}
+
   /* Ver O.C. (v1.37.0): arriba del buscador, sólo Enviar a talleristas O.C. / prov. AT */
-  .oc-box{margin:12px 0 0;padding:10px 12px;background:#fff8e6;border:2px solid #f0c36d;border-radius:8px}
-  .oc-box .btn{min-height:44px;font-size:18px}
-  .oc-box .oc-msg{margin-top:8px;font-size:16px;color:#57606a}
-  .oc-box .table-wrap{width:fit-content;max-width:100%}
-  .oc-box table.t{margin-top:8px;width:auto}
+  .oc-box{margin:var(--s3) 0 0;padding:10px 12px;background:var(--warn-50);border:1px solid var(--warn-200);border-left:4px solid var(--warn-600);border-radius:var(--r-md)}
+  .oc-box .oc-msg{margin-top:8px;font-size:var(--fs-sm);color:var(--ink-600)}
+  .oc-box .table-wrap{width:fit-content;max-width:100%;margin-top:8px}
+  .oc-box table.t{width:auto}
   .oc-box td.num,.oc-box th.num{text-align:right;white-space:nowrap}
+
   /* la vista de UNA parte: el sugerido bien grande y un solo campo para la cantidad que se manda */
-  #detBox{max-width:560px}
-  .det-card{border:2px solid #d0d7de;border-radius:16px;background:#fff;padding:18px 20px;margin-top:10px}
-  .det-cod{font-size:30px;font-weight:900;line-height:1.1}
-  .det-desc{font-size:19px;font-weight:700;color:#444;margin-top:4px;line-height:1.3}
-  .det-sector{font-size:15px;font-weight:700;color:#777;margin-top:2px}
-  .det-lbl{font-size:15px;font-weight:800;color:#777;letter-spacing:.6px;text-transform:uppercase;margin-top:18px}
-  .det-sug{font-size:34px;font-weight:900;color:#0b4aa2;line-height:1.1;margin-top:2px}
-  .det-sug small{display:block;font-size:16px;font-weight:800;color:#0b4aa2;margin-top:2px}
-  .det-in{font-size:30px;font-weight:900;height:64px;width:100%;max-width:300px;text-align:right;
-    border:2px solid #111;border-radius:12px;padding:0 14px;font-family:inherit;margin-top:4px}
-  .det-uni{font-size:20px;font-weight:800;color:#333;margin-left:8px}
-  .det-eq{display:block;margin-top:6px;font-size:16px;font-weight:800;color:#0b4aa2}
-  /* las dos unidades, en dos columnas: apiladas la vista queda larguisima y el campo, ancho al
-     pedo [usuario 2026-09-18]. No envuelven: se achican, que a 390px sigue entrando. */
+  #detBox{max-width:600px}
+  .det-card{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--sh-1);padding:18px 20px;margin-top:10px}
+  .det-cod{font-size:28px;font-weight:800;line-height:1.1;letter-spacing:-.01em}
+  .det-desc{font-size:19px;font-weight:600;color:var(--ink-700);margin-top:4px;line-height:1.3}
+  .det-sector{font-size:var(--fs-sm);font-weight:600;color:var(--ink-500);margin-top:2px}
+  .det-lbl{font-size:var(--fs-cap);font-weight:700;color:var(--ink-500);letter-spacing:.06em;text-transform:uppercase;margin-top:18px}
+  .det-sug{font-size:var(--fs-hero);font-weight:800;color:var(--brand-600);line-height:1.1;margin-top:2px;font-variant-numeric:tabular-nums}
+  .det-sug small{display:block;font-size:var(--fs-base);font-weight:700;color:var(--brand-600);margin-top:2px}
+  .det-in{font-size:30px;font-weight:800;height:64px;width:100%;max-width:300px;text-align:right;
+    border:2px solid var(--ink-700);border-radius:var(--r-md);padding:0 14px;margin-top:4px}
+  .det-uni{font-size:20px;font-weight:700;color:var(--ink-700);margin-left:8px}
+  .det-eq{display:block;margin-top:6px;font-size:var(--fs-base);font-weight:700;color:var(--brand-600)}
+  /* las dos unidades, en dos columnas: apiladas la vista queda larguisima [usuario 2026-09-18] */
   .det-dos{display:flex;gap:12px;align-items:flex-end}
   .det-col{flex:1 1 0;min-width:0}
   .det-campo{display:flex;align-items:center;gap:6px}
   .det-dos .det-in{width:100%;max-width:none;min-width:0;font-size:26px;padding:0 10px}
   .det-dos .det-uni{margin-left:0;white-space:nowrap}
   /* lo anotado no coincide con lo que dicen los kg: avisa, no frena */
-  .det-eq.mal{color:#c2410c}
-  .det-falta{align-self:center;font-size:16px;font-weight:800;color:#c2410c}
-  .parte-card.incompleta{border-color:#c2410c;background:#fff9f3}
-  /* "➕ Otro cartón" y las filas que entran por ahí: se distinguen de las piezas propias del
-     destino, que son las que salen de su receta/ruta [2026-09-21]. */
-  .parte-card.otro{border-style:dashed;justify-content:center;align-items:center;text-align:center;color:#0b4aa2}
-  .parte-card.otro .pc-cod{font-size:21px}
-  .parte-card.otro .pc-desc{font-size:15px;color:#555}
-  .parte-card.sust{border-color:#0b4aa2;background:#f5f9ff}
-  .pc-sust,.det-sust{font-size:15px;font-weight:800;color:#0b4aa2}
+  .det-eq.mal{color:var(--warn-700)}
+  .det-falta{align-self:center;font-size:var(--fs-base);font-weight:700;color:var(--warn-700)}
+  .parte-card.incompleta{border-color:var(--warn-600);background:var(--warn-50)}
+  /* "➕ Otro cartón" y las filas que entran por ahí [2026-09-21] */
+  .parte-card.otro{border-style:dashed;justify-content:center;align-items:center;text-align:center;color:var(--brand-600);box-shadow:none}
+  .parte-card.otro .pc-cod{font-size:20px}
+  .parte-card.otro .pc-desc{font-size:var(--fs-sm);color:var(--ink-500)}
+  .parte-card.sust{border-color:var(--brand-500);background:var(--brand-50)}
+  .pc-sust,.det-sust{font-size:var(--fs-sm);font-weight:700;color:var(--brand-600)}
   .det-sust{margin-top:6px;font-size:17px}
   /* el catálogo del reemplazo, adentro de la vista de la parte */
   .sust-lista{max-height:52vh;overflow:auto;margin-top:8px;-webkit-overflow-scrolling:touch}
-  .sust-item{display:block;width:100%;text-align:left;border:2px solid #d0d7de;border-radius:12px;
-    background:#fff;padding:10px 12px;margin-bottom:8px;cursor:pointer;font-family:inherit}
-  .sust-item:hover{border-color:#111}
-  .sust-item .si-cod{font-size:21px;font-weight:900;display:block}
-  .sust-item .si-desc{font-size:15px;font-weight:700;color:#444;display:block;line-height:1.25}
-  .sust-item .si-stk{font-size:15px;font-weight:800;color:#15803d;display:block;margin-top:2px}
-  .sust-item .si-stk.cero{color:#c2410c}
-  #sustQ{font-size:19px;width:100%;padding:12px;border:2px solid #d0d7de;border-radius:10px;
-    font-family:inherit;margin-top:6px}
+  .sust-item{display:block;width:100%;text-align:left;border:1.5px solid var(--line-strong);border-radius:var(--r-md);
+    background:var(--surface);padding:10px 12px;margin-bottom:8px;cursor:pointer}
+  .sust-item:hover{border-color:var(--brand-500);background:var(--brand-50)}
+  .sust-item .si-cod{font-size:20px;font-weight:800;display:block}
+  .sust-item .si-desc{font-size:var(--fs-sm);font-weight:600;color:var(--ink-700);display:block;line-height:1.25}
+  .sust-item .si-stk{font-size:var(--fs-sm);font-weight:700;color:var(--ok-700);display:block;margin-top:2px}
+  .sust-item .si-stk.cero{color:var(--warn-700)}
+  #sustQ{font-size:19px;width:100%;margin-top:6px}
   .det-acc{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
-  .det-acc .btn{min-height:52px;font-size:19px}
+  .det-acc .btn{min-height:52px;font-size:18px;padding:0 22px}
+  #successDetail{font-size:17px;color:var(--ink-700)}
   @media (max-width:640px){
     .modo-btn{font-size:17px;min-height:56px}
     .modo-btn small{display:none}
     /* en el celular no hay blanco que recortar: el bloque ocupa todo el ancho */
     #tblBox{display:block;width:100%}
-    table.t th,table.t td{padding-left:8px;padding-right:8px}
+    #tblBox table.t th,#tblBox table.t td{padding-left:8px;padding-right:8px}
     .cards-grid{grid-template-columns:1fr}
     .det-in{max-width:100%}
+    /* fecha / remito / botón: una rejilla rótulo + campo, el botón al ancho entero */
+    #accBox{width:100%;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center}
+    #accBox input{width:100%}
+    #accBox #btnEnviar{grid-column:1 / -1}
   }
 </style>
 </head>
@@ -903,7 +913,7 @@
 
 <div class="card">
   <div class="header">
-    <h1>📱 Tablet</h1>
+    <h1>Versión Tablet <small>Logística</small></h1>
     <div class="hbtns">
       <button class="hlink hidden" id="btnVolver" type="button">← Cambiar</button>
       <!-- lo que se recepcionó y todavía nadie contó: se entra solo al registrar un remito de P.S.,
@@ -925,7 +935,7 @@
 
     <!-- FASE 0 — primero el TIPO de contraparte, después la contraparte de ese tipo -->
     <div id="fase0">
-      <div class="row" style="justify-content:space-between">
+      <div class="row fase-head">
         <label class="lbl" id="fase0Title">¿A quién?</label>
         <button class="btn btn-secondary hidden" id="btnVolverTipo" type="button">← Cambiar tipo</button>
       </div>
@@ -939,14 +949,14 @@
 
     <!-- FASE 1 — cargar cantidades -->
     <div id="fase1" class="hidden">
-      <div class="row" style="justify-content:space-between">
+      <div class="row fase-head">
         <div class="row" style="margin:0"><label class="lbl" id="fase1Title">—</label></div>
-        <div class="row" id="accBox" style="margin:0">
-          <label class="lbl" style="font-size:16px" for="fFecha">Fecha</label>
+        <div class="row" id="accBox">
+          <label class="lbl" for="fFecha">Fecha</label>
           <input type="date" id="fFecha">
-          <label class="lbl hidden" style="font-size:16px" for="fRemito" id="lblRemito">Remito</label>
+          <label class="lbl hidden" for="fRemito" id="lblRemito">Remito</label>
           <input type="text" id="fRemito" class="hidden" placeholder="remito (opcional)">
-          <button class="btn btn-primary" id="btnEnviar" type="button" disabled>Registrar</button>
+          <button class="btn btn-primary btn-lg" id="btnEnviar" type="button" disabled>Registrar</button>
         </div>
       </div>
 
@@ -994,7 +1004,7 @@
         <div class="title" id="successTitle">✓ Registrado</div>
         <div>Tu código:</div>
         <div class="code" id="successCode">—</div>
-        <div id="successDetail" style="font-size:17px;color:#444"></div>
+        <div id="successDetail"></div>
       </div>
       <div id="successAlertas"></div>
       <div class="row" style="justify-content:center">
@@ -1663,7 +1673,7 @@ async function cargar(){
     cargarAvisosVir();
   } catch(e){
     ESTADO_CARGA = String((e && e.message) || e);
-    $("status").innerHTML = '<span style="color:#b91c1c">Error: ' + esc(ESTADO_CARGA) + "</span>";
+    $("status").innerHTML = '<span class="err-text">Error: ' + esc(ESTADO_CARGA) + "</span>";
   }
 }
 
@@ -2221,7 +2231,7 @@ async function abrirOtroCarton(){
       CATS[selCP.id] = r.data || { oficiales: [], otros: [] };
     } catch (err) {
       $("detCard").innerHTML = '<div class="det-lbl">Otro cartón</div>' +
-        '<div class="det-desc" style="color:#b91c1c">No se pudo traer el catálogo: ' +
+        '<div class="det-desc err-text">No se pudo traer el catálogo: ' +
         esc(err.message || err) + "</div>" +
         '<div class="det-acc"><button class="btn btn-secondary" type="button" data-a="sust-cancel">← Partes</button></div>';
       return;
@@ -2655,7 +2665,7 @@ $("btnEnviar").addEventListener("click", async function(){
     }
     try { var r2 = await SB.rpc("tablet_bundle"); if (!r2.error && r2.data) D = r2.data; } catch(e2){}
   } catch(err){
-    $("msg1").innerHTML = '<span style="color:#b91c1c">Error: ' + esc(err.message || err) + "</span>";
+    $("msg1").innerHTML = '<span class="err-text">Error: ' + esc(err.message || err) + "</span>";
     btn.disabled = false; actualizar();
   }
 });

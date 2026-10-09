@@ -19,14 +19,9 @@
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
 <style>
-  .bloque-tit{
-    font-size:15px; font-weight:800; margin:22px 0 8px;
-    padding-bottom:6px; border-bottom:2px solid #e3e7ec;
-  }
-  .bloque-tit .sub-nota{ font-weight:400; font-size:12px; color:#6b7683; margin-left:8px; }
-  .prov-btn .pb-sub{ display:block; font-size:11px; color:#6b7683; margin-top:3px; font-weight:400; }
+  /* Lo propio de esta pantalla es layout: el resto lo pone gp2-modulo.css. */
   td.fecha{ white-space:nowrap; }
-  .sin-dato{ color:#98a1ab; font-style:italic; }
+  .sin-dato{ color:var(--ink-400); font-style:italic; }
 </style>
 </head>
 <body>
@@ -48,27 +43,27 @@
 
     <!-- FASE 0 — elegir proveedor -->
     <div id="fase0">
-      <div class="row"><label class="lbl">Proveedor de Artículo Terminado</label></div>
+      <h2 class="sec-title">Proveedor de Artículo Terminado</h2>
       <div class="provs-grid" id="provGrid"></div>
       <div id="status" class="status">Cargando…</div>
     </div>
 
     <!-- FASE 1 — control del proveedor -->
     <div id="fase1" class="hidden">
-      <div class="row"><label class="lbl" id="fase1Title">Proveedor</label></div>
+      <h2 class="sec-title" id="fase1Title">Proveedor</h2>
 
       <div class="aviso" id="aviso"></div>
 
       <div class="kpis" id="kpis"></div>
 
       <div class="search-box no-print">
-        <input type="text" id="q" placeholder="Buscar por código o descripción…">
+        <input type="search" class="search" id="q" placeholder="Buscar por código o descripción…">
       </div>
 
-      <div class="bloque-tit">
+      <h2 class="sec-title">
         Artículos del proveedor
-        <span class="sub-nota">lo que nos entregó, en cajas y en unidades</span>
-      </div>
+        <span class="meta">lo que nos entregó, en cajas y en unidades</span>
+      </h2>
       <div class="table-wrap">
         <table class="t">
           <thead>
@@ -88,10 +83,10 @@
       </div>
       <div id="artEmpty" class="empty hidden">Este proveedor no tiene artículos cargados en «Articulos x Prov AT».</div>
 
-      <div class="bloque-tit">
+      <h2 class="sec-title">
         Cartón y cajas en poder del proveedor
-        <span class="sub-nota">lo que le mandamos y todavía tiene</span>
-      </div>
+        <span class="meta">lo que le mandamos y todavía tiene</span>
+      </h2>
       <div class="table-wrap">
         <table class="t">
           <thead>
@@ -423,7 +418,7 @@ function renderGrid(){
     var sub = arts + " art." + (cajas ? " · " + fmt(cajas) + " cajas entregadas" : " · sin entregas");
     return '<button class="prov-btn" data-id="' + p.id + '">' +
              esc(p.nombre) +
-             '<span class="pb-sub">' + esc(sub) + '</span>' +
+             '<span class="meta">' + esc(sub) + '</span>' +
            '</button>';
   }).join("");
 
@@ -531,7 +526,7 @@ function render(){
 }
 
 function kpi(lbl, val){
-  return '<div class="kpi"><span class="sub">' + esc(lbl) + "</span><b>" + esc(val) + "</b></div>";
+  return '<div class="kpi"><div class="k">' + esc(lbl) + '</div><div class="v">' + esc(val) + "</div></div>";
 }
 
 /* ===== CSV ===== */

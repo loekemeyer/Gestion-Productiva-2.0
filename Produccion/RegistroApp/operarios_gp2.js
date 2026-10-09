@@ -1,13 +1,13 @@
 "use strict";
 
-/* ⚠ COPIA PARA PROBAR — la FUENTE es cervantes-gp2/app.js de loekemeyer/Registro-Produccion-3.0 (v3.1.10).
+/* ⚠ COPIA PARA PROBAR — la FUENTE es cervantes-gp2/app.js de loekemeyer/Registro-Produccion-3.0 (v3.1.11).
    Copiada con tools/copiar_botonera_de_3_0.py [Elías, 08/10/2026: «GP2 sólo hacer copia y hacer modificaciones para
    testear»]. Lo que tiene que llegar a los operarios se cambia en 3.0, no acá: la próxima copia pisa este archivo.
-   Graba IGUAL que 3.0 (código de la TV, pase, funciones reg_prod_3_0); lo cargado desde acá lleva app_version 'gp2-20261008h/v3.1.10'.
+   Graba IGUAL que 3.0 (código de la TV, pase, funciones reg_prod_3_0); lo cargado desde acá lleva app_version 'gp2-20261009q/v3.1.11'.
    Diferencias con 3.0: claves gp2c_*, p_app "gp2", sin service worker propio y «Volver» al menú de GP2. */
 
 /* ============================================================
-   app.js — Registro Producción 3.0 · Cervantes · botonera de GP2 (v3.1.10)
+   app.js — Registro Producción 3.0 · Cervantes · botonera de GP2 (v3.1.11)
    ESTE ARCHIVO ES LA FUENTE de la botonera de Cervantes desde el 08/10/2026 [Elías: «se va a dejar de modificar en GP2 y
    modificar en este, y GP2 sólo hacer copia y hacer modificaciones para testear»]: los cambios se hacen ACÁ, a mano.
    Nació de la tablet de GP2 (Produccion/RegistroApp/operarios_gp2.js de loekemeyer/Gestion-Productiva-2.0, commit e110890,
@@ -36,7 +36,7 @@
    de ayer), los errores de envío a la auditoría, reintento cada 3 s y envío en segundo plano por el service worker.
    ============================================================ */
 
-const COPIA_GP2 = "gp2-20261008h/v3.1.10";   // va en el app_version de cada toque (GP2 no lleva const de versión)
+const COPIA_GP2 = "gp2-20261009q/v3.1.11";   // va en el app_version de cada toque (GP2 no lleva const de versión)
 
 const SUPABASE_URL = "https://hrxfctzncixxqmpfhskv.supabase.co";
 const SUPABASE_KEY = "sb_publishable_BqpAgZH6ty-9wft10_YMhw_0rcIPuWT";
@@ -180,9 +180,9 @@ function pedirClaveTv(aviso, cancelable) {
     if (viejo) viejo.remove();
     const fondo = document.createElement("div");
     fondo.id = "tvClaveModal";
-    fondo.style.cssText = "position:fixed;inset:0;z-index:400;background:#f1f5f9;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto;";
+    fondo.style.cssText = "position:fixed;inset:0;z-index:400;background:#eef1f5;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto;";
     const caja = document.createElement("div");
-    caja.style.cssText = "background:#fff;border-radius:14px;padding:22px 20px;max-width:340px;width:100%;box-shadow:0 10px 30px rgba(15,23,42,.25);text-align:center;font-family:inherit;";
+    caja.style.cssText = "background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:22px 20px;max-width:340px;width:100%;box-shadow:0 6px 24px rgba(15,23,42,.12);text-align:center;font-family:inherit;";
     const t = document.createElement("div");
     t.style.cssText = "font-size:22px;font-weight:800;color:#0f172a;margin-bottom:6px;";
     t.textContent = "📺 Código de la TV";
@@ -193,7 +193,7 @@ function pedirClaveTv(aviso, cancelable) {
     inp.id = "tvClaveInput";
     inp.type = "text"; inp.inputMode = "numeric"; inp.maxLength = 4; inp.autocomplete = "one-time-code";
     inp.setAttribute("pattern", "[0-9]*");
-    inp.style.cssText = "width:100%;box-sizing:border-box;font-size:34px;letter-spacing:12px;text-align:center;padding:8px;border:2px solid #cbd5e1;border-radius:10px;font-weight:800;";
+    inp.style.cssText = "width:100%;box-sizing:border-box;font-size:34px;letter-spacing:12px;text-align:center;padding:8px;border:1.5px solid #cbd5e1;border-radius:10px;font-weight:800;";
     const err = document.createElement("div");
     err.id = "tvClaveError";
     err.style.cssText = "min-height:20px;margin:8px 0;font-size:14px;font-weight:700;color:#b91c1c;";
@@ -202,11 +202,11 @@ function pedirClaveTv(aviso, cancelable) {
     fila.style.cssText = "display:flex;gap:8px;";
     const ok = document.createElement("button");
     ok.id = "tvClaveOk"; ok.type = "button"; ok.textContent = "Entrar";
-    ok.style.cssText = "flex:1;padding:12px;border-radius:10px;border:none;background:#1e40af;color:#fff;font-size:17px;font-weight:800;";
+    ok.style.cssText = "flex:1;min-height:52px;padding:12px;border-radius:10px;border:none;background:#163e98;color:#fff;font-size:17px;font-weight:700;";
     if (cancelable) {
       const no = document.createElement("button");
       no.id = "tvClaveNo"; no.type = "button"; no.textContent = "Ahora no";
-      no.style.cssText = "flex:1;padding:12px;border-radius:10px;border:1px solid #cbd5e1;background:#f8fafc;font-size:16px;font-weight:700;";
+      no.style.cssText = "flex:1;min-height:52px;padding:12px;border-radius:10px;border:1.5px solid #cbd5e1;background:#fff;font-size:16px;font-weight:600;";
       no.addEventListener("click", () => cerrar(null));
       fila.append(no);
     }
@@ -214,7 +214,7 @@ function pedirClaveTv(aviso, cancelable) {
     caja.append(t, d, inp, err, fila);
     const volver = document.createElement("a");
     volver.id = "tvClaveVolver"; volver.href = "../../GP2_MODULOS.html"; volver.textContent = "← Volver al menú";
-    volver.style.cssText = "display:inline-block;margin-top:14px;font-size:14px;font-weight:600;color:#0e7490;text-decoration:none;";
+    volver.style.cssText = "display:inline-block;margin-top:14px;font-size:14px;font-weight:600;color:#163e98;text-decoration:none;";
     caja.append(volver);
     fondo.appendChild(caja);
     document.body.appendChild(fondo);
@@ -1632,6 +1632,10 @@ async function refrescarCatalogoSiFalta() {
   try { await cargarBundle(); } catch { /* sin catálogo nuevo */ }
   return _catalogoAt !== antes;
 }
+// Sin catálogo (celular nuevo o caché borrado, con la base caída o sin señal) no se puede decir que un legajo o una matriz
+// «no existe»: hay que decir que no hay conexión [auditoría 30/09, «Legajo no encontrado» con la base caída en 2.0; Elías 09/10: «1 si»].
+const AVISO_SIN_CATALOGO = "Sin conexión: todavía no se pudo bajar la lista de legajos y matrices. Probá de nuevo en unos segundos.";
+function hayCatalogo() { return !!(D.empleados && Object.keys(D.empleados).length && D.matricesMap && D.matricesMap.size); }
 async function matrizConocida(n) {
   if (D.matricesMap?.has(n)) return true;
   if (await refrescarCatalogoSiFalta()) return !!D.matricesMap?.has(n);
@@ -1786,7 +1790,7 @@ function pedirMatrizYBalancin() {
     const confirmar = async () => {
       const m = String(inp.value || "").trim();
       if (!/^[0-9]+[A-Za-z]?$/.test(m)) { err.textContent = "Matriz: sólo números"; return; }
-      if (!(await matrizConocida(m))) { err.textContent = "La matriz " + m + " no existe"; return; }
+      if (!(await matrizConocida(m))) { err.textContent = hayCatalogo() ? "La matriz " + m + " no existe" : AVISO_SIN_CATALOGO; return; }
       if (!matrizActiva(m)) { err.textContent = "La matriz " + m + " está dada de baja"; return; }
       const b = String(sel.value || "").trim();
       if (!b) { err.textContent = "Elegí el balancín"; return; }
@@ -1968,14 +1972,14 @@ async function sendFast() {
       alert('Antes de iniciar una nueva matriz (E), enviá al menos 1 Cajón (C).'); return;
     }
     if (!(await matrizConocida(texto))) {
-      alert(`La matriz ${texto} no existe. Verifica el número.`); return;
+      alert(hayCatalogo() ? `La matriz ${texto} no existe. Verifica el número.` : AVISO_SIN_CATALOGO); return;
     }
     if (!matrizActiva(texto)) {
       alert(`La matriz ${texto} está dada de baja, no se usa más.`); return;
     }
   }
   if (selected.code === "TRM" && !cerrando && !(await matrizConocida(texto))) {
-    alert(`La matriz ${texto} no existe.`); return;
+    alert(hayCatalogo() ? `La matriz ${texto} no existe.` : AVISO_SIN_CATALOGO); return;
   }
   if (selected.code === "E" && salidasDeMatriz(texto).length > 1 && !piezaSel) {
     $("error").innerText = "Esta matriz hace varias piezas. Elegí cuál vas a fabricar.";
@@ -2460,10 +2464,9 @@ function openHistDias() {
 async function goToOptions() {
   const legajo = legajoKey();
   if (!legajo) { alert("Ingresa el número de legajo"); return; }
-  if (!D.empleados?.[legajo] && await refrescarCatalogoSiFalta() && !D.empleados?.[legajo]) {
-    alert(`El legajo ${legajo} no existe en el sistema.`); return;
-  }
+  if (!D.empleados?.[legajo]) await refrescarCatalogoSiFalta();
   if (!D.empleados?.[legajo]) {
+    if (!hayCatalogo()) { cargarBundle().catch(() => {}); alert(AVISO_SIN_CATALOGO); return; }
     alert(`El legajo ${legajo} no existe en el sistema.`); return;
   }
   const emp = D.empleados[legajo];

@@ -15,15 +15,12 @@
 <link rel="icon" type="image/png" href="../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../GP2_favicon.png">
 <style>
-  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;align-items:center}
-  .chips .lbl{font-weight:800;font-size:15px;min-width:70px}
-  /* 44px = minimo tactil de la casa (2026-09-03). */
-  .chip{padding:10px 16px;min-height:44px;border-radius:20px;border:2px solid #d0d7de;background:#fff;font-weight:700;font-size:16px;cursor:pointer;color:#111}
-  .chip.active{background:#e7eff8;color:#fff;border-color:#cddaea}
-  input[type=month]{padding:10px;min-height:44px;border:2px solid #d0d7de;border-radius:8px;font-size:18px}
-  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-  table.t td.tot,table.t th.tot{background:#f0f4f8;font-weight:800}
-  .t tbody tr:hover td{background:#f6faff}
+  /* Lo propio de esta pantalla es layout: el resto lo pone gp2-modulo.css. */
+  .filtros{align-items:flex-end;gap:var(--s3) var(--s4)}
+  .filtros .chips{margin:0}
+  .filtros .f-q{flex:1 1 240px}
+  td.num,th.num{white-space:nowrap}
+  table.t td.tot,table.t th.tot,.table-wrap > table.t > tbody > tr > td.tot:first-child{background:var(--ink-50);font-weight:750;color:var(--ink-900)}
 </style>
 </head>
 <body>
@@ -38,14 +35,13 @@
   </div>
 
   <div class="steps">
-    <div class="chips"><span class="lbl">Origen:</span><span id="origChips"></span></div>
-    <div class="chips"><span class="lbl">Tipo:</span><span id="tipoChips"></span></div>
-    <div class="chips">
-      <span class="lbl">Mes:</span><input type="month" id="mes">
-      <span class="lbl" style="margin-left:14px">Medida:</span><span id="medChips"></span>
+    <div class="toolbar filtros">
+      <div class="field"><span class="lbl">Origen</span><div class="chips" id="origChips"></div></div>
+      <div class="field"><span class="lbl">Tipo</span><div class="chips" id="tipoChips"></div></div>
+      <div class="field"><label for="mes">Mes</label><input type="month" id="mes"></div>
+      <div class="field"><span class="lbl">Medida</span><div class="chips" id="medChips"></div></div>
+      <div class="field f-q"><label for="q">Buscar</label><input type="search" class="search" id="q" placeholder="Parte o nombre…"></div>
     </div>
-
-    <div class="search-box"><input type="text" id="q" placeholder="Buscar parte o nombre…"></div>
 
     <div class="table-wrap"><table class="t">
       <thead id="thead"></thead>

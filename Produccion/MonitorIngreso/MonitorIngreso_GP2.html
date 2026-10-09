@@ -14,20 +14,22 @@
 <link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
 <style>
-  /* El código, centrado y grande: se lee desde lejos (la pantalla del taller). Sin ancho fijo ni
-     huecos: el bloque mide lo que miden el código y la rueda. */
-  .monitor{display:flex;flex-direction:column;align-items:center;gap:2vh;padding:4vh 0 3vh}
-  .rot{font-size:clamp(18px,3vw,40px);color:#6b7280;letter-spacing:2px;text-transform:uppercase}
-  .clave-fila{display:flex;align-items:center;justify-content:center;gap:3vw;flex-wrap:wrap}
-  #clave{font-size:clamp(90px,20vw,320px);font-weight:bold;letter-spacing:.08em;font-variant-numeric:tabular-nums;line-height:1;color:#1e293b}
+  /* Pantalla de TV: el código es el protagonista, centrado en lo que queda debajo de la barra.
+     Se lee desde lejos (la pantalla del taller). Tipografía y colores son los del sistema. */
+  .monitor{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2vh;
+    min-height:calc(100dvh - var(--bar-h) - 64px);padding:3vh 0}
+  .rot{font-size:clamp(18px,3vw,40px);font-weight:700;color:var(--ink-500);letter-spacing:.08em;text-transform:uppercase}
+  .clave-fila{display:flex;align-items:center;justify-content:center;gap:3vw;flex-wrap:wrap;
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-1);padding:2vh 4vw}
+  #clave{font-size:clamp(90px,20vw,320px);font-weight:800;letter-spacing:.08em;font-variant-numeric:tabular-nums;line-height:1;color:var(--ink-900)}
   .rueda{width:clamp(60px,9vw,150px);height:clamp(60px,9vw,150px)}
   .rueda circle{fill:none;stroke-width:10}
-  .rueda .fondo{stroke:#e5e7eb}
-  .rueda .arco{stroke:#163e98;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset .9s linear}
-  .rueda text{font-size:30px;font-weight:bold;fill:#1e293b;text-anchor:middle;dominant-baseline:central}
-  #estado{font-size:18px;color:#6b7280;min-height:1.2em;text-align:center}
-  #estado.err{color:#b42318}
-  .nota{max-width:640px;font-size:16px;color:#555;text-align:center;line-height:1.4}
+  .rueda .fondo{stroke:var(--ink-200)}
+  .rueda .arco{stroke:var(--brand-600);stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset .9s linear}
+  .rueda text{font-size:30px;font-weight:700;fill:var(--ink-900);text-anchor:middle;dominant-baseline:central;font-family:var(--font)}
+  #estado{font-size:var(--fs-h2);color:var(--ink-500);min-height:1.2em;text-align:center}
+  #estado.err{color:var(--err-700);font-weight:600}
+  .nota{max-width:640px;font-size:var(--fs-base);color:var(--ink-600);text-align:center;line-height:1.45}
 </style>
 </head>
 <body>

@@ -6,95 +6,74 @@
      sale de GP2.est_madre.proy_uni_mes (CONOCIMIENTO 4h). Se borro la columna
      articulo.estadistica_madre_uni_mes y abm_articulo_upsert ya no recibe p_estadistica: el campo
      del modal muestra a.est (lo trae abm_articulos_bundle desde est_madre) y no se edita aca. -->
+<link rel="stylesheet" href="../../gp2-modulo.css?v=20261009ds">
 <style>
- *{box-sizing:border-box}
- body{margin:0;background:#ebeff4;color:#385475;font:13px/1.4 -apple-system,Segoe UI,Roboto,sans-serif}
- .top{background:linear-gradient(90deg,#e7f3f8,#e7f3f8);padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
- .top h1{margin:0;font-size:18px;color:#1c8391}
- .top .sub{font-size:11px;color:#336d7a}
- .warn{margin:10px 20px 0;padding:8px 14px;background:#f7f1e8;border:1px solid #eadfcd;border-radius:6px;color:#91651c;font-size:11px}
- .filters{padding:12px 20px;background:#ebf0f5;border-bottom:1px solid #d1dae6;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
- .filters label{font-size:11px;text-transform:uppercase;color:#475569;letter-spacing:.5px;margin-right:6px}
- .filters select,.filters input{background:#eaeff6;color:#385475;border:1px solid #cddaea;border-radius:6px;padding:6px 10px;font-size:18px;font-family:inherit}
- .filters input{min-width:220px}
- .filters select{min-width:200px}
- /* 44px = minimo tactil de la casa (2026-09-03). */
- .btn{background:#e9eff7;color:#385475;border:none;border-radius:6px;padding:10px 14px;min-height:44px;cursor:pointer;font-size:17px;font-family:inherit}
- .btn:hover{background:#e9eff7}
- .btn:disabled{background:#ebeef4;color:#5a6a7a;cursor:not-allowed}
- .btn-new{background:#e9f6f0}.btn-new:hover:not(:disabled){background:#eaf6f0}
- .kpis{padding:12px 20px;display:flex;gap:14px;flex-wrap:wrap}
- .kpi{background:#ebf0f5;border:1px solid #d1dae6;border-radius:8px;padding:10px 14px;min-width:110px}
- .kpi .n{font-size:22px;font-weight:800;color:#1c8391}
- .kpi .lb{font-size:10px;text-transform:uppercase;color:#475569;letter-spacing:.6px}
- .content{padding:0 20px 40px}
- .art-section{margin:14px 0;border:1px solid #d1dae6;border-radius:8px;background:#eaeff6;overflow:hidden}
- .art-head{padding:9px 14px;background:linear-gradient(90deg,#e9eff6,#ebf0f5);display:flex;align-items:center;gap:14px;cursor:pointer;user-select:none;flex-wrap:wrap}
- .art-head:hover{background:#e9eff6}
- .art-head .caret{color:#475569;transition:transform .15s;display:inline-block;width:12px}
+ /* 2026-10-09: sistema de diseño único (gp2-modulo.css). Lo que queda acá es layout
+    propio: acordeón por artículo (.grp/.gh del sistema), editor de BOM y modal. */
+ .filtros .field.grow{flex:1 1 240px}
+ .filtros select{min-width:180px;max-width:100%}
+ .filtros > .btn{align-self:flex-end}
+ /* acordeón por artículo */
+ .art-head{flex-wrap:wrap;user-select:none}
+ .art-head .caret{color:var(--ink-500);transition:transform .15s;display:inline-block;width:12px}
  .art-section.open .art-head .caret{transform:rotate(90deg)}
- .art-head .cod{color:#1c8391;font-weight:800;font-size:15px}
- .art-head .fam{color:#165d98;font-size:12px}
- .art-head .stats{margin-left:auto;display:flex;gap:16px;font-size:11px;color:#475569;align-items:center;flex-wrap:wrap}
- .art-head .stats b{color:#385475;font-size:13px}
+ .art-head .cod{font-size:var(--fs-h3)}
+ .art-head .fam{color:var(--ink-600);font-size:var(--fs-sm);font-weight:600}
+ .art-head .stats{margin-left:auto;display:flex;gap:14px;font-size:var(--fs-sm);font-weight:500;color:var(--ink-500);align-items:center;flex-wrap:wrap}
+ .art-head .stats b{color:var(--ink-900);font-size:var(--fs-td)}
  .art-head .acts{display:flex;gap:6px}
- .art-head .acts .btn{padding:6px 12px;min-height:44px;font-size:15px}
- .art-body{display:none;padding:0;overflow-x:auto}
+ .art-head .acts .btn{padding:0 14px;font-size:15px}
+ .art-section:not(.open) > .gh{border-bottom:0}
+ .art-body{display:none;padding:0 0 12px}
  .art-section.open .art-body{display:block}
- .metarow{padding:8px 14px;background:#eaeff6;border-bottom:1px solid #d1dae6;font-size:11px;color:#385775;display:flex;gap:22px;flex-wrap:wrap}
- .metarow b{color:#385475}
- table{border-collapse:collapse;font-size:12px;width:100%;min-width:640px}
- th,td{padding:6px 12px;text-align:left;border-bottom:1px solid #d1dae6;white-space:nowrap}
- th{color:#475569;text-transform:uppercase;font-size:10px;letter-spacing:.4px;background:#e9eff6}
- td.num{text-align:right;font-family:ui-monospace,SF Mono,monospace}
- tbody tr:hover{background:#eaeff6}
- .sect-tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
- .st-crudo{background:#f8f2e7;color:#92611b}
- .st-procesado{background:#e7f8f3;color:#258858}
- .st-transito{background:#e9eff7;color:#165d98}
- .st-afilado{background:#f4f2eb;color:#867828}
- .st-fleje{background:#f8e7ee;color:#98163f}
- .st-plástico{background:#efe9f6;color:#4f1698}
- .st-bombilla{background:#e7f4f8;color:#1c8391}
- .st-remache{background:#f3eded;color:#832b2b}
- .st-garage{background:#edf4eb;color:#5d8628}
- .st-cartón{background:#f7f1e9;color:#7c6331}
- .st-caja{background:#ebeef4;color:#344e7a}
- .st-terminado{background:#e7f8f2;color:#1c9166}
- .st-none{background:#222;color:#888}
- .empty{padding:24px;color:#475569;font-style:italic}
- .muted{color:#5a6a7a}
- .btn-danger{background:#f7e8ec}.btn-danger:hover:not(:disabled){background:#f7e8ec}
- .topmsg{margin:10px 20px 0;padding:8px 14px;border-radius:6px;font-size:12px;display:none}
- .topmsg.ok{display:block;background:#e8f7f0;border:1px solid #cdeadc;color:#1c9157}
- .topmsg.err{display:block;background:#f7e9e9;border:1px solid #eacdcd;color:#981616}
- .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.62);display:none;align-items:flex-start;justify-content:center;z-index:200;overflow:auto;padding:44px 16px}
+ .art-body > .table-wrap,.art-body > .empty,.art-body > .acc,.art-body > .bom-edit{margin:0 16px}
+ .art-body > .empty + .btn{margin-left:16px}
+ .art-body td,.art-body th{white-space:nowrap}
+ .acc{margin-top:8px}
+ .metarow{padding:10px 16px;font-size:var(--fs-sm);color:var(--ink-500);display:flex;gap:6px 22px;flex-wrap:wrap}
+ .metarow b{color:var(--ink-900);font-weight:650}
+ /* editor de BOM */
+ .bom-edit{border:1.5px solid var(--brand-200);background:var(--brand-50);border-radius:var(--r-lg);padding:12px;margin-top:4px}
+ .bom-edit .bt{font-weight:700;color:var(--ink-900);margin-bottom:8px}
+ .bom-edit .bq{width:96px;text-align:right}
+ .bom-edit .badd{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+ .bom-edit #bomAdd{min-width:220px}
+ /* mensajes */
+ .topmsg,.fmsg{display:none;padding:8px 12px;border-radius:var(--r-md);font-size:14.5px}
+ .topmsg{margin:var(--s3) 0}
+ .topmsg.ok,.fmsg.ok{display:block;background:var(--ok-50);border:1px solid var(--ok-200);border-left:4px solid var(--ok-600);color:var(--ok-700)}
+ .topmsg.err,.fmsg.err{display:block;background:var(--err-50);border:1px solid var(--err-200);border-left:4px solid var(--err-600);color:var(--err-700)}
+ #bomMsg{margin-top:8px}
+ /* modal alta/edición */
+ .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:flex-start;justify-content:center;z-index:200;overflow:auto;padding:44px 16px}
  .modal-bg.show{display:flex}
- .modal{background:#eaeff6;border:1px solid #cddaea;border-radius:10px;max-width:480px;width:100%}
- .modal h2{margin:0;padding:14px 18px;font-size:16px;color:#1c8391;border-bottom:1px solid #d1dae6;background:linear-gradient(90deg,#e9eff6,#ebf0f5);border-radius:10px 10px 0 0}
- .modal .mbody{padding:16px 18px;display:flex;flex-direction:column;gap:12px}
- .fld{display:flex;flex-direction:column;gap:4px}
- .fld label{font-size:11px;text-transform:uppercase;color:#475569;letter-spacing:.5px}
- .fld input,.fld select{background:#eaeff6;color:#385475;border:1px solid #cddaea;border-radius:6px;padding:7px 10px;font-size:18px;font-family:inherit}
- .modal .foot{padding:12px 18px;border-top:1px solid #d1dae6;display:flex;gap:8px;justify-content:flex-end;align-items:center}
- .fmsg{padding:8px 12px;border-radius:6px;font-size:12px;display:none}
- .fmsg.ok{display:block;background:#e8f7f0;border:1px solid #cdeadc;color:#1c9157}
- .fmsg.err{display:block;background:#f7e9e9;border:1px solid #eacdcd;color:#981616}
+ .modal{max-width:480px;width:100%}
+ .modal .mbody{display:flex;flex-direction:column;gap:12px}
+ .modal .field input,.modal .field select{width:100%}
+ .modal .foot{padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;align-items:center}
+ #fEst[readonly]{background:var(--ink-100);color:var(--ink-500)}
+ @media (max-width:640px){
+  .filtros .field{flex:1 1 100%}
+  .filtros select{min-width:0}
+  .art-body > .table-wrap,.art-body > .empty,.art-body > .acc,.art-body > .bom-edit{margin:0 8px}
+  .art-head .acts{width:100%}
+ }
 </style><link rel="icon" type="image/png" href="../../GP2_favicon.png">
 <link rel="apple-touch-icon" href="../../GP2_favicon.png">
-<link rel="stylesheet" href="../../gp2-claro.css?v=20260903b">
 </head>
 <body>
-<div id="gp2-logobar" style="position:relative;background:#e8edf7;text-align:center;padding:6px 0;border-bottom:1px solid #d0dae7"><a href="../../GP2_MODULOS.html" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#385475;text-decoration:none;font-weight:700;font-size:15px;padding:5px 10px;border:1px solid #d1d9e5;border-radius:8px;background:#e9eef7">← Atrás</a><a href="../../GP2_MODULOS.html" style="text-decoration:none"><img src="../../GP2_logo.png" alt="GP2 · Gestión Productiva" style="height:40px;vertical-align:middle"></a></div>
-
-<div class="top">
-  <div>
-    <h1>📦 ABM Artículos</h1>
-    <div class="sub">Alta/Baja/Modificación de artículos con su BOM — código, familia, caja, unidades y componentes. Datos: schema GP2.</div>
+<div class="card">
+  <div class="header">
+    <h1>ABM Artículos <small>alta, baja y modificación con su BOM</small></h1>
+    <div class="hbtns">
+      <button type="button" class="primary" id="btnNuevo">+ Nuevo artículo</button>
+      <button type="button" id="btnCSV">Exportar CSV</button>
+      <a class="back" href="../../GP2_MODULOS.html">Atrás</a>
+    </div>
   </div>
-</div>
+  <div class="steps">
 
-<div class="warn" id="warnWrite">
+<div class="aviso info" id="warnWrite">
   ✍️ <b>Escritura habilitada.</b> Podés dar de <b>alta</b>, <b>editar</b> y <b>eliminar</b> el
   encabezado del artículo y también <b>editar el BOM</b> (líneas de partes: agregar, sacar y
   cambiar cantidades) con "✏️ Editar BOM". Al guardar, el sistema avisa si la receta quedó
@@ -102,36 +81,33 @@
   de la receta) — completar rutas/ruta_paso en ese caso (orden primordial de la guía).
 </div>
 
-<div class="filters">
-  <label>Familia</label>
-  <select id="selFam"><option value="">— todas —</option></select>
-  <label style="margin-left:8px">Artículo</label>
-  <select id="selArt"><option value="">— todos —</option></select>
-  <label style="margin-left:8px">Buscar</label>
-  <input id="q" placeholder="Código, familia o componente">
-  <button class="btn btn-new" id="btnNuevo">+ Nuevo artículo</button>
-  <button class="btn" id="expAll" style="margin-left:auto">Expandir todo</button>
-  <button class="btn" id="btnCSV">Exportar CSV</button>
+<div class="toolbar filtros">
+  <div class="field"><label for="selFam">Familia</label><select id="selFam"><option value="">— todas —</option></select></div>
+  <div class="field"><label for="selArt">Artículo</label><select id="selArt"><option value="">— todos —</option></select></div>
+  <div class="field grow"><label for="q">Buscar</label><input id="q" class="search" placeholder="Código, familia o componente"></div>
+  <button class="btn btn-secondary push" id="expAll" type="button">Expandir todo</button>
 </div>
 <div class="topmsg" id="topMsg"></div>
 <div class="kpis" id="kpis"></div>
-<div class="content" id="sections"></div>
+<div id="sections"></div>
+  </div>
+</div>
 
 <div class="modal-bg" id="modalBg">
-  <div class="modal">
-    <h2 id="mTitle">Nuevo artículo</h2>
-    <div class="mbody">
+  <div class="modal panel">
+    <div class="panel-head" id="mTitle">Nuevo artículo</div>
+    <div class="mbody panel-body">
       <div class="fmsg" id="formMsg"></div>
       <input type="hidden" id="fId">
-      <div class="fld"><label>Código *</label><input id="fCod" inputmode="numeric" data-miles="no" placeholder="Ej: 31" autocomplete="off"></div>
-      <div class="fld"><label>Familia</label><input id="fFam" list="famList" placeholder="Elegí de la lista o escribí una nueva" autocomplete="off"><datalist id="famList"></datalist></div>
-      <div class="fld"><label>Caja (Sector Caja)</label><select id="fCaja"><option value="">— sin caja —</option></select></div>
-      <div class="fld"><label>Artículos por caja</label><input inputmode="numeric" id="fPor" type="number" min="0" step="1" placeholder="Ej: 24"></div>
-      <div class="fld"><label>Estadística madre (uni/mes)</label><input inputmode="decimal" id="fEst" type="number" step="any" placeholder="—" readonly title="Solo lectura: sale de la Est Madre" style="background:#e3e8ef;color:#5a6a7a"><small class="muted">Solo lectura: sale de la Est Madre (est_madre), no se carga acá.</small></div>
+      <div class="field"><label for="fCod">Código *</label><input id="fCod" inputmode="numeric" data-miles="no" placeholder="Ej: 31" autocomplete="off"></div>
+      <div class="field"><label for="fFam">Familia</label><input id="fFam" list="famList" placeholder="Elegí de la lista o escribí una nueva" autocomplete="off"><datalist id="famList"></datalist></div>
+      <div class="field"><label for="fCaja">Caja (Sector Caja)</label><select id="fCaja"><option value="">— sin caja —</option></select></div>
+      <div class="field"><label for="fPor">Artículos por caja</label><input inputmode="numeric" id="fPor" type="number" min="0" step="1" placeholder="Ej: 24"></div>
+      <div class="field"><label for="fEst">Estadística madre (uni/mes)</label><input inputmode="decimal" id="fEst" type="number" step="any" placeholder="—" readonly title="Solo lectura: sale de la Est Madre"><small class="muted">Solo lectura: sale de la Est Madre (est_madre), no se carga acá.</small></div>
     </div>
     <div class="foot">
-      <button class="btn" id="fCancel">Cancelar</button>
-      <button class="btn btn-new" id="fSave">Guardar</button>
+      <button class="btn btn-secondary" id="fCancel">Cancelar</button>
+      <button class="btn btn-primary" id="fSave">Guardar</button>
     </div>
   </div>
 </div>
@@ -231,19 +207,19 @@ function render(){
   var totalComp=0,totalArt=(D.art||[]).length;
   vis.forEach(function(a){totalComp+=(a.comp||[]).length;});
   document.getElementById('kpis').innerHTML=
-    '<div class="kpi"><div class="n">'+totalArt+'</div><div class="lb">Artículos (total)</div></div>'+
-    '<div class="kpi"><div class="n">'+vis.length+'</div><div class="lb">En vista</div></div>'+
-    '<div class="kpi"><div class="n">'+totalComp+'</div><div class="lb">Componentes (vista)</div></div>';
+    '<div class="kpi"><div class="k">Artículos (total)</div><div class="v">'+totalArt+'</div></div>'+
+    '<div class="kpi info"><div class="k">En vista</div><div class="v">'+vis.length+'</div></div>'+
+    '<div class="kpi"><div class="k">Componentes (vista)</div><div class="v">'+totalComp+'</div></div>';
 
   if(vis.length===0){cont.innerHTML='<div class="empty">Sin artículos para el filtro actual.</div>';return;}
 
   vis.forEach(function(a){
     var comps=a.comp||[];
     var sec=document.createElement('div');
-    sec.className='art-section'+(open[a.cod]?' open':'');
+    sec.className='grp art-section'+(open[a.cod]?' open':'');
     sec.id='art-'+a.cod;
 
-    var head=document.createElement('div');head.className='art-head';
+    var head=document.createElement('div');head.className='gh art-head';
     var pesoTot=0,hayPeso=false;
     comps.forEach(function(c){
       if(c.kg!=null&&c.kg!==''){var k=Number(c.kg)*Number(c.q||1);if(isFinite(k)){pesoTot+=k;hayPeso=true;}}
@@ -257,7 +233,7 @@ function render(){
         (hayPeso?'<span>Peso art: <b>'+(Math.round(pesoTot*100000)/100000)+'</b> kg</span>':'')+
       '</div>'+
       '<div class="acts">'+
-        '<button class="btn" data-act="edit" data-cod="'+esc(a.cod)+'">Editar</button>'+
+        '<button class="btn btn-secondary" data-act="edit" data-cod="'+esc(a.cod)+'">Editar</button>'+
         '<button class="btn btn-danger" data-act="del" data-cod="'+esc(a.cod)+'">Eliminar</button>'+
       '</div>';
     head.addEventListener('click',function(e){
@@ -282,11 +258,11 @@ function render(){
     }else if(comps.length===0){
       body.innerHTML=meta+
         '<div class="empty">Sin componentes cargados para este artículo.</div>'+
-        '<button class="btn" data-act="bom" data-cod="'+esc(a.cod)+'">✏️ Editar BOM</button>';
+        '<button class="btn btn-secondary" data-act="bom" data-cod="'+esc(a.cod)+'">✏️ Editar BOM</button>';
     }else{
-      var h=meta+'<table><thead><tr>'+
+      var h=meta+'<div class="table-wrap free"><table class="t"><thead><tr>'+
         '<th>Cód. parte</th><th>Descripción</th><th>Sector</th>'+
-        '<th>Partes/uni</th><th>Kg x uni</th><th>Uni x cajón</th><th>UM</th>'+
+        '<th class="num">Partes/uni</th><th class="num">Kg x uni</th><th class="num">Uni x cajón</th><th>UM</th>'+
         '</tr></thead><tbody>';
       comps.forEach(function(c){
         var tipo=sectTipo(c.s)||'';
@@ -294,15 +270,15 @@ function render(){
         h+='<tr>'+
           '<td>'+esc(c.cod||'')+'</td>'+
           '<td>'+esc(c.d||'')+'</td>'+
-          '<td>'+(tipo?'<span class="sect-tag '+cls+'">'+esc(tipo)+'</span>':'<span class="muted">—</span>')+'</td>'+
+          '<td>'+(tipo?'<span class="badge sect-tag '+cls+'">'+esc(tipo)+'</span>':'<span class="muted">—</span>')+'</td>'+
           '<td class="num">'+fmtQ(c.q)+'</td>'+
           '<td class="num">'+(c.kg!=null?fmtKg(c.kg):'<span class="muted">—</span>')+'</td>'+
           '<td class="num">'+(c.uxc!=null?esc(c.uxc):'<span class="muted">—</span>')+'</td>'+
           '<td>'+esc(c.um||'')+'</td>'+
         '</tr>';
       });
-      h+='</tbody></table>'+
-        '<div style="margin-top:8px"><button class="btn" data-act="bom" data-cod="'+esc(a.cod)+'">✏️ Editar BOM</button></div>';
+      h+='</tbody></table></div>'+
+        '<div class="acc"><button class="btn btn-secondary" data-act="bom" data-cod="'+esc(a.cod)+'">✏️ Editar BOM</button></div>';
       body.innerHTML=h;
     }
     sec.appendChild(body);
@@ -340,31 +316,28 @@ function exportCSV(){
 var bomEdit=null; // {cod, artId, lineas:[{cid,cod,d,s,q}]}
 
 function bomEditHtml(a){
-  var h='<div class="bom-edit" style="border:2px solid #cdd6ea;border-radius:10px;padding:12px;margin-top:8px">'+
-    '<div style="font-weight:800;margin-bottom:8px">✏️ Editando receta de '+esc(a.cod)+'</div>'+
-    '<table><thead><tr><th>Cód. parte</th><th>Descripción</th><th>Sector</th><th>Partes/uni</th><th></th></tr></thead><tbody>';
+  var h='<div class="bom-edit">'+
+    '<div class="bt">✏️ Editando receta de '+esc(a.cod)+'</div>'+
+    '<div class="table-wrap free"><table class="t"><thead><tr><th>Cód. parte</th><th>Descripción</th><th>Sector</th><th class="num">Partes/uni</th><th></th></tr></thead><tbody>';
   bomEdit.lineas.forEach(function(l,i){
     var tipo=sectTipo(l.s)||'';
     h+='<tr>'+
       '<td>'+esc(l.cod)+'</td><td>'+esc(l.d||'')+'</td><td>'+esc(tipo)+'</td>'+
-      '<td class="num"><input inputmode="decimal" type="number" step="any" min="0" value="'+esc(l.q)+'" data-bq="'+i+'" '+
-        'style="width:90px;text-align:right;padding:6px;border-radius:6px;border:1px solid #d4dae3;color:#111;font-size:18px"></td>'+
-      '<td><button class="btn btn-danger" data-act="bomrm" data-i="'+i+'">✕</button></td>'+
+      '<td class="num"><input class="bq" inputmode="decimal" type="number" step="any" min="0" value="'+esc(l.q)+'" data-bq="'+i+'"></td>'+
+      '<td><button class="btn btn-danger btn-icon" data-act="bomrm" data-i="'+i+'">✕</button></td>'+
     '</tr>';
   });
-  h+='</tbody></table>'+
-    '<div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap">'+
-      '<input id="bomAdd" list="bomPartes" placeholder="Agregar parte (código)…" '+
-        'style="padding:8px;border-radius:6px;border:1px solid #d4dae3;color:#111;font-size:18px;min-width:220px">'+
+  h+='</tbody></table></div>'+
+    '<div class="badd">'+
+      '<input id="bomAdd" list="bomPartes" placeholder="Agregar parte (código)…">'+
       '<datalist id="bomPartes">'+
         (D.partes||[]).map(function(p){return '<option value="'+esc(p.cod)+'">'+esc(p.cod)+' — '+esc(p.d||'')+'</option>';}).join('')+
       '</datalist>'+
-      '<button class="btn" data-act="bomadd" data-cod="'+esc(a.cod)+'">+ Agregar</button>'+
-      '<span style="flex:1"></span>'+
-      '<button class="btn btn-new" data-act="bomsave" data-cod="'+esc(a.cod)+'">💾 Guardar receta</button>'+
-      '<button class="btn" data-act="bomcancel">Cancelar</button>'+
+      '<button class="btn btn-secondary" data-act="bomadd" data-cod="'+esc(a.cod)+'">+ Agregar</button>'+
+      '<button class="btn btn-primary push" data-act="bomsave" data-cod="'+esc(a.cod)+'">💾 Guardar receta</button>'+
+      '<button class="btn btn-secondary" data-act="bomcancel">Cancelar</button>'+
     '</div>'+
-    '<div class="fmsg" id="bomMsg" style="margin-top:8px"></div>'+
+    '<div class="fmsg" id="bomMsg"></div>'+
   '</div>';
   return h;
 }
@@ -584,7 +557,7 @@ async function __boot(){
     initABM();
     loadFormOptions();
   }catch(e){
-    document.body.innerHTML='<p style="padding:24px;font-family:system-ui;color:#981616">Error cargando datos de Supabase: '+(e.message||e)+'</p>';
+    document.getElementById('sections').innerHTML='<div class="aviso err">Error cargando datos de Supabase: '+GP2UI.esc(e.message||e)+'</div>';
     console.error(e);
   }finally{document.body.style.cursor='';}
 }
